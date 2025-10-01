@@ -641,17 +641,57 @@ With 40 training applications and expected standard deviation of 20%, our design
 
 **Active Papers Location**: `/mnt/projects/ICCM/docs/papers/` (current versions only)
 
-### Current Status (2025-10-01)
+### Current Status (2025-10-01) - v3 Update Complete
 
 - **v1 archived**: All initial versions backed up to `archive/v1/`
-- **v2 archived**: Paper 05 revisions archived to `archive/v2/`
-- **v3 archived**: Master document v3 archived before v4 update
-- **Active versions**: Working papers in main directory
+- **v2.1 archived**: All v2.1 papers backed up to `archive/v2.1/` before v3 updates
+- **v3 updates complete**: 11 papers updated incorporating Gemini 2.5 Pro and OpenAI GPT-4.1 feedback
+- **Active versions**: Mix of v3 (updated) and v2.1 (pending update) in main directory
 
-**Paper Status Summary:**
-- **Complete drafts (16 papers)**: 00, 01, 02, 03A, 03B, 04, 05, 06B, 07, 08, 09, 10, 11, F01, F02, F03
-- **Partial drafts (1 paper)**: 06A (sections 1-5 complete)
-- **All papers have at least partial draft status**: 17/17 papers complete!
+**v3 Paper Status Summary:**
+
+**✅ Fully Updated to v3 (9 papers):**
+1. **00_Master_Document_v3.md** - Empirical validation methodology, statistical rigor, backup strategy
+2. **01_ICCM_Primary_Paper_v3.md** - Validation strategy, three-baseline comparison, limitations framing
+3. **02_Progressive_Training_Methodology_v3.md** - Canary set (10 apps), RAG baseline, synthetic data plan
+4. **04A_Code_Execution_Feedback_v3.md** - Gold standard process, human validation metrics
+5. **05_CET_D_Requirements_Engineering_Implementation_v3.md** - Power analysis, scaling roadmap
+6. **06_Requirements_Validation_Through_Reconstruction_Testing_v3.md** - Human validation, comparison methodology
+7. **08_Test_Lab_Infrastructure_v3.md** - Backup and disaster recovery
+8. **13_Bidirectional_Processing_v3.md** - Security roadmap for production
+9. **14_Edge_CET_P_v3.md** - Production security considerations
+
+**🚧 Reframed to v3 (2 papers - content reduction in progress):**
+10. **07A_Self_Bootstrapping_Development_v3.md** - Reframed as aspirational future work (abstract/intro complete)
+11. **07B_Continuous_Self_Improvement_v3.md** - Reframed as highly aspirational future work (abstract complete)
+
+**⏳ Still v2.1 (Pending v3 Update - 6 papers):**
+- 03_CET_Architecture_Specialization_v2.1.md
+- 04B_Production_Learning_Pipeline_v2.1.md
+- 09_Containerized_Code_Execution_for_Small_Labs_v2.1.md
+- 10_Testing_Infrastructure_v2.1.md
+- 11_LLM_Orchestra_v2.1.md
+- 12_Conversation_Storage_Retrieval_v2.1.md
+
+**v3 Update Summary:**
+- **Reviewer feedback addressed**: All 8 critical items from Gemini 2.5 Pro and OpenAI GPT-4.1 incorporated
+- **Consistency verified**: 40/10 split, three-baseline comparison, statistical rigor consistent across all core papers
+- **Safety enhanced**: Papers 07A/07B reframed with comprehensive safety boundaries
+- **Documentation complete**: V3_CHANGELOG.md created with full update details
+- **Archival complete**: All v2.1 papers backed up before v3 modifications
+
+**Key v3 Enhancements:**
+- ✅ Hold-out validation set (10 apps never trained on)
+- ✅ Statistical rigor (paired t-test, α=0.05, 80% power)
+- ✅ RAG baseline comparison (competitive automated approach)
+- ✅ Human validation metrics (percent agreement tracking)
+- ✅ Gold standard process (2 reviewers + tiebreaker)
+- ✅ Backup strategy (3-2-1 rule, nightly NAS backups)
+- ✅ Limitations as strengths ("quality over quantity" framing)
+- ✅ Scaling roadmap (50→500→3000 apps if successful)
+- ✅ Security roadmaps for future production deployment
+
+**Reviewer Verdict:** "You are ready to proceed." (Both Gemini 2.5 Pro and OpenAI GPT-4.1)
 
 ---
 
