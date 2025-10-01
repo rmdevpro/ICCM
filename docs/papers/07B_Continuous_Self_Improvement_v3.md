@@ -1,8 +1,32 @@
-# Continuous Self-Improvement: CET-D Optimizing and Evolving Existing Systems
+# Continuous Self-Improvement: CET-D Optimizing and Evolving Existing Systems (Future Work)
+
+## Changelog
+
+### v3 (2025-10-01) - IN PROGRESS
+- **Major Reframing**: Repositioned from current achievement to aspirational future work
+- **Target**: Reduce from 1715 lines to ~1000 lines (42% reduction) per reviewer feedback
+- **Status**: Abstract and Introduction being reframed to emphasize future work
+- **Added**: Mandatory human review requirements throughout (to be completed)
+- **Removed**: Claims of autonomous optimization without human oversight (in progress)
+- **Changed**: All performance metrics reframed as targets, not achieved results (in progress)
+- **Rationale**: Gemini and OpenAI reviewers flagged continuous self-improvement as overly ambitious
+- **Dependency**: Contingent on Paper 07A (Self-Bootstrapping) proving feasible first
+- **Process**: v2.1 archived before v3 reframing
+
+**Note**: This v3 update is in progress. Abstract and Introduction reframing ongoing.
+Sections 2-7 content reduction from detailed implementations to brief future work discussions pending.
+
+### v2.1 (2025-10-01) - ARCHIVED
+- Original version presenting continuous self-improvement as current capability
+- v2.1 archived to `/archive/v2.1/` before v3 reframing
+
+---
 
 ## Abstract
 
-Building on the self-bootstrapping development capabilities established in Paper 06A, this paper presents CET-D's ability to continuously improve existing systems through automated performance optimization, bug detection and fixing, documentation generation, and architectural evolution. We demonstrate that context engineering transformers can not only build new capabilities but also systematically optimize and refine existing code through iterative self-improvement cycles. Our approach achieves 25% performance improvement, 40% development velocity acceleration, and 20% training cost reduction through automated optimization patterns learned from execution feedback. Results validate that continuous self-improvement is a natural extension of the self-bootstrapping paradigm, enabling CET-D to evolve both its own implementation and the systems it helps develop.
+**Note: This paper presents highly aspirational future work, not current implementation.**
+
+Assuming Paper 07A's limited self-bootstrapping proves viable (generating simple tools under strict human oversight), an even more ambitious long-term vision involves continuous self-improvement—CET-D potentially optimizing existing code for performance, detecting bugs, generating documentation, and suggesting architectural improvements. This paper outlines the theoretical approach and emphasizes that such capabilities would require extensive safety mechanisms, mandatory human review for all changes, and proven track records before any production consideration. This represents exploratory research directions far beyond our proof-of-concept scope, dependent on multiple precursor validations, and should be viewed as a distant future vision rather than near-term implementation.
 
 ## 1. Introduction
 

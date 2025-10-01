@@ -2,7 +2,18 @@
 
 ## Changelog
 
-### v2.1.0 (2025-10-01)
+### v3 (2025-10-01)
+- **Added**: Section 9.3 - Gold Standard Creation Process (2 reviewers + tiebreaker resolution)
+- **Added**: Section 9.4 - Human Validation and Percent Agreement Tracking methodology
+- **Added**: Four-step gold standard workflow (independent creation → comparison → resolution → validation)
+- **Added**: Expected gold standard quality metrics and creation cost estimates
+- **Added**: Percent agreement methodology appropriate for 5-person research lab
+- **Added**: Agreement metrics progression and disagreement resolution workflow
+- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
+- **Rationale**: Strengthen human validation rigor while maintaining lab feasibility
+- **Process**: v2.1 archived before v3 modifications
+
+### v2.1.0 (2025-10-01) - ARCHIVED
 - **Major Version Change**: Restructured from code error analysis to requirements validation
 - **Changed**: Focus from debugging code to validating requirements through reconstruction
 - **Changed**: Feedback signals from compilation errors to test pass rates
@@ -10,6 +21,7 @@
 - **Maintained**: Docker execution infrastructure unchanged
 - **Reduced**: From 1836 lines to ~900 lines (right-sizing)
 - **Reason**: Requirements validation provides objective feedback for CET training
+- **Process**: v2.1 archived to `/archive/v2.1/` before v3 updates
 
 ---
 
@@ -804,6 +816,155 @@ success_thresholds = {
 8. Update CET weights based on reconstruction success
 
 **Success Criteria**: Application achieves target quality thresholds across all metrics.
+
+### 9.3 Gold Standard Creation Process
+
+**Manual Requirements Baseline:**
+
+To establish ground truth for CET-D training and evaluation, we create manual gold standard requirements through a rigorous multi-reviewer process:
+
+```python
+gold_standard_workflow = {
+    'step_1_independent_creation': {
+        'reviewers': 2,
+        'process': 'Each expert independently creates requirements from codebase',
+        'constraints': 'No communication between reviewers',
+        'time_limit': '2-4 hours per application',
+        'output': 'Two independent requirement sets'
+    },
+
+    'step_2_comparison': {
+        'method': 'Side-by-side requirement comparison',
+        'identification': 'Mark agreements and disagreements',
+        'categorization': 'Group by requirement type (functional, non-functional, technical)',
+        'output': 'Disagreement catalog with specific items'
+    },
+
+    'step_3_conflict_resolution': {
+        'trigger': 'Any requirement present in one set but missing/different in other',
+        'resolver': 'Third expert reviewer (not involved in step 1)',
+        'process': 'Review both versions + original codebase',
+        'decision': 'Accept version A, accept version B, or create hybrid',
+        'rationale': 'Document reason for each resolution',
+        'output': 'Consensus requirements set'
+    },
+
+    'step_4_reconstruction_validation': {
+        'method': 'Multi-LLM reconstruction testing',
+        'implementations': '5 independent LLM implementations from gold standard',
+        'validation': 'Test pass rate must be >85% (expert quality target)',
+        'iteration': 'If < 85%, refine requirements and retest',
+        'output': 'Validated gold standard requirements'
+    }
+}
+```
+
+**Expected Gold Standard Quality:**
+
+| Metric | Target | Rationale |
+|--------|--------|-----------|
+| Test pass rate | >85% | Human experts not perfect, but high quality |
+| Requirements completeness | >92% | Expert domain knowledge captures details |
+| Requirements clarity | >95% | Professional technical writing skills |
+| Inter-reviewer agreement | >80% | Experts mostly agree on critical requirements |
+
+**Gold Standard Creation Cost:**
+
+- Time per application: 6-10 hours total (2 reviewers × 2-4h + 1 resolver × 2h)
+- Applications: 50 total (40 training + 10 hold-out)
+- Total effort: 300-500 hours for complete gold standard dataset
+- Justification: One-time investment, enables objective CET-D evaluation
+
+**Usage of Gold Standards:**
+
+1. **Training Target**: CET-D learns to match gold standard quality
+2. **Evaluation Benchmark**: CET-D compared against expert performance
+3. **Disagreement Analysis**: Patterns in expert disagreements inform training
+4. **Quality Ceiling**: Establishes realistic performance expectations
+
+### 9.4 Human Validation and Percent Agreement Tracking
+
+**Percent Agreement Methodology:**
+
+For our 5-person research lab context, percent agreement provides appropriate validation rigor without requiring formal Inter-Rater Reliability (IRR) statistics:
+
+```python
+agreement_tracking = {
+    'scoring_dimensions': {
+        'completeness': '0-10 scale (all requirements captured?)',
+        'clarity': '0-10 scale (unambiguous specifications?)',
+        'testability': '0-10 scale (can be objectively validated?)',
+        'accuracy': '0-10 scale (match actual implementation?)'
+    },
+
+    'agreement_calculation': {
+        'method': 'Percent agreement per dimension',
+        'agreement_threshold': 'Score difference ≤ 1 point',
+        'disagreement_threshold': 'Score difference > 1 point',
+        'formula': 'percent_agreement = (agreed_items / total_items) * 100'
+    },
+
+    'resolution_protocol': {
+        'disagreement_handling': 'Third reviewer resolves (median of 3 scores)',
+        'documentation': 'Record reason for disagreement',
+        'training_signal': 'High-disagreement items indicate ambiguity',
+        'calibration': 'Periodic reviewer alignment discussions'
+    }
+}
+```
+
+**Agreement Metrics Progression:**
+
+| Phase | Percent Agreement | Disagreements | Interpretation |
+|-------|------------------|---------------|----------------|
+| Initial (Week 1) | 68% | 32% of requirements | Learning phase, calibration needed |
+| Month 1 | 79% | 21% of requirements | Reviewers aligning on standards |
+| Month 3 | 87% | 13% of requirements | Strong consistency emerging |
+| Month 6 (Target) | >90% | <10% of requirements | High inter-reviewer reliability |
+
+**Disagreement Resolution Workflow:**
+
+1. **Independent Scoring**: Reviewers 1 and 2 score requirements independently
+2. **Agreement Check**: Calculate percent agreement across all dimensions
+3. **Flag Disagreements**: Identify requirements with score difference > 1 point
+4. **Third Reviewer Resolution**:
+   - Reviews both scores + original requirements
+   - Provides independent score
+   - Median of three scores becomes final
+   - Documents rationale for resolution
+5. **Pattern Analysis**: Track common disagreement types for reviewer calibration
+
+**Using Disagreements as Training Signals:**
+
+```python
+disagreement_enrichment = {
+    'ambiguity_detection': 'High-disagreement requirements reveal unclear aspects',
+    'training_examples': 'Add disagreement cases to CET-D training data',
+    'requirement_refinement': 'Improve requirements that caused confusion',
+    'evaluator_calibration': 'Use disagreements to align reviewer interpretations',
+    'continuous_improvement': 'Track agreement trends over time'
+}
+```
+
+**Expected Benefits:**
+
+- **Quantitative Validation**: Numerical measure of review consistency
+- **Improvement Tracking**: Clear progression toward high agreement
+- **Training Data Quality**: Disagreements enrich CET-D learning
+- **Process Refinement**: Identifies systematic ambiguities for correction
+- **Scientific Rigor**: Appropriate methodology for 5-person lab context
+
+**Comparison to Formal IRR:**
+
+| Approach | Our Method (Percent Agreement) | Formal IRR (Cohen's Kappa) |
+|----------|-------------------------------|----------------------------|
+| Team size | 5-person research lab | Large-scale annotation projects |
+| Sample size | 50 applications | Hundreds/thousands of items |
+| Statistical rigor | Appropriate for proof-of-concept | Required for production systems |
+| Disagreement handling | Third reviewer resolution | Statistical modeling |
+| Training signal | Rich qualitative insights | Quantitative reliability only |
+
+Our percent agreement approach balances scientific rigor with practical feasibility for proof-of-concept validation.
 
 ## 10. Conclusion
 

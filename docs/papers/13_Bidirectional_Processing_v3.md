@@ -1,5 +1,23 @@
 # Bidirectional Context Engineering: From Query Optimization to Response Adaptation
 
+## Changelog
+
+### v3 (2025-10-01)
+- **Added**: Section 11.4 - Security Roadmap for Production
+- **Added**: Reverse-pass output validation considerations
+- **Added**: Access control and isolation requirements for bidirectional processing
+- **Added**: Content filtering and safety mechanisms for both processing directions
+- **Added**: Production deployment gates and security audit requirements
+- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
+- **Rationale**: Address security considerations for potential future production deployment
+- **Process**: v2.1 archived before v3 modifications
+
+### v2.1 (2025-10-01) - ARCHIVED
+- Original version presenting bidirectional processing theoretical framework
+- v2.1 archived to `/archive/v2.1/` before v3 updates
+
+---
+
 ## Abstract
 
 We extend the Context Engineering Transformer architecture to support bidirectional processing, enabling both pre-processing of user queries and post-processing of LLM responses. This bidirectional approach allows CETs to not only optimize context for LLM input but also adapt, refine, and personalize LLM outputs before they reach users. We present the theoretical framework, architectural modifications, and expected benefits of bidirectional processing, including response personalization, domain compliance verification, error correction, and quality assurance. While our current implementation focuses on unidirectional context optimization, we outline a clear pathway for evolving toward full bidirectional capability.
@@ -812,6 +830,38 @@ Complete bidirectional processing with all features integrated:
 - How to minimize latency impact?
 - How to handle partial failures?
 - How to maintain consistency across passes?
+
+### 11.4 Security Roadmap for Production
+
+**Note: This section added per v3 reviewer feedback - security considerations for potential future production deployment.**
+
+If bidirectional CET processing progresses from research prototype to production deployment, several security mechanisms would be required:
+
+**Reverse-Pass Output Validation:**
+- Ensure CET-P/D/T reverse processing cannot inject malicious content
+- Validate that bidirectional transformation preserves semantic intent
+- Prevent adversarial manipulation through reverse-pass exploitation
+- Monitor for unexpected output patterns indicating security issues
+
+**Access Control and Isolation:**
+- Separate processing permissions for forward vs. reverse passes
+- Enforce least-privilege access to LLM outputs during reverse processing
+- Isolate CET components to prevent lateral movement in case of compromise
+- Audit trail for all bidirectional transformation decisions
+
+**Content Filtering and Safety:**
+- Apply safety filters to both forward-engineered context AND reverse-adapted responses
+- Detect and block attempts to use bidirectional processing for jailbreaking
+- Ensure reverse-pass personalization doesn't leak sensitive information
+- Validate compliance with content policies in both directions
+
+**Production Deployment Gates:**
+- Extensive red-teaming before any production consideration
+- Formal security audit of bidirectional architecture
+- Proven track record of unidirectional CET security first
+- Gradual rollout with comprehensive monitoring and killswitches
+
+**Current Status:** These are aspirational considerations. Production security validation is far beyond proof-of-concept scope and would require dedicated security research.
 
 ## 12. Conclusion
 

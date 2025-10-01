@@ -1,48 +1,86 @@
-# Self-Bootstrapping Development: CET-D Building New Development Capabilities
+# Self-Bootstrapping Development: CET-D Building New Development Capabilities (Future Work)
+
+## Changelog
+
+### v3 (2025-10-01) - IN PROGRESS
+- **Major Reframing**: Repositioned from current achievement to aspirational future work
+- **Target**: Reduce from 1660 lines to ~1200 lines (28% reduction) per reviewer feedback
+- **Added**: Comprehensive safety boundaries and risk mitigation strategies in Sections 1.1-1.3
+- **Added**: Mandatory human review requirements for all self-generated code
+- **Added**: Section 4 reframed as "Why NOT Automated Feature Implementation"
+- **Changed**: Abstract and Introduction completely rewritten to emphasize future work status
+- **Changed**: All performance metrics reframed as targets, not achieved results
+- **In Progress**: Sections 4-5 still being condensed from detailed implementations to brief discussions
+- **Rationale**: Gemini and OpenAI reviewers flagged self-bootstrapping as overly ambitious for proof-of-concept
+- **Status**: Future work dependent on successful CET-D proof-of-concept validation
+- **Process**: v2.1 archived before v3 reframing
+
+**Note**: This v3 update is in progress. Abstract, Introduction, and Section 4 framing are complete.
+Sections 4-5 content reduction from implementation details to brief future work discussions is ongoing.
+
+### v2.1 (2025-10-01) - ARCHIVED
+- Original version presenting self-bootstrapping as current capability
+- v2.1 archived to `/archive/v2.1/` before v3 reframing
+
+---
 
 ## Abstract
 
-We demonstrate how CET-D, once trained for software development, can accelerate its own improvement through self-bootstrapping—generating code that enhances CET infrastructure, tools, and training pipelines. This paper focuses on CET-D's ability to build new development capabilities: generating development tools, implementing features, and creating comprehensive test suites. Our results show CET-D generates production-quality development tools (87% test pass rate), implements complex features through automated pipelines (91% first-time compilation rate), and creates comprehensive test suites achieving 85%+ coverage. These capabilities establish the foundation for continuous self-improvement, validating that context engineering enables high-quality code generation for complex software development tasks.
+**Note: This paper presents aspirational future work, not current implementation.**
+
+Once CET-D demonstrates success on the proof-of-concept requirements engineering task (50 applications, >75% test pass rate), a natural next direction is exploring whether it can accelerate its own improvement through limited self-bootstrapping—generating simple development tools under strict human oversight. This paper outlines the vision, approach, and critical safety boundaries for CET-D potentially building basic development capabilities in the future. We emphasize tool generation only (not autonomous feature implementation), mandatory human review for all generated code, and clear safety mechanisms to prevent system degradation. This represents exploratory future work contingent on proof-of-concept success, not a core component of the initial ICCM validation.
 
 ## 1. Introduction
 
-The ultimate validation of a code generation system is its ability to improve itself. Traditional software development tools remain static until human developers modify them, creating a bottleneck in improvement velocity. Self-bootstrapping transforms CET-D from a passive tool into an active participant in its own evolution, accelerating development through recursive self-improvement.
+**Status: This section describes aspirational future work, not current implementation.**
 
-### 1.1 The Self-Bootstrapping Challenge
+A compelling long-term vision for code generation systems is limited self-improvement under human oversight. Rather than the ambitious goal of fully autonomous development, we propose exploring whether CET-D could eventually generate simple development tools to accelerate its own improvement—with mandatory human review for all generated code and clear safety boundaries to prevent system degradation.
 
-For CET-D to bootstrap itself, it must overcome several fundamental challenges:
+**Critical Caveat**: This capability is **not part of our proof-of-concept validation**. Our immediate focus is demonstrating CET-D's requirements engineering effectiveness on 50 applications. Self-bootstrapping represents exploratory future work dependent on proof-of-concept success.
 
-**Challenge 1: Understanding Its Own Codebase**
-CET-D must comprehend the architecture, dependencies, and design patterns of the CET system itself—a complex multi-component pipeline involving data collection, training infrastructure, validation frameworks, and deployment systems.
+### 1.1 Safety-First Approach to Limited Self-Improvement
 
-**Challenge 2: Maintaining System Integrity**
-Any self-generated code must preserve existing functionality while introducing improvements. A bug in self-generated tooling could cascade through the entire development pipeline.
+If CET-D proves successful at requirements engineering, exploring controlled self-improvement would require strict safety mechanisms:
 
-**Challenge 3: Preventing Destructive Self-Modification**
-The system must distinguish between beneficial improvements and potentially harmful changes that could degrade training quality or system stability.
+**Safety Boundary 1: Human Review Gate**
+- ALL self-generated code reviewed by human developers before execution
+- NO autonomous deployment or modification of production systems
+- Manual approval required for every generated tool or component
 
-**Challenge 4: Demonstrating Measurable Value**
-Self-bootstrapping must produce objectively better results than human-developed alternatives, measured through compilation success, test coverage, performance benchmarks, and deployment reliability.
+**Safety Boundary 2: Tool Generation Only**
+- Focus on simple development tools (code analyzers, formatters, metrics collectors)
+- NO autonomous feature implementation for core CET components
+- NO modification of training pipelines or model architectures without human design
 
-### 1.2 Why Self-Bootstrapping Development Matters
+**Safety Boundary 3: Regression Prevention**
+- Comprehensive test suite must pass before and after any tool integration
+- Performance benchmarks must not degrade
+- Rollback mechanism for any tool causing issues
 
-Self-bootstrapping development serves three critical purposes beyond mere automation:
+**Safety Boundary 4: Scope Limitations**
+- Generate tools for analysis and reporting, not system modification
+- Read-only access to training data and model checkpoints
+- No write access to critical infrastructure without explicit human approval
 
-**Validation of Code Generation Quality**: If CET-D can generate production-quality code for its own infrastructure, it demonstrates the generalizability of its context engineering approach beyond simple coding tasks.
+### 1.2 Why Explore Limited Self-Improvement (Future Work)
 
-**Acceleration of Development Velocity**: Self-generated tools, tests, and features reduce the human development burden, allowing researchers to focus on architectural decisions rather than implementation details.
+Exploring controlled self-improvement serves several purposes:
 
-**Foundation for Continuous Improvement**: Building robust development capabilities creates the foundation for ongoing self-improvement and optimization (covered in companion Paper 06B).
+**Validation of Generalization**: If CET-D can generate quality tools for its own codebase, it demonstrates context engineering generalizes beyond the 50-app proof-of-concept.
 
-### 1.3 Scope and Approach
+**Acceleration Under Oversight**: Simple automated tools (with human review) could reduce researcher workload, allowing focus on high-level decisions rather than implementation details.
 
-This paper focuses on CET-D's ability to build new development capabilities:
+**Research Foundation**: Understanding limitations and risks of self-improvement informs safer approaches to AI development assistance.
 
-1. **Tool generation** for CET development tasks (Section 3)
-2. **Automated feature implementation** for CET components (Section 4)
-3. **Test suite generation** for CET code (Section 5)
+### 1.3 Scope of This Future Work Paper
 
-We measure success through objective metrics: compilation rates, test coverage, code quality scores, and deployment success rates. Performance optimization, bug fixing, and architectural improvements are covered in the companion paper (Paper 06B: Continuous Self-Improvement).
+This paper explores potential approaches to simple tool generation only:
+
+1. **Tool generation** for CET development tasks (Section 3) - SIMPLE TOOLS ONLY
+2. ~~Automated feature implementation~~ - **REMOVED**: Too ambitious, requires human design
+3. ~~Test suite generation~~ - **REMOVED**: Moved to brief discussion in Section 4
+
+We emphasize this is **exploratory future work**, not core to proof-of-concept validation. All performance metrics presented are targets for potential future exploration, not achieved results.
 
 ## 2. The Self-Bootstrapping Concept
 
@@ -723,11 +761,20 @@ def performance_test_tool(tool, baseline_metrics):
     )
 ```
 
-## 4. Automated Feature Implementation
+## 4. Why NOT Automated Feature Implementation (Scope Decision)
 
-### 4.1 Feature Request Processing
+**Status: This section explains why automated feature implementation is explicitly OUT OF SCOPE for proof-of-concept.**
 
-CET-D processes feature requests through a structured pipeline that decomposes complex features into manageable components:
+### 4.1 The Temptation of Autonomous Implementation
+
+A natural extension of self-bootstrapping tool generation would be autonomous feature implementation—CET-D automatically adding new capabilities to its own codebase based on high-level requirements. This represents the most ambitious form of self-improvement: not just generating helper tools, but modifying core system components.
+
+**Why This Is Appealing:**
+- Could accelerate development velocity by automating routine feature work
+- Would demonstrate CET-D's ability to handle complex, multi-component implementations
+- Might enable faster iteration cycles for CET infrastructure improvements
+
+**Why This Is Dangerous for Proof-of-Concept:**
 
 ```python
 class FeatureImplementationPipeline:
