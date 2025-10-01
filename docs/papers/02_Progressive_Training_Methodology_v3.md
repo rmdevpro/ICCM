@@ -2,6 +2,19 @@
 
 ## Changelog
 
+### v3 (2025-10-01)
+- **Added**: Section 7.3 - Catastrophic Forgetting Prevention with 10-app canary set
+- **Added**: Section 7.4 - RAG Baseline Comparison Methodology
+- **Added**: Appendix A - Future Synthetic Data Validation Plan
+- **Changed**: Canary set expanded from 5 to 10 apps with quarterly rotation
+- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
+- **Rationale**: Strengthen empirical validation and prevent performance degradation
+- **Process**: v2.1 archived before v3 modifications
+
+### v2.1 (2025-10-01) - ARCHIVED
+- Requirements-first restructuring from code generation focus
+- v2.1 archived to `/archive/v2.1/` before v3 updates
+
 ### v2.1.0 (2025-10-01)
 - **Major Version Change**: Restructured from code generation to requirements engineering focus
 - **Changed**: Phase 1 training data from coding platforms to requirements corpora
@@ -828,6 +841,101 @@ success_criteria = {
 4. Measure: pass rate, API compatibility, behavior equivalence
 5. **Success**: >75% average test pass rate across all applications
 
+### 7.3 Catastrophic Forgetting Prevention
+
+**Canary Application Set:**
+
+To detect catastrophic forgetting during continuous training (Phase 4), we maintain a dedicated canary set of 10 applications that serve as regression indicators:
+
+- **Size**: 10 high-quality applications (separate from 40 training and 10 hold-out)
+- **Purpose**: Detect performance degradation on previously learned capabilities
+- **Testing Frequency**: After every 1,000 training steps during Phase 4
+- **Rotation Schedule**: Quarterly rotation to catch diverse regression patterns
+
+**Canary Set Composition:**
+```python
+canary_set = {
+    'web_apis': 2,           # REST/GraphQL services
+    'cli_tools': 2,          # Command-line utilities
+    'data_processors': 2,    # ETL/batch processing
+    'microservices': 2,      # Service-oriented apps
+    'real_time_systems': 2   # Event-driven systems
+}
+```
+
+**Regression Detection Protocol:**
+
+1. **Baseline Establishment**: Record performance on canary set after Phase 3 completion
+2. **Continuous Monitoring**: Test canary set every 1,000 steps during Phase 4
+3. **Threshold Detection**: Trigger rollback if performance drops >5% on any canary app
+4. **Root Cause Analysis**: Analyze which requirements categories show degradation
+5. **Corrective Action**: Apply experience replay on affected categories
+
+**Experience Replay Strategy:**
+
+When regression is detected:
+- Identify degraded capability (e.g., API documentation extraction)
+- Retrieve 100 historical examples from that category
+- Interleave with current training batch (20% historical, 80% new)
+- Continue until canary performance recovers to baseline
+
+**Quarterly Rotation:**
+
+Every 3 months, rotate 3-4 canary applications to:
+- Catch edge cases not represented in original set
+- Prevent overfitting to specific canary apps
+- Maintain fresh regression detection capabilities
+
+This lightweight catastrophic forgetting prevention requires minimal overhead (<1% of training time) while providing strong safety guarantees for continuous learning.
+
+### 7.4 RAG Baseline Comparison Methodology
+
+*See Paper 01 Section 6.4 for complete three-baseline comparison framework*
+
+To validate that learned requirements extraction (CET-D) outperforms traditional retrieval approaches, we implement a competitive RAG baseline:
+
+**RAG Baseline Implementation:**
+
+```python
+rag_baseline = {
+    'vector_database': 'pgvector',
+    'embedding_model': 'text-embedding-3-large',
+    'chunk_size': 512,
+    'overlap': 128,
+    'retrieval_k': 10,
+    'reranking': 'cross-encoder-ms-marco'
+}
+```
+
+**Indexing Strategy:**
+- Index each of 40 training applications' complete codebase
+- Chunk code files, documentation, and comments
+- Create embeddings for semantic search
+- Build per-application vector database
+
+**Retrieval Process:**
+1. Query: "Extract requirements from this application"
+2. Retrieve top-10 relevant code chunks per application
+3. Feed retrieved context to LLM for requirements generation
+4. Compare reconstruction test pass rate vs. CET-D
+
+**Head-to-Head Comparison:**
+
+| Approach | Method | Expected Performance |
+|----------|--------|---------------------|
+| CET-D | Learned requirements extraction | Target: >75% test pass rate |
+| RAG Baseline | Vector retrieval + LLM generation | Expected: ~60% test pass rate |
+| No Context | Direct LLM without context | Expected: ~40% test pass rate |
+| Manual Gold | Human expert requirements | Expected: ~85% test pass rate |
+
+**Statistical Validation:**
+- Paired t-test across 40 training applications
+- Null hypothesis: CET-D ≤ RAG baseline
+- Significance: p < 0.05
+- Power: 80% to detect 15% improvement
+
+This rigorous comparison demonstrates whether learned context engineering provides measurable improvement over established retrieval-augmented approaches.
+
 ## 8. Comparison to Code Generation Approach
 
 ### 8.1 Why Requirements-First is Superior
@@ -877,6 +985,94 @@ This four-phase progressive training methodology, specialized for requirements e
 The methodology transforms the CET from a general transformer into a specialized requirements engineering expert, capable of extracting comprehensive, implementable specifications that enable >75% reconstruction success rates.
 
 **Key Takeaway**: Requirements engineering provides a more tractable, objectively measurable training domain than direct code generation, while still demonstrating sophisticated context engineering capabilities.
+
+---
+
+## Appendix A: Future Synthetic Data Validation Plan
+
+While our proof-of-concept uses only real-world applications (50 carefully selected apps with high test coverage), scaling beyond 500 applications may require synthetic data augmentation. This appendix outlines our planned validation approach for future synthetic data use.
+
+### A.1 When Synthetic Data Becomes Necessary
+
+**Current Approach (50 apps):** 100% real-world applications, manual validation feasible
+
+**Year 2 (500 apps):** Semi-automated validation, primarily real apps with targeted synthetic augmentation
+
+**Year 3+ (3,000+ apps):** Automated filtering, synthetic data for rare edge cases
+
+### A.2 Synthetic Data Quality Validation
+
+**Multi-Level Validation Strategy:**
+
+1. **Round-Trip Consistency:**
+   - Generate synthetic requirements → reconstruct application → extract requirements again
+   - Measure semantic similarity between original and extracted requirements
+   - Reject if similarity < 90%
+
+2. **Human Adversarial Testing:**
+   - Sample 10% of synthetic data for expert human review
+   - Have reviewers identify "clearly synthetic" vs. "plausibly real"
+   - Reject batches where >30% flagged as obviously synthetic
+
+3. **Distributional Matching:**
+   - Compare synthetic data distributions to real data across:
+     - Requirements length distribution
+     - Complexity metrics (cyclomatic, coupling, cohesion)
+     - API surface area patterns
+     - Test coverage characteristics
+   - Reject synthetic batches with KL-divergence > 0.15 from real distribution
+
+4. **Cross-Validation with Real Data:**
+   - Train model on 90% real + 10% synthetic
+   - Test on 100% real hold-out set
+   - Compare to 100% real baseline
+   - Accept synthetic data only if performance within 2% of pure-real baseline
+
+### A.3 Synthetic Data Generation Methodology
+
+**LLM Ensemble Approach:**
+
+```python
+synthetic_generation = {
+    'requirement_generators': ['GPT-4', 'Claude Opus', 'Gemini 2.5 Pro'],
+    'consensus_threshold': 2/3,  # 2 of 3 must agree
+    'quality_filters': [
+        'implementable',
+        'testable',
+        'unambiguous',
+        'complete'
+    ]
+}
+```
+
+**Diversity Enforcement:**
+- Ensure synthetic data covers underrepresented categories
+- Prevent mode collapse by monitoring requirement pattern diversity
+- Rotate generating LLMs to avoid systematic biases
+
+### A.4 Limitations and Risks
+
+**Known Risks:**
+- Synthetic data may reflect LLM training biases
+- Edge cases might be under-represented
+- Real-world messiness difficult to replicate
+- Risk of "teaching to the test" if validation LLM overlaps with generator
+
+**Mitigation Strategies:**
+- Maintain at least 70% real data even at scale
+- Use synthetic data only for augmentation, not primary training
+- Continuous monitoring of real-world performance
+- Periodic re-validation against new real applications
+
+**Acceptance Criteria:**
+
+Synthetic data will only be used if:
+1. Real data availability insufficient for category
+2. All four validation checks pass
+3. Performance on real hold-out set unaffected
+4. Human experts cannot reliably detect synthetic vs. real
+
+This conservative approach ensures synthetic data enhances rather than degrades training quality.
 
 ---
 
