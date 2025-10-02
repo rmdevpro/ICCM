@@ -1,30 +1,5 @@
 # Requirements Validation Through Reconstruction Testing
 
-## Changelog
-
-### v3 (2025-10-01)
-- **Added**: Section 9.3 - Gold Standard Creation Process (2 reviewers + tiebreaker resolution)
-- **Added**: Section 9.4 - Human Validation and Percent Agreement Tracking methodology
-- **Added**: Four-step gold standard workflow (independent creation → comparison → resolution → validation)
-- **Added**: Expected gold standard quality metrics and creation cost estimates
-- **Added**: Percent agreement methodology appropriate for 5-person research lab
-- **Added**: Agreement metrics progression and disagreement resolution workflow
-- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
-- **Rationale**: Strengthen human validation rigor while maintaining lab feasibility
-- **Process**: v2.1 archived before v3 modifications
-
-### v2.1.0 (2025-10-01) - ARCHIVED
-- **Major Version Change**: Restructured from code error analysis to requirements validation
-- **Changed**: Focus from debugging code to validating requirements through reconstruction
-- **Changed**: Feedback signals from compilation errors to test pass rates
-- **Changed**: Learning objective from fixing code to improving requirements
-- **Maintained**: Docker execution infrastructure unchanged
-- **Reduced**: From 1836 lines to ~900 lines (right-sizing)
-- **Reason**: Requirements validation provides objective feedback for CET training
-- **Process**: v2.1 archived to `/archive/v2.1/` before v3 updates
-
----
-
 ## Abstract
 
 We present a comprehensive framework for validating requirements extraction quality through reconstruction testing. Unlike subjective requirement reviews, our approach provides objective validation: if extracted requirements enable LLMs to reconstruct a working application with >75% test pass rate, the requirements are high quality. We leverage multiple feedback mechanisms: test pass rates, API compatibility checks, behavioral equivalence testing, and multi-LLM implementation variance. Each feedback type provides structured signals that guide requirements improvement. This paper establishes the foundational validation mechanisms that enable CETs to learn effective requirements engineering through autonomous reconstruction feedback.

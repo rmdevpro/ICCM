@@ -2,6 +2,14 @@
 
 ## Changelog
 
+### v3.1 (2025-10-01) - CRITICAL ARCHITECTURE CLARIFICATION
+- **⚠️ ADDED**: "Fundamental CET Architecture Constraints" section (MANDATORY)
+- **Rationale**: Prevent architectural drift - CET is context transformer ONLY, not generator
+- **Impact**: All papers showing "CET generates requirements/code" require correction
+- **Detection**: Papers 02, 05 confirmed to have drifted; implementation docs likely affected
+- **Process**: This section now mandatory reference for all papers and implementations
+- **Required Action**: All references to "CET generates/extracts/produces X" must be corrected to "CET transforms context; LLM generates X"
+
 ### v3 (2025-10-01)
 - **Added**: Empirical Validation Methodology section with 40/10 training/hold-out split
 - **Added**: Statistical Methodology section (paired t-test, p<0.05, power analysis)
@@ -116,6 +124,150 @@
 ## Overview
 
 This document serves as the single source of truth for the ICCM (Intelligent Context and Conversation Management) paper series, tracking both implementation status and publication planning.
+
+---
+
+## ⚠️ CRITICAL: Fundamental CET Architecture Constraints ⚠️
+
+**This section defines immutable architectural principles that ALL papers, implementations, and discussions MUST adhere to. Any deviation represents a fundamental misunderstanding of the ICCM architecture.**
+
+### What CET IS
+
+**CET = Context Engineering Transformer**
+
+The CET is a **context transformation layer** that optimizes information flow between users and LLMs. It is NOT a generator.
+
+**Fundamental Architecture:**
+
+```
+Raw Input (user request + application context)
+         ↓
+    CET (TRANSFORMATION ONLY)
+         ↓
+Engineered Context (optimized information)
+         ↓
+    LLM Ensemble
+         ↓
+Output (requirements, code, documentation, etc.)
+```
+
+**What CET Does:**
+- ✅ **Selects** relevant information from large context
+- ✅ **Structures** information for optimal LLM consumption
+- ✅ **Filters** noise and irrelevant details
+- ✅ **Organizes** context according to task requirements
+- ✅ **Prioritizes** information by relevance
+- ✅ **Compresses** large context into token-efficient form
+- ✅ **Learns** which context patterns lead to successful LLM outputs
+
+### What CET IS NOT
+
+**CET does NOT generate anything:**
+- ❌ Does NOT generate requirements
+- ❌ Does NOT generate code
+- ❌ Does NOT generate documentation
+- ❌ Does NOT generate implementations
+- ❌ Does NOT generate responses
+- ❌ Does NOT generate ANY content
+
+**The CET is a preprocessor, not a generator.**
+
+### Correct vs Incorrect Terminology
+
+**CORRECT:**
+- "CET transforms context"
+- "CET selects relevant files"
+- "CET engineers optimal context"
+- "CET optimizes information structure"
+- "CET learns context patterns"
+- "LLM generates requirements from CET's context"
+- "LLM generates code from CET's context"
+
+**INCORRECT (Architectural Drift):**
+- ~~"CET generates requirements"~~ ❌
+- ~~"CET extracts requirements"~~ ❌
+- ~~"CET produces specifications"~~ ❌
+- ~~"CET creates implementations"~~ ❌
+- ~~"CET outputs requirements"~~ ❌
+
+### Concrete Example: Requirements Engineering Use Case
+
+**Scenario:** Extract requirements from an existing application
+
+**WRONG Architecture (Drift):**
+```
+Application Codebase → CET → Requirements Specification
+                              ❌ CET generating requirements
+```
+
+**CORRECT Architecture:**
+```
+Application Codebase (1,000,000 tokens, 500 files)
+         ↓
+CET Context Engineering:
+    - Identifies 12 core files relevant to requirements
+    - Extracts key API definitions (200 lines)
+    - Highlights architectural patterns
+    - Organizes by: functional, non-functional, technical
+    - Structures for requirements extraction
+         ↓
+Engineered Context (4,000 tokens, optimized)
+    {
+        'core_functionality': [...relevant code sections...],
+        'api_surface': [...endpoint definitions...],
+        'data_models': [...schema definitions...],
+        'patterns': ['Flask blueprints', 'SQLAlchemy ORM'],
+        'dependencies': ['flask', 'sqlalchemy', 'redis']
+    }
+         ↓
+LLM Ensemble receives engineered context
+         ↓
+LLM generates requirements specification:
+    "System shall provide REST API with 4 endpoints..."
+    "System shall use SQLAlchemy for database access..."
+    "System shall handle authentication via Flask-Login..."
+```
+
+**Key Principle:** The CET transformed 1M tokens → 4k tokens of optimally structured context. The LLM used that context to generate the requirements.
+
+### How CET Learns
+
+**Learning Signal:** Whether CET's context engineering leads to successful downstream outcomes
+
+```
+CET engineers context → LLM generates output → Tests run → Results
+                                                              ↓
+                                           CET learns: "Did my context selection work?"
+```
+
+**CET learns to answer:**
+- Which files were most relevant for this task?
+- How should context be structured for this LLM?
+- What information pattern leads to correct outputs?
+- How much detail does the LLM need?
+
+**CET does NOT learn:**
+- How to generate requirements (that's LLM's job)
+- How to write code (that's LLM's job)
+- How to produce outputs (that's LLM's job)
+
+### Validation of Understanding
+
+**Before writing ANY paper section, implementation code, or architecture description, ask:**
+
+1. "Am I describing CET generating something?" → ❌ STOP, architectural drift
+2. "Am I describing CET transforming/selecting context?" → ✅ Correct
+3. "Is the LLM doing all generation?" → ✅ Correct
+4. "Is CET producing requirements/code/content?" → ❌ STOP, fundamental error
+
+### Mandatory Reference
+
+**All papers and implementation documents MUST reference this section when describing CET functionality.** Any description that violates these principles represents architectural drift and must be corrected.
+
+**Citation Format:**
+> "Per Master Document Section 'Fundamental CET Architecture Constraints', the CET transforms context only; all generation is performed by the downstream LLM ensemble."
+
+---
 
 ## Empirical Validation Methodology
 

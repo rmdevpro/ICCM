@@ -1,24 +1,5 @@
 # Edge-Deployed Personal Context Engineering for Privacy-Preserving LLM Interactions
 
-## Changelog
-
-### v3 (2025-10-01)
-- **Added**: Section 12.4 - Production Security Considerations
-- **Added**: Secure boot and device attestation requirements
-- **Added**: Federated learning security hardening (Byzantine-robust aggregation, secure MPC)
-- **Added**: Local data protection mechanisms (encrypted storage, secure enclaves, memory encryption)
-- **Added**: Network security requirements (E2EE, certificate pinning, rate limiting)
-- **Added**: Production deployment gates and compliance requirements
-- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
-- **Rationale**: Address production security hardening beyond privacy-by-design architecture
-- **Process**: v2.1 archived before v3 modifications
-
-### v2.1 (2025-10-01) - ARCHIVED
-- Original version presenting edge CET-P privacy-preserving architecture
-- v2.1 archived to `/archive/v2.1/` before v3 updates
-
----
-
 ## Abstract
 
 We present the design and implementation strategy for CET-P (Personal Context Engineering Transformer), a privacy-preserving variant that runs entirely on edge devices while providing personalized context optimization for LLM interactions. CET-P ensures complete data sovereignty by processing personal information locally, sending only sanitized, optimized context to cloud-based LLMs. We detail the technical challenges of edge deployment including model compression to 1-3B parameters, efficient inference on consumer hardware, federated learning for collective improvement without data sharing, and encrypted synchronization across user devices. The architecture guarantees that personal emails, documents, browsing history, and communication patterns never leave user control while still enabling highly personalized AI interactions.

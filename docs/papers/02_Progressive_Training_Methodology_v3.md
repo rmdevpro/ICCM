@@ -1,32 +1,5 @@
 # Four-Phase Progressive Training for Context Engineering Transformers: Requirements Engineering Specialization
 
-## Changelog
-
-### v3 (2025-10-01)
-- **Added**: Section 7.3 - Catastrophic Forgetting Prevention with 10-app canary set
-- **Added**: Section 7.4 - RAG Baseline Comparison Methodology
-- **Added**: Appendix A - Future Synthetic Data Validation Plan
-- **Changed**: Canary set expanded from 5 to 10 apps with quarterly rotation
-- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
-- **Rationale**: Strengthen empirical validation and prevent performance degradation
-- **Process**: v2.1 archived before v3 modifications
-
-### v2.1 (2025-10-01) - ARCHIVED
-- Requirements-first restructuring from code generation focus
-- v2.1 archived to `/archive/v2.1/` before v3 updates
-
-### v2.1.0 (2025-10-01)
-- **Major Version Change**: Restructured from code generation to requirements engineering focus
-- **Changed**: Phase 1 training data from coding platforms to requirements corpora
-- **Changed**: Phase 2 examples from code transformations to requirements transformations
-- **Changed**: Phase 3 validation from code execution to reconstruction testing
-- **Changed**: All examples now demonstrate requirements extraction and validation
-- **Maintained**: Four-phase progressive structure unchanged
-- **Reduced**: From 1703 lines to ~1000 lines (right-sizing)
-- **Reason**: Requirements-first approach provides clearer validation metrics (reconstruction testing)
-
----
-
 ## Abstract
 
 We present a detailed methodology for training Context Engineering Transformers (CETs) through four progressive phases that mirror human skill acquisition, specialized for requirements engineering. Each phase builds upon the previous, creating a comprehensive learning pathway from requirements expertise to production-ready context optimization. Using software requirements extraction and validation as our primary domain, we demonstrate how reconstruction testing provides objective training signals. Our approach transforms deployed applications into comprehensive requirements through systematic skill development, interactive feedback with LLM implementation teams, and continuous refinement through autonomous reconstruction validation.

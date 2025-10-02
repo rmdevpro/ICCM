@@ -1,28 +1,5 @@
 # CET-D for Requirements Engineering: Implementation and Evaluation
 
-## Changelog
-
-### v3 (2025-10-01)
-- **Added**: Section 6.3 - Statistical Power Analysis with hypothesis testing framework
-- **Added**: Section 6.4 - Scaling Roadmap (50→500→3000 apps over 3 years)
-- **Added**: Detailed justification for "why 50 apps is sufficient"
-- **Added**: Decision gates for staged scaling approach
-- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
-- **Rationale**: Strengthen empirical rigor and provide clear scaling pathway
-- **Process**: v2.1 archived before v3 modifications
-
-### v2.1 (2025-10-01) - ARCHIVED
-- Requirements-first restructuring from code generation focus
-- v2.1 archived to `/archive/v2.1/` before v3 updates
-
-### v2.1.0 (2025-10-01)
-- **Major Version Change**: Restructured from code generation to requirements engineering specialization
-- **Changed**: Focus from code context optimization to requirements extraction context
-- **Changed**: Training objective from code generation to requirements extraction/validation
-- **Changed**: Validation metrics from compilation/tests to reconstruction success
-- **Reduced**: From 1380 lines to ~900 lines (right-sizing)
-- **Renamed**: From "Software Development Implementation" to "Requirements Engineering Implementation"
-
 ## Abstract
 
 We present CET-D, a 5B parameter Context Engineering Transformer specialized for requirements engineering. Unlike general-purpose LLMs that treat requirements extraction as a text generation task, CET-D learns to optimize context specifically for extracting complete, unambiguous, implementation-ready requirements from existing applications. We demonstrate that domain specialization enables a smaller model to outperform 70B+ parameter general models on requirements engineering tasks, achieving 89% requirements completeness and 93% clarity scores through learned context optimization strategies.

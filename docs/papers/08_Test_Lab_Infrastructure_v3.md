@@ -1,27 +1,5 @@
 # Building a Distributed Test Lab for Context Engineering Transformer Training
 
-## Changelog
-
-### v3 (2025-10-01)
-- **Added**: Section 5.3 - Backup and Disaster Recovery with 3-2-1 backup rule
-- **Added**: Detailed backup procedures (nightly NAS backups, GitHub version control, USB tertiary copies)
-- **Added**: Recovery objectives (RTO: 24 hours, RPO: 24 hours)
-- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
-- **Rationale**: Add critical data protection documentation for research infrastructure
-- **Process**: v2.1 archived before v3 modifications
-
-### v2.1 (2025-10-01) - ARCHIVED
-- Requirements-first approach applied to infrastructure paper
-- v2.1 archived to `/archive/v2.1/` before v3 updates
-
-### v2 (2025-09-30)
-- **Changed**: Converted from outline to full draft with complete prose
-- **Added**: Detailed narrative explanations throughout all sections
-- **Expanded**: Introduction with design philosophy and infrastructure overview
-- **Process**: v1 archived before full drafting
-
----
-
 ## Abstract
 
 We describe the design and implementation of a distributed test laboratory for training Context Engineering Transformers (CETs), demonstrating that sophisticated AI training can be achieved with modest infrastructure investment. Our hybrid architecture combines local GPU clusters ($7,840 total hardware cost including networking) with pay-per-token cloud services and premium APIs to create a cost-effective, three-tier model access strategy. The lab features 156GB total VRAM across heterogeneous GPUs (V100 for training, P40s for inference, P4s for containers, RTX 3050 for edge testing), 60TB+ tiered storage for model caching and datasets, and comprehensive orchestration for managing 50+ AI models. We demonstrate 85-92% cost reduction compared to cloud-only approaches while maintaining the model diversity necessary for robust CET training. Detailed performance analysis reveals that strategic upgrades—particularly 256GB RAM for model caching—eliminate critical bottlenecks, achieving 14x faster model loading and <1% overhead for LLM orchestra rotation. This infrastructure successfully supports all four phases of CET training, from RAG-grounded subject expertise through continuous self-improvement, providing a reproducible blueprint for researchers with limited budgets.

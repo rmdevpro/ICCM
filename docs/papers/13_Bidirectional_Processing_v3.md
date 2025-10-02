@@ -1,23 +1,5 @@
 # Bidirectional Context Engineering: From Query Optimization to Response Adaptation
 
-## Changelog
-
-### v3 (2025-10-01)
-- **Added**: Section 11.4 - Security Roadmap for Production
-- **Added**: Reverse-pass output validation considerations
-- **Added**: Access control and isolation requirements for bidirectional processing
-- **Added**: Content filtering and safety mechanisms for both processing directions
-- **Added**: Production deployment gates and security audit requirements
-- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
-- **Rationale**: Address security considerations for potential future production deployment
-- **Process**: v2.1 archived before v3 modifications
-
-### v2.1 (2025-10-01) - ARCHIVED
-- Original version presenting bidirectional processing theoretical framework
-- v2.1 archived to `/archive/v2.1/` before v3 updates
-
----
-
 ## Abstract
 
 We extend the Context Engineering Transformer architecture to support bidirectional processing, enabling both pre-processing of user queries and post-processing of LLM responses. This bidirectional approach allows CETs to not only optimize context for LLM input but also adapt, refine, and personalize LLM outputs before they reach users. We present the theoretical framework, architectural modifications, and expected benefits of bidirectional processing, including response personalization, domain compliance verification, error correction, and quality assurance. While our current implementation focuses on unidirectional context optimization, we outline a clear pathway for evolving toward full bidirectional capability.

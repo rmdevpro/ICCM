@@ -1,27 +1,5 @@
 # Continuous Self-Improvement: CET-D Optimizing and Evolving Existing Systems (Future Work)
 
-## Changelog
-
-### v3 (2025-10-01) - IN PROGRESS
-- **Major Reframing**: Repositioned from current achievement to aspirational future work
-- **Target**: Reduce from 1715 lines to ~1000 lines (42% reduction) per reviewer feedback
-- **Status**: Abstract and Introduction being reframed to emphasize future work
-- **Added**: Mandatory human review requirements throughout (to be completed)
-- **Removed**: Claims of autonomous optimization without human oversight (in progress)
-- **Changed**: All performance metrics reframed as targets, not achieved results (in progress)
-- **Rationale**: Gemini and OpenAI reviewers flagged continuous self-improvement as overly ambitious
-- **Dependency**: Contingent on Paper 07A (Self-Bootstrapping) proving feasible first
-- **Process**: v2.1 archived before v3 reframing
-
-**Note**: This v3 update is in progress. Abstract and Introduction reframing ongoing.
-Sections 2-7 content reduction from detailed implementations to brief future work discussions pending.
-
-### v2.1 (2025-10-01) - ARCHIVED
-- Original version presenting continuous self-improvement as current capability
-- v2.1 archived to `/archive/v2.1/` before v3 reframing
-
----
-
 ## Abstract
 
 **Note: This paper presents highly aspirational future work, not current implementation.**

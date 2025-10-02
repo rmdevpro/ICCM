@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  fiedler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fiedler-mcp:latest
+    container_name: fiedler-mcp
+    restart: unless-stopped
+    stdin_open: true  # Keep stdin open for MCP stdio protocol
+    tty: true         # Allocate pseudo-TTY
+
+    # Load environment from .env file
+    env_file:
+      - .env
+
+    # Environment variables for configuration
+    environment:
+      # Required: Subprocess client paths
+      - FIEDLER_GEMINI_CLIENT=/app/clients/gemini_client.py
+      - FIEDLER_GEMINI_PYTHON=/usr/local/bin/python
+      - FIEDLER_GROK_CLIENT=/app/clients/grok_client.py
+      - FIEDLER_GROK_PYTHON=/usr/local/bin/python
+
+      # Security: File access controls
+      - FIEDLER_ALLOWED_FILE_ROOTS=/app/allowed_files,/app/fiedler_output
+      - FIEDLER_MAX_PACKAGE_BYTES=20971520  # 20MB
+      - FIEDLER_MAX_FILE_COUNT=100
+      - FIEDLER_MAX_LINES=100000
+
+      # Security: Prompt redaction (default)
+      - FIEDLER_SAVE_PROMPT=0
+
+      # Security: Require secure keyring
+      - FIEDLER_REQUIRE_SECURE_KEYRING=0  # Set to 1 in production
+
+      # Performance: Parallelism control
+      - FIEDLER_MAX_WORKERS=4
+
+      # Output directory
+      - FIEDLER_OUTPUT_DIR=/app/fiedler_output
+
+      # API Keys (mount as secrets in production)
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+      - XAI_API_KEY=${XAI_API_KEY:-}
+
+    # Volumes
+    volumes:
+      # Output directory
+      - fiedler_output:/app/fiedler_output
+
+      # Allowed files directory (read-only)
+      - ./allowed_files:/app/allowed_files:ro
+
+      # Client scripts (read-only)
+      - /mnt/projects/gemini-tool/gemini_client.py:/app/clients/gemini_client.py:ro
+      - /mnt/projects/ICCM/tools/grok_client.py:/app/clients/grok_client.py:ro
+
+      # State persistence
+      - fiedler_state:/root/.fiedler
+
+    # Ports
+    ports:
+      - "9010:8080"  # MCP server on port 9010
+
+    # Network
+    networks:
+      - fiedler_network
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  fiedler_output:
+  fiedler_state:
+
+networks:
+  fiedler_network:
+    driver: bridge

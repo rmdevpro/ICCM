@@ -1,25 +1,5 @@
 # Requirements Validation Through Reconstruction Testing Framework
 
-## Changelog
-
-### v3 (2025-10-01)
-- **Added**: Section 8.3 - Human Validation Metrics (percent agreement tracking, disagreement resolution)
-- **Added**: Section 8.4 - Comparison Methodology (three-baseline comparison: Manual Gold, RAG, No Context)
-- **Added**: Statistical significance testing framework (paired t-test, p<0.05, 80% power)
-- **Added**: Cross-references to Paper 00 (Master Document) and Paper 02 (Progressive Training)
-- **Changed**: Incorporating feedback from Gemini 2.5 Pro and OpenAI GPT-4.1 reviews
-- **Rationale**: Strengthen empirical validation rigor while maintaining feasibility for 5-person lab
-- **Process**: v2.1 archived before v3 modifications
-
-### v2.1.0 (2025-10-01) - ARCHIVED
-- **Major Version Change**: Restructured from code test generation to reconstruction testing for requirements validation
-- **Changed**: Focus from code validation to requirements completeness/clarity validation
-- **Changed**: Primary metric from test pass rate to reconstruction success rate
-- **Changed**: Validation approach from test generation to multi-LLM reconstruction
-- **Reduced**: From 967 lines to ~950 lines (maintained comprehensive coverage)
-- **Renamed**: From "Automated Validation Framework" to "Requirements Validation Through Reconstruction Testing"
-- **Process**: v2.1 archived to `/archive/v2.1/` before v3 updates
-
 ## Abstract
 
 We present a comprehensive framework for validating requirements through reconstruction testing: extracted requirements are given to multiple LLMs to independently implement, and the resulting applications are tested for equivalence with the original. This provides objective validation of requirements completeness (do implementations work?) and clarity (do implementations agree?). Our framework processes over 1,000 reconstruction tests weekly, achieving 89% average test pass rates and detecting requirements deficiencies that would otherwise cause implementation failures. We demonstrate how reconstruction testing provides the critical feedback loop for continuous requirements engineering improvement.
