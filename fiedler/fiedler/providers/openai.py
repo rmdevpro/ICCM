@@ -26,7 +26,7 @@ class OpenAIProvider(BaseProvider):
         full_input = f"{prompt}\n\n{package}" if package else prompt
 
         # Call OpenAI API
-        # Note: GPT-5 (o4-mini) and o-series models use max_completion_tokens parameter name
+        # Note: GPT-5 and o-series models use max_completion_tokens parameter name
         # Other models still use max_tokens, so we check the model name
         if "gpt-5" in self.model_id or self.model_id.startswith("o-") or self.model_id.startswith("o1-"):
             response = self.client.chat.completions.create(
@@ -46,10 +46,18 @@ class OpenAIProvider(BaseProvider):
         # Extract content
         content = response.choices[0].message.content
 
+        # Debug: Log content info
+        logger.log(f"Content type: {type(content)}, length: {len(content) if content else 0}", self.model_id)
+        if not content:
+            logger.log(f"WARNING: Empty content! Response: {response}", self.model_id)
+
         # Write to file
         output_file.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write(content)
+            if content:
+                f.write(content)
+            else:
+                logger.log(f"ERROR: Content is None or empty, writing empty file", self.model_id)
 
         # Extract token usage
         tokens = {

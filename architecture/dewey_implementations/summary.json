@@ -1,0 +1,46 @@
+{
+  "correlation_id": "57a990cb",
+  "timestamp": "20251002_182924",
+  "prompt": "<redacted - 1858 chars>",
+  "prompt_length": 1858,
+  "files": [
+    "/mnt/projects/ICCM/architecture/dewey_winni_requirements_v3.md"
+  ],
+  "package_metadata": {
+    "num_files": 1,
+    "total_size": 27470,
+    "total_lines": 1004
+  },
+  "models": [
+    "gemini-2.5-pro",
+    "gpt-5",
+    "deepseek-ai/DeepSeek-R1"
+  ],
+  "results": [
+    {
+      "model": "deepseek-ai/DeepSeek-R1",
+      "status": "success",
+      "output_file": "/app/fiedler_output/20251002_182924_57a990cb/deepseek-ai_DeepSeek-R1.md",
+      "duration": 195.22,
+      "tokens": {
+        "prompt": 7279,
+        "completion": 9705
+      }
+    },
+    {
+      "model": "gpt-5",
+      "status": "success",
+      "output_file": "/app/fiedler_output/20251002_182924_57a990cb/gpt-5.md",
+      "duration": 266.3,
+      "tokens": {
+        "prompt": 7015,
+        "completion": 8192
+      }
+    },
+    {
+      "model": "gemini-2.5-pro",
+      "status": "failed",
+      "error": "gemini_client.py failed: Error: Request timeout after retries\n"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ providers:
     models:
       gemini-2.5-pro:
         aliases: [gemini]
-        max_tokens: 32768  # Context window
+        max_tokens: 2000000  # Context window (2M tokens)
         max_completion_tokens: 8192
         timeout: 600
         retry_attempts: 3
@@ -13,11 +13,32 @@ providers:
   openai:
     api_key_env: OPENAI_API_KEY
     models:
+      gpt-4o-mini:
+        aliases: [gpt4o-mini, o4-mini, o4mini]
+        max_tokens: 128000  # Context window
+        max_completion_tokens: 16384  # Max output
+        timeout: 300
+        retry_attempts: 3
+        capabilities: ["text"]
+      gpt-4o:
+        aliases: [gpt4o, o4]
+        max_tokens: 128000  # Context window
+        max_completion_tokens: 4096  # Max output
+        timeout: 300
+        retry_attempts: 3
+        capabilities: ["text"]
+      gpt-4-turbo:
+        aliases: [gpt4-turbo, gpt4turbo]
+        max_tokens: 128000  # Context window
+        max_completion_tokens: 4096  # Max output
+        timeout: 300
+        retry_attempts: 3
+        capabilities: ["text"]
       gpt-5:
         aliases: [gpt5]
-        max_tokens: 32768  # Context window
-        max_completion_tokens: 8192
-        timeout: 600
+        max_tokens: 200000  # Context window (o-series has 200K)
+        max_completion_tokens: 100000  # High limit for reasoning + output
+        timeout: 1500  # 25 minutes - GPT-5 is slow for large tasks
         retry_attempts: 3
         capabilities: ["text"]
 
@@ -27,29 +48,29 @@ providers:
     models:
       meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo:
         aliases: [llama, llama-3.1-70b, llama-70b]
-        max_tokens: 8192
+        max_tokens: 128000  # Context window (128K tokens)
         max_completion_tokens: 4096
         timeout: 300
         retry_attempts: 3
         capabilities: ["text"]
       meta-llama/Llama-3.3-70B-Instruct-Turbo:
         aliases: [llama-3.3, llama-3.3-70b]
-        max_tokens: 8192
+        max_tokens: 128000  # Context window (128K tokens)
         max_completion_tokens: 4096
         timeout: 300
         retry_attempts: 3
         capabilities: ["text"]
       deepseek-ai/DeepSeek-R1:
         aliases: [deepseek, deepseek-r1]
-        max_tokens: 8192
-        max_completion_tokens: 4096
+        max_tokens: 128000  # Context window (128K tokens)
+        max_completion_tokens: 64000  # Together AI allows 64K max output
         timeout: 400
         retry_attempts: 3
         capabilities: ["text"]
       Qwen/Qwen2.5-72B-Instruct-Turbo:
         aliases: [qwen, qwen-72b, qwen2.5]
-        max_tokens: 8192
-        max_completion_tokens: 4096
+        max_tokens: 32768  # Context window (32K tokens - Turbo variant)
+        max_completion_tokens: 8192  # Max output 8K
         timeout: 300
         retry_attempts: 3
         capabilities: ["text"]
@@ -76,12 +97,12 @@ providers:
     models:
       grok-4-0709:
         aliases: [grok, grok-4]
-        max_tokens: 16384
+        max_tokens: 128000  # Context window (128K tokens)
         max_completion_tokens: 8192
         timeout: 500
         retry_attempts: 3
         capabilities: ["text"]
 
 defaults:
-  models: [gemini-2.5-pro, gpt-5, grok-4-0709]
+  models: [gemini-2.5-pro, gpt-4o-mini, deepseek-ai/DeepSeek-R1]
   output_dir: ./fiedler_output

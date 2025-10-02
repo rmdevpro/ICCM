@@ -51,7 +51,6 @@ class GeminiProvider(BaseProvider):
             python_bin,
             gemini_client,
             "--model", self.model_id,
-            "--timeout", str(self.timeout),
             "--stdin"
         ]
 
