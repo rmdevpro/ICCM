@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 17:35 EDT
-**Session:** MCP Relay verified working + auto-reconnection added
-**Status:** ✅ **MCP Relay fully operational with 10 models accessible**
+**Last Updated:** 2025-10-03 21:40 EDT
+**Session:** MCP Relay fully tested - auto-reconnection verified working
+**Status:** ✅ **MCP Relay production-ready with proven auto-reconnection**
 
 ---
 
@@ -58,7 +58,8 @@ Dewey (ws://localhost:9020) - Conversation storage
 - ✅ Both MCP servers connected (sequential-thinking, iccm)
 - ✅ All Fiedler tools available via `mcp__iccm__fiedler_*` prefix
 - ✅ 10 LLM models accessible: Gemini 2.5 Pro, GPT-5, GPT-4o, GPT-4o-mini, GPT-4-turbo, Llama 3.1-70B, Llama 3.3-70B, DeepSeek R1, Qwen 2.5-72B, Grok-4
-- ✅ Auto-reconnection implemented and tested
+- ✅ Auto-reconnection implemented and tested (2025-10-03 21:34)
+- ✅ **Production verification:** Fiedler container restart → immediate reconnection, zero manual intervention
 
 ---
 
@@ -227,7 +228,7 @@ All bugs resolved:
 - ✅ MCP relay notification response handling fixed
 - ✅ Direct WebSocket connections working
 - ✅ All 10 tools discovered successfully
-- ✅ Auto-reconnection implemented for backend restarts
+- ✅ Auto-reconnection implemented and verified working (2025-10-03 21:34)
 
 ---
 
@@ -238,15 +239,16 @@ All bugs resolved:
 2. ✅ **Configuration updated** - ~/.claude.json points to new location
 3. ✅ **Verified tools** - All 10 Fiedler tools accessible
 4. ✅ **Auto-reconnection added** - Backend restart resilience implemented
+5. ✅ **Auto-reconnection tested** - Fiedler restart verified (2025-10-03 21:34)
+6. ✅ **BUG #3 marked RESOLVED** - All documentation updated
 
-### Pending Final Verification
-1. 🔄 **Restart Claude Code** - Load updated relay with auto-reconnection
-2. ⏸️ **Test auto-reconnect** - Stop/start Fiedler, verify seamless recovery
-3. ⏸️ Mark BUG #3 as RESOLVED in BUG_TRACKING.md
+### Current Work (2025-10-03 21:40)
+1. 🔄 **Test KGB logging chain** - Route Fiedler through KGB, verify Dewey logs conversations
+2. ⏸️ **Investigate Dewey MCP tools** - Currently not implementing tools/list
 
 ### Future Work
-1. Consider adding Dewey MCP tools (currently not implementing tools/list)
-2. Plan containerized Claude implementation (optional)
+1. Plan containerized Claude implementation (optional)
+2. Add Dewey MCP tools to relay if needed
 
 ---
 
@@ -275,6 +277,16 @@ All bugs resolved:
 
 ---
 
-**CURRENT ACTION:** Restart Claude Code to load updated relay with auto-reconnection
+**DEBUGGING JOURNEY SUMMARY:**
+1. ❌ Design mistake - Tried to make Claude speak WebSocket (not supported)
+2. ❌ Config crash - Mixed config formats broke MCP parser
+3. ❌ Red herring - Chased "corrupted state", forced unnecessary Claude reinstall
+4. ✅ Real culprit - Config format incompatibility discovered
+5. ✅ Fundamental limit - Confirmed Claude Code doesn't support WebSocket
+6. ✅ MCP Relay built - stdio-to-WebSocket bridge created
+7. ✅ Bugs fixed - Fiedler (lines 298, 321) and relay notification handling
+8. ✅ Production-hardened - Auto-reconnection tested and verified
 
-**Expected Result:** Seamless backend reconnection when Fiedler/Dewey restart
+**CURRENT ACTION:** Test KGB logging chain (Fiedler → KGB → Dewey logs)
+
+**Expected Result:** Conversations automatically logged to Winni database
