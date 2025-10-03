@@ -57,7 +57,27 @@ class MCPRelay:
         self.tool_routing: Dict[str, str] = {}  # tool_name -> backend_name
         self.reconnect_delay = 5
         self.initialized = False
+        self.stdout_writer = None  # Will be set by run() for sending notifications
         self.load_config()
+
+    async def notify_tools_changed(self):
+        """Send notifications/tools/list_changed to Claude Code."""
+        if not self.stdout_writer:
+            logger.warning("Cannot send notification: stdout_writer not set")
+            return
+
+        notification = {
+            "jsonrpc": "2.0",
+            "method": "notifications/tools/list_changed"
+        }
+
+        try:
+            message = json.dumps(notification) + "\n"
+            self.stdout_writer.write(message.encode())
+            await self.stdout_writer.drain()
+            logger.info("Sent notifications/tools/list_changed to client")
+        except Exception as e:
+            logger.error(f"Failed to send notification: {e}")
 
     def load_config(self):
         """Load backend configuration."""
@@ -199,6 +219,7 @@ class MCPRelay:
 
             if 'result' in response and 'tools' in response['result']:
                 tools = response['result']['tools']
+                old_tool_count = len(backend.get('tools', []))
                 backend['tools'] = tools
 
                 # Update routing table
@@ -206,6 +227,10 @@ class MCPRelay:
                     tool_name = tool['name']
                     self.tool_routing[tool_name] = backend_name
                     logger.info(f"Registered tool: {tool_name} → {backend_name}")
+
+                # Notify client if tools changed (and we're initialized)
+                if self.initialized and len(tools) != old_tool_count:
+                    await self.notify_tools_changed()
 
         except Exception as e:
             logger.error(f"Failed to discover tools from {backend_name}: {e}")
@@ -564,7 +589,9 @@ class MCPRelay:
                     "result": {
                         "protocolVersion": "2024-11-05",
                         "capabilities": {
-                            "tools": {}
+                            "tools": {
+                                "listChanged": True
+                            }
                         },
                         "serverInfo": {
                             "name": "mcp-relay",
@@ -654,6 +681,9 @@ class MCPRelay:
             asyncio.streams.FlowControlMixin, sys.stdout
         )
         writer = asyncio.StreamWriter(writer_transport, writer_protocol, None, asyncio.get_event_loop())
+
+        # Store writer for sending notifications
+        self.stdout_writer = writer
 
         logger.info("MCP Relay ready")
 
