@@ -1,25 +1,41 @@
-# Stable Relay - Ultra-Simple WebSocket Relay
+# Stable Relay & MCP Relay
 
-**Purpose**: Keep Claude Code MCP connections alive even when backend MCP servers restart.
+**Two complementary components for resilient MCP connectivity:**
+
+1. **Stable Relay** (`relay.py`) - WebSocket-to-WebSocket relay with auto-reconnect
+2. **MCP Relay** (`mcp_relay.py`) - stdio-to-WebSocket multiplexer for Claude Code
+
+**Combined Purpose**: Unified access to all ICCM MCP tools with backend restart resilience.
 
 ## The Problem
 
-Claude Code MCP connections are static - established at startup. When you need to fix/restart an MCP server (Fiedler, KGB, Dewey), you must restart Claude Code, losing conversation context.
+**Two challenges:**
+1. Claude Code MCP only supports stdio transport (not WebSocket)
+2. All ICCM MCP servers use WebSocket (Fiedler, Dewey)
+3. Restarting backend servers requires Claude restart (loses context)
 
 ## The Solution
 
+**MCP Relay + Stable Relay architecture:**
+
 ```
-Claude Code (NEVER RESTARTS)
+Claude Code (stdio, NEVER RESTARTS)
     ↓
-ws://localhost:8000 → Stable Relay → KGB (port 9000) → Fiedler/Dewey
-                      (never changes)  (can restart freely)
+MCP Relay (stdio ↔ WebSocket multiplexer)
+    ↓
+Stable Relay (port 8000, auto-reconnects backends)
+    ↓
+KGB (port 9000, automatic logging)
+    ├→ Fiedler (WebSocket MCP server)
+    └→ Dewey (WebSocket MCP server)
 ```
 
-**Stable Relay sits between Claude and everything else:**
-- Claude connects to relay (port 8000) and never needs to restart
-- Backend servers (KGB, Fiedler, Dewey) can restart freely
-- Relay auto-reconnects to backend when it comes back
-- Claude connection stays alive during backend restarts
+**Benefits:**
+- Claude speaks stdio (officially supported)
+- MCP Relay aggregates tools from all backends
+- Backends can restart freely without affecting Claude
+- Single MCP entry exposes all ICCM tools
+- Network-wide access to any WebSocket MCP server
 
 ## Design Principles
 

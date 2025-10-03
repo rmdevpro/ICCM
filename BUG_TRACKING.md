@@ -14,9 +14,46 @@ None - All bugs resolved
 
 ## 🟡 PENDING VERIFICATION
 
+### BUG #3: Unified MCP Relay Implementation
+
+**Status:** ✅ IMPLEMENTED - Awaiting restart verification
+**Priority:** HIGHEST
+**Started:** 2025-10-03 16:50 EDT
+**Implemented:** 2025-10-03 17:00 EDT
+
+**Problem:**
+Individual per-server stdio adapters are not scalable. Need unified solution for all WebSocket MCP backends.
+
+**Solution Implemented:**
+Built unified MCP relay (`mcp_relay.py`) that acts as single stdio MCP server, multiplexes to multiple WebSocket backends.
+
+**Architecture:**
+```
+Claude Code (stdio) → MCP Relay → Stable Relay → KGB → Fiedler/Dewey
+```
+
+**Benefits:**
+- Single MCP entry exposes all backend tools
+- Dynamic tool aggregation and routing
+- Backend restart resilience (auto-reconnect)
+- Network-wide WebSocket MCP server access
+- Full logging via KGB chain
+
+**Files Created:**
+- `/mnt/projects/ICCM/stable-relay/mcp_relay.py` (371 lines)
+- `/mnt/projects/ICCM/stable-relay/backends.yaml`
+
+**Configuration Updated:**
+- `~/.claude.json` - Replaced individual `fiedler` entry with unified `iccm` relay
+
+**Next Step:**
+User must restart Claude Code and test tool availability
+
+---
+
 ### BUG #2: MCP Config Format Incompatibility + WebSocket Not Supported
 
-**Status:** ✅ RESOLVED - stdio adapter + server bug fix implemented
+**Status:** ✅ RESOLVED → SUPERSEDED by unified MCP relay
 **Priority:** HIGHEST
 **Started:** 2025-10-03 16:10 EDT
 **Resolved:** 2025-10-03 21:30 EDT

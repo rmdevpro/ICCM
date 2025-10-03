@@ -56,14 +56,14 @@ LEGEND:
    - Authentication: User login (primary) or API key (sparse use)
    - Purpose: AI assistant conversations
 
-2. **Claude Code → Fiedler**
-   - **Protocol:** stdio (via adapter to WebSocket)
-   - **Current Config:** stdio adapter at `/mnt/projects/ICCM/fiedler/stdio_adapter.py`
-   - **Status:** ✅ Working - Both MCP servers connected (awaiting Claude restart for tool access)
-   - **Configuration Location:** `~/.claude.json` lines 269-282
-   - **Architecture:** Claude Code (stdio) → stdio_adapter.py → ws://localhost:9010 → Fiedler
+2. **Claude Code → ICCM Services (Fiedler, Dewey)**
+   - **Protocol:** stdio (MCP Relay multiplexer)
+   - **Current Config:** Unified MCP relay at `/mnt/projects/ICCM/stable-relay/mcp_relay.py`
+   - **Status:** ✅ Implemented - Awaiting Claude restart for testing
+   - **Configuration Location:** `~/.claude.json` lines 315-328
+   - **Architecture:** Claude Code (stdio) → MCP Relay → Stable Relay (8000) → KGB (9000) → Fiedler/Dewey
    - **Trust Status:** ✅ Enabled (`hasTrustDialogAccepted: true`)
-   - Purpose: LLM orchestration via MCP tools (8 models: Gemini 2.5 Pro, GPT-5, etc.)
+   - Purpose: Unified access to all ICCM MCP tools (Fiedler: 8 LLM models, Dewey: conversation storage)
 
 3. **Claude Code → Sequential Thinking**
    - **Protocol:** stdio (NPM package)
@@ -79,18 +79,20 @@ LEGEND:
 **Configuration Location:** `~/.claude.json` (project-specific mcpServers)
 
 **Running Infrastructure:**
-- `stable-relay` - Port 8000 (localhost) - For containerized Claude (future)
-- `kgb-proxy` - Port 9000 (localhost) - For containerized Claude (future)
-- `fiedler-mcp` - Port 9010 (0.0.0.0) - Available for direct connection
-- `dewey-mcp` - Port 9020 (localhost) - For containerized Claude (future)
+- `stable-relay` - Port 8000 (localhost) - WebSocket relay with auto-reconnect
+- `kgb-proxy` - Port 9000 (localhost) - Automatic conversation logging
+- `fiedler-mcp` - Port 8080 (container), 9010 (host) - 8 LLM models
+- `dewey-mcp` - Port 9020 (localhost) - Conversation storage/retrieval
 
 **Characteristics:**
-- Bare metal Claude uses stdio adapter for Fiedler (bridges stdio ↔ WebSocket)
+- Bare metal Claude uses MCP Relay (unified stdio → WebSocket multiplexer)
 - Sequential-thinking uses stdio (NPM package execution)
-- stdio adapter allows Claude Code compatibility while preserving Fiedler's WebSocket for AutoGen
-- MCP subsystem operational (both servers show "Connected")
+- MCP Relay aggregates tools from all WebSocket backends dynamically
+- Single "iccm" MCP entry exposes all backend tools (Fiedler + Dewey)
+- Backend servers can restart without affecting Claude connection
+- Full logging chain: MCP Relay → Stable Relay → KGB → Dewey → Winni
 - **Trust must be accepted** - `hasTrustDialogAccepted: true` required for MCP servers to load
-- Direct connection to Fiedler container via adapter (bypasses Relay/KGB for simplicity)
+- Network-wide access: Can connect to any WebSocket MCP server anywhere
 
 ---
 
@@ -236,7 +238,7 @@ User sees result
 **Section:** `projects["/home/aristotle9"].mcpServers`
 **Lines:** 129-142
 
-**Current Configuration (WORKING - stdio adapter solution):**
+**Current Configuration (WORKING - Unified MCP Relay):**
 ```json
 {
   "mcpServers": {
@@ -246,28 +248,39 @@ User sees result
       "args": ["@modelcontextprotocol/server-sequential-thinking"],
       "env": {}
     },
-    "fiedler": {
+    "iccm": {
       "type": "stdio",
-      "command": "/mnt/projects/ICCM/fiedler/stdio_adapter.py",
+      "command": "/mnt/projects/ICCM/stable-relay/mcp_relay.py",
       "args": []
     }
   }
 }
 ```
 
-**Trust Configuration (Line 286):**
+**Backend Configuration:** `/mnt/projects/ICCM/stable-relay/backends.yaml`
+```yaml
+backends:
+  - name: fiedler
+    url: ws://localhost:8000?upstream=fiedler
+  - name: dewey
+    url: ws://localhost:8000?upstream=dewey
+```
+
+**Trust Configuration (Line 332):**
 ```json
 "hasTrustDialogAccepted": true
 ```
 
-**Status:** ✅ Both MCP servers connected - awaiting Claude Code restart for Fiedler tool access
+**Status:** ✅ MCP Relay implemented - awaiting Claude Code restart for testing
 
 **Critical Notes:**
 - **IMPORTANT:** Claude Code MCP only supports stdio, SSE, HTTP (NOT WebSocket)
-- stdio adapter bridges Claude Code (stdio) ↔ Fiedler (WebSocket)
-- Fiedler keeps WebSocket for AutoGen/agent ecosystem compatibility
+- MCP Relay bridges Claude Code (stdio) ↔ all WebSocket backends
+- Single "iccm" MCP server provides unified access to all ICCM tools
+- Dynamic tool discovery: backends.yaml changes automatically reflected
+- Backend restart resilience: Stable Relay auto-reconnects transparently
 - **Trust must be accepted** (`hasTrustDialogAccepted: true`) for MCP servers to load
-- Containerized Claude (future) can use stdio adapter or SSE/HTTP transport
+- Network extensible: Add any WebSocket MCP server without Claude restart
 
 ### Containerized Claude (when active)
 **File:** `~/.config/claude-code/mcp.json` or `~/.claude.json`

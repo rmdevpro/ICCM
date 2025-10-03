@@ -32,75 +32,89 @@
 
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 16:35 EDT
-**Session:** Fiedler server bug fix applied - second bug found and resolved
-**Status:** ✅ **Server bug fixed - awaiting Claude Code restart for verification**
+**Last Updated:** 2025-10-03 17:00 EDT
+**Session:** Built unified MCP relay - stdio to WebSocket multiplexer
+**Status:** ✅ **MCP Relay complete - awaiting Claude Code restart for testing**
 
 ---
 
 ## 🎯 Current Objective
 
-**RESOLVED:** BUG #2 - MCP transport incompatibility
+**COMPLETED:** Built unified MCP relay for all ICCM services
 
-**Root Causes Identified:**
-1. **Config format mixing:** Sequential-thinking used top-level `{ "type": "stdio" }`, Fiedler used nested `{ "transport": { "type": "ws" } }`
-2. **WebSocket not supported:** Claude Code MCP officially supports stdio, SSE, HTTP only - WebSocket NOT supported
+**Problem Solved:**
+- Claude Code only supports stdio transport (not WebSocket)
+- All ICCM MCP servers use WebSocket (Fiedler, Dewey)
+- Need to connect to multiple backends through single interface
+- Need backend restart capability without losing Claude connection
 
 **Solution Implemented:**
-Created stdio-to-WebSocket adapter to bridge Claude Code ↔ Fiedler:
+Created unified MCP Relay (`mcp_relay.py`) that:
 
 ```json
-"mcpServers": {
-  "sequential-thinking": {
-    "type": "stdio",
-    "command": "npx",
-    "args": ["@modelcontextprotocol/server-sequential-thinking"],
-    "env": {}
-  },
-  "fiedler": {
-    "type": "stdio",
-    "command": "/mnt/projects/ICCM/fiedler/stdio_adapter.py",
-    "args": []
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "iccm": {
+      "type": "stdio",
+      "command": "/mnt/projects/ICCM/stable-relay/mcp_relay.py",
+      "args": []
+    }
   }
 }
 ```
 
 **Architecture Flow:**
 ```
-Claude Code (stdio)
+Claude Code (stdio subprocess)
     ↓
-stdio_adapter.py (Python process)
+MCP Relay (stdio ↔ WebSocket multiplexer)
     ↓ WebSocket
-Fiedler Server (port 9010)
-    ↓
-LLM Providers
+Stable Relay (port 8000) ← Auto-reconnects to backends
+    ↓ WebSocket
+KGB Proxy (port 9000) ← Automatic conversation logging
+    ├→ Fiedler (port 8080) → 8 LLM models
+    └→ Dewey (port 9020) → PostgreSQL/Winni
 ```
 
 **Key Benefits:**
-- ✅ Claude Code gets required stdio transport
-- ✅ Fiedler keeps WebSocket for AutoGen/agent ecosystem
-- ✅ No changes to Fiedler core
-- ✅ Compatible with relay/KGB logging (future)
+1. ✅ **Single MCP entry** - One "iccm" server exposes ALL backend tools
+2. ✅ **stdio transport** - Claude Code officially supported protocol
+3. ✅ **Dynamic tool discovery** - Aggregates tools from all backends automatically
+4. ✅ **Backend restart resilience** - Relay auto-reconnects, Claude never knows
+5. ✅ **Network-wide access** - Can connect to any WebSocket MCP server anywhere
+6. ✅ **Add servers without restart** - Edit backends.yaml, tools appear dynamically
+7. ✅ **Full logging chain** - All traffic through Stable Relay → KGB → Dewey → Winni
+8. ✅ **Tool routing** - Relay routes each tool call to correct backend
 
 **Files Created:**
-- `/mnt/projects/ICCM/fiedler/stdio_adapter.py` - Adapter script (tested and working)
-- `/mnt/projects/ICCM/fiedler/.venv/` - Python venv with websockets library
+- `/mnt/projects/ICCM/stable-relay/mcp_relay.py` - MCP relay implementation (371 lines)
+- `/mnt/projects/ICCM/stable-relay/backends.yaml` - Backend configuration
+- `/mnt/projects/ICCM/stable-relay/.venv/` - Python venv with dependencies
 
-**Additional Fixes Applied:**
-1. Fixed Fiedler server bug at line 298 - changed `await app._list_tools_handler()` to `await list_tools()`
-2. Fixed Fiedler server bug at line 321 - changed `await app._call_tool_handler(tool_name, arguments)` to `await call_tool(tool_name, arguments)`
+**Backend Configuration:**
+```yaml
+backends:
+  - name: fiedler
+    url: ws://localhost:8000?upstream=fiedler
+  - name: dewey
+    url: ws://localhost:8000?upstream=dewey
+```
 
 **Verification Status:**
-- ✅ stdio adapter tested successfully (returns all 8 Fiedler tools)
-- ✅ Both MCP servers show as "Connected" in `claude mcp list`
-- ✅ MCP child processes spawned (verified with ps/pstree)
-- ✅ Sequential-thinking tools accessible
-- ✅ Second server bug found and fixed (line 321 - tools/call handler)
-- ✅ Fiedler container rebuilt with both fixes
-- ⏸️ MCP connection lost during container rebuild - requires Claude Code restart
+- ✅ MCP relay implementation complete
+- ✅ Backend configuration created
+- ✅ Dependencies installed (websockets, pyyaml)
+- ✅ Relay tested - connects to both backends successfully
+- ✅ Claude mcp.json updated to use relay
+- ⏸️ Awaiting Claude Code restart for end-to-end testing
 
 **Next Action:**
-User must restart Claude Code client to restore MCP connection and verify both fixes work
+User must restart Claude Code to activate MCP relay and test tool availability
 
 ---
 

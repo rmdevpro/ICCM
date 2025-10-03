@@ -295,7 +295,7 @@ async def _amain():
                         }
 
                     elif method == "tools/list":
-                        tools_list = await app._list_tools_handler()
+                        tools_list = await list_tools()
                         response = {
                             "jsonrpc": "2.0",
                             "result": {

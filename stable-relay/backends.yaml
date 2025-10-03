@@ -1,0 +1,15 @@
+# MCP Relay Backend Configuration
+#
+# Each backend is a WebSocket MCP server that the relay connects to.
+# The relay aggregates tools from all backends and exposes them via stdio.
+
+backends:
+  - name: fiedler
+    url: ws://localhost:8000?upstream=fiedler
+    # Fiedler provides LLM orchestration tools (8 models)
+    # Routes through: Stable Relay (8000) → KGB (9000) → Fiedler (8080)
+
+  - name: dewey
+    url: ws://localhost:8000?upstream=dewey
+    # Dewey provides conversation storage/retrieval tools
+    # Routes through: Stable Relay (8000) → KGB (9000) → Dewey (9020) → PostgreSQL
