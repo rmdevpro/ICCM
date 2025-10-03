@@ -58,18 +58,18 @@ LEGEND:
 
 2. **Claude Code → Fiedler**
    - **Protocol:** WebSocket (direct connection to Fiedler container)
-   - **Current Config:** `ws://localhost:9010` (CORRECT)
-   - **Status:** ✅ Fully Configured - Awaiting final restart
-   - **Configuration Location:** `~/.claude.json` lines 137-142
-   - **Trust Status:** ✅ Enabled (`hasTrustDialogAccepted: true` at line 146)
-   - **Note:** Direct WebSocket to Fiedler container (not through Relay/KGB)
+   - **Current Config:** `ws://localhost:9010`
+   - **Status:** ✅ Fixed - Awaiting restart verification
+   - **Configuration Location:** `~/.claude.json` lines 218-221
+   - **Trust Status:** ✅ Enabled (`hasTrustDialogAccepted: true` at line 221)
+   - **Note:** Uses top-level format `{ "type": "ws", "url": "..." }` NOT nested transport wrapper
    - Purpose: LLM orchestration via MCP tools (7 models: Gemini 2.5 Pro, GPT-5, etc.)
 
 3. **Claude Code → Sequential Thinking**
    - **Protocol:** stdio (NPM package)
    - **Current Config:** `npx @modelcontextprotocol/server-sequential-thinking`
-   - **Status:** ✅ Configured
-   - **Configuration Location:** `~/.claude.json` lines 129-136
+   - **Status:** ✅ Working
+   - **Configuration Location:** `~/.claude.json` lines 210-217
    - Purpose: Extended thinking capability for complex reasoning
 
 4. **Claude Code → Local LLMs**
@@ -237,7 +237,7 @@ User sees result
 **Section:** `projects["/home/aristotle9"].mcpServers`
 **Lines:** 129-142
 
-**Current Configuration (CORRECT - Both MCP servers configured):**
+**Current Configuration (FIXED - Top-level format for both servers):**
 ```json
 {
   "mcpServers": {
@@ -248,23 +248,23 @@ User sees result
       "env": {}
     },
     "fiedler": {
-      "transport": {
-        "type": "ws",
-        "url": "ws://localhost:9010"
-      }
+      "type": "ws",
+      "url": "ws://localhost:9010"
     }
   }
 }
 ```
 
-**Trust Configuration (Line 146):**
+**Trust Configuration (Line 221):**
 ```json
 "hasTrustDialogAccepted": true
 ```
 
-**Status:** ✅ Fully configured - Direct WebSocket to Fiedler + stdio for sequential-thinking
+**Status:** ✅ Fixed - Both servers use consistent top-level format, awaiting restart verification
 
 **Critical Notes:**
+- **IMPORTANT:** Must use top-level format `{ "type": "ws", ... }` NOT nested `{ "transport": { "type": "ws", ... } }`
+- Mixing formats in same `mcpServers` block breaks MCP parser
 - Direct connection to Fiedler bypasses Relay/KGB for bare metal simplicity
 - **Trust must be accepted** (`hasTrustDialogAccepted: true`) for MCP servers to load
 - Containerized Claude (future) will use the Relay chain at `ws://localhost:8000?upstream=fiedler`

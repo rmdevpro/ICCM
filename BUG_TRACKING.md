@@ -2,34 +2,45 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-03 19:45 EDT
+**Last Updated:** 2025-10-03 20:15 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
 
-### BUG #1: MCP Servers Not Loading After Fiedler Config Added
+None - All bugs resolved
 
-**Status:** 🔴 ACTIVE - Investigating
+---
+
+## 🟡 PENDING VERIFICATION
+
+### BUG #2: MCP Config Format Incompatibility
+
+**Status:** ✅ FIXED - Awaiting restart verification
 **Priority:** HIGHEST
 **Started:** 2025-10-03 16:10 EDT
+**Fixed:** 2025-10-03 20:15 EDT
 
 **Problem:**
 After Claude Code reinstall, sequential-thinking MCP was working. Added Fiedler WebSocket config, now NO MCP servers load (zero child processes).
 
-**Symptoms:**
-- Sequential-thinking was working before Fiedler config added
-- Added Fiedler WebSocket config to `~/.claude.json`
-- After restart: No MCP child processes spawning
-- Both sequential-thinking AND Fiedler unavailable
+**Root Cause:**
+Mixed MCP configuration formats in same `mcpServers` block:
+- Sequential-thinking: `{ "type": "stdio", ... }` (top-level format)
+- Fiedler: `{ "transport": { "type": "ws", ... } }` (nested wrapper format)
+- MCP parser couldn't handle mixed formats → failed to load ANY servers
 
-**Current Investigation:**
-- Removed Fiedler config from `~/.claude.json`
-- Reverted to sequential-thinking only
-- Awaiting restart to see if sequential-thinking loads again
+**Solution:**
+Standardized both to top-level format:
+```json
+"fiedler": {
+  "type": "ws",
+  "url": "ws://localhost:9010"
+}
+```
 
-**Hypothesis:**
-Fiedler WebSocket config format may be incompatible or causing JSON/initialization error
+**Verification Required:**
+Restart Claude Code and confirm both MCP servers load successfully
 
 ---
 

@@ -32,26 +32,23 @@
 
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 16:10 EDT
-**Session:** BUG #1 INVESTIGATION ONGOING - MCP Servers Not Loading
-**Status:** 🔴 **Debugging MCP initialization failure**
+**Last Updated:** 2025-10-03 20:15 EDT
+**Session:** BUG #1 RESOLVED - MCP Config Format Issue Fixed
+**Status:** ✅ **Configuration corrected, awaiting restart verification**
 
 ---
 
 ## 🎯 Current Objective
 
-**ACTIVE:** Investigating BUG #1 - MCP servers not loading after Claude Code reinstall
+**RESOLVED:** BUG #1 - MCP config format incompatibility
 
-**Status:** 🔴 IN PROGRESS - Sequential-thinking working but stopped after Fiedler added
+**Root Cause:** Mixed MCP configuration formats in same `mcpServers` block
+- Sequential-thinking used top-level format: `{ "type": "stdio", "command": "npx", ... }`
+- Fiedler used nested transport wrapper: `{ "transport": { "type": "ws", "url": "..." } }`
+- Mixing these two formats broke MCP parser, preventing ALL servers from loading
 
-**Current Situation:**
-- **Before:** Sequential-thinking MCP was working after Claude Code reinstall
-- **Change:** Added Fiedler WebSocket config to `~/.claude.json`
-- **After:** Both MCP servers stopped loading (zero child processes spawning)
-- **Action Taken:** Removed Fiedler config, reverted to sequential-thinking only
-- **Next:** Restart Claude Code and verify sequential-thinking loads again
-
-**Current Configuration (sequential-thinking only):**
+**Solution Applied:**
+Changed Fiedler to match sequential-thinking's top-level format:
 ```json
 "mcpServers": {
   "sequential-thinking": {
@@ -59,15 +56,16 @@
     "command": "npx",
     "args": ["@modelcontextprotocol/server-sequential-thinking"],
     "env": {}
+  },
+  "fiedler": {
+    "type": "ws",
+    "url": "ws://localhost:9010"
   }
 }
 ```
 
-**Hypothesis:**
-Adding Fiedler WebSocket config may have caused JSON parsing error or MCP initialization failure. Testing with sequential-thinking only to isolate the issue.
-
 **Next Action:**
-User must restart Claude Code. If sequential-thinking loads, issue is with Fiedler config format. If still broken, deeper investigation needed.
+User must restart Claude Code to verify both MCP servers load successfully.
 
 ---
 
