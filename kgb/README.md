@@ -1,26 +1,43 @@
 # KGB (Knowledge Gateway Broker)
 
-Transparent WebSocket spy coordinator with automatic conversation logging to Dewey.
-Each client connection spawns a dedicated spy worker with its own Dewey client.
+Dual-protocol logging proxy with automatic conversation logging to Dewey.
+- **WebSocket Spy**: Transparent relay for MCP tool traffic
+- **HTTP Gateway**: Reverse proxy for Anthropic API traffic
 
 ## Architecture
 
 ```
-Claude Code → KGB Proxy (port 9000) → Upstream MCP Servers (Fiedler, Dewey)
-                    ↓
-            Spy Workers (1 per connection)
-                    ↓
-                 Dewey (logs conversations)
+Claude Code (containerized)
+    ├→ KGB HTTP Gateway (port 8089) → api.anthropic.com
+    │       ↓
+    │   Dewey (logs API conversations)
+    │
+    └→ MCP Relay → KGB WebSocket Spy (port 9000) → MCP Servers
+            ↓
+        Spy Workers (1 per connection)
+            ↓
+        Dewey (logs tool calls)
 ```
 
 ## Features
 
+### WebSocket Spy (Existing)
 - **Spy Worker Pattern**: Each connection gets dedicated spy with isolated Dewey client
 - **Transparent Relay**: Forwards all traffic to upstream MCP servers
 - **Complete Logging**: Captures ALL messages (not just tool calls) with truncation
 - **Race-Free**: No shared WebSocket connections between clients
 - **Multi-Upstream**: Supports routing to different MCP servers
+
+### HTTP Gateway (New)
+- **Reverse Proxy**: Forwards requests to api.anthropic.com
+- **API Logging**: Captures Claude Code ↔ Anthropic API conversations
+- **No TLS Issues**: Simple HTTP reverse proxy (no certificate trust needed)
+- **Header Sanitization**: Redacts API keys before logging
+- **Async Logging**: Failures don't block API requests
+
+### Shared
 - **Security Limits**: 10KB message size limit with truncation indicators
+- **Unified Storage**: Both protocols log to same Dewey/Winni database
 
 ## Quick Start
 

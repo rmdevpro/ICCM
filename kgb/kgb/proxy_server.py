@@ -219,21 +219,29 @@ class KGBProxy:
 
 
 async def main():
-    """Main entry point for KGB Proxy."""
+    """Main entry point for KGB Proxy - runs both WebSocket spy and HTTP gateway."""
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
-    proxy = KGBProxy()
-    await proxy.start()
+    # Start WebSocket spy (existing)
+    ws_proxy = KGBProxy()
+    await ws_proxy.start()
+
+    # Start HTTP gateway (new)
+    from kgb.http_gateway import start_http_gateway
+    http_gateway = await start_http_gateway(host="0.0.0.0", port=8089)
+
+    logger.info("KGB fully operational: WebSocket spy (9000) + HTTP gateway (8089)")
 
     try:
         await asyncio.Future()
     except KeyboardInterrupt:
         logger.info("Shutting down KGB...")
     finally:
-        await proxy.stop()
+        await ws_proxy.stop()
+        await http_gateway.stop()
 
 
 if __name__ == "__main__":

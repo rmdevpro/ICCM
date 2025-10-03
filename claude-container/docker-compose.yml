@@ -24,46 +24,18 @@ services:
       - ${HOME}/.gitconfig:/root/.gitconfig:ro
 
     environment:
-      # API Configuration - will be set via gateway
-      # ANTHROPIC_BASE_URL will point to anthropic-gateway service
-      - ANTHROPIC_BASE_URL=http://anthropic-gateway:8089/v1
+      # API Configuration - route through KGB HTTP gateway
+      - ANTHROPIC_BASE_URL=http://host.docker.internal:8089/v1
 
       # API Key - from host environment
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 
       # MCP Relay connection (already running on host)
-      # We'll connect to KGB on host network
-      # This requires --network host or exposing KGB ports
+      # Will connect to KGB on host network
 
-    # For testing, we can use host network to access existing KGB/relay
-    # network_mode: "host"  # Alternative: use host network
-
-    depends_on:
-      - anthropic-gateway
-
-  # Anthropic Gateway - reverse proxy for logging
-  anthropic-gateway:
-    build: ../anthropic-gateway
-    image: iccm/anthropic-gateway:latest
-    container_name: anthropic-gateway
-    networks:
-      - iccm-network
-    ports:
-      - "8089:8089"
-    environment:
-      # Upstream Anthropic API
-      - UPSTREAM_URL=https://api.anthropic.com
-
-      # Dewey endpoint for logging
-      - DEWEY_URL=http://192.168.1.210:8080/conversations
-
-      # Logging configuration
-      - LOG_LEVEL=info
-      - REDACT_API_KEYS=true
-
-    # Can also connect to host network to reach Dewey
-    # extra_hosts:
-    #   - "host.docker.internal:host-gateway"
+    extra_hosts:
+      # Access host services (KGB on localhost:8089 and localhost:9000)
+      - "host.docker.internal:host-gateway"
 
 networks:
   iccm-network:

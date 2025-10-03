@@ -17,7 +17,7 @@
 
 ---
 
-## Solution: Anthropic API Gateway
+## Solution: KGB HTTP Gateway (Integrated)
 
 ### Triplet Consultation Results
 
@@ -58,8 +58,8 @@ We consulted Gemini 2.5 Pro, GPT-5, and Grok-4 on five approaches:
 
 ```
 Claude Code Container
-    ↓ ANTHROPIC_BASE_URL=http://anthropic-gateway:8089/v1
-Anthropic Gateway (Node.js reverse proxy)
+    ↓ ANTHROPIC_BASE_URL=http://host.docker.internal:8089/v1
+KGB HTTP Gateway (Python aiohttp reverse proxy)
     ↓ Forward request to https://api.anthropic.com
     ├→ Capture request (sanitize API keys)
     ├→ Capture response
@@ -74,37 +74,39 @@ Dewey → Winni PostgreSQL (unified storage)
 **1. Claude Code Container** (`/mnt/projects/ICCM/claude-container/`)
 - Dockerfile: Node.js 22 + Claude Code CLI
 - docker-compose.yml: Volume mounts, environment config
-- Environment: `ANTHROPIC_BASE_URL=http://anthropic-gateway:8089/v1`
+- Environment: `ANTHROPIC_BASE_URL=http://host.docker.internal:8089/v1`
 
-**2. Anthropic Gateway** (`/mnt/projects/ICCM/anthropic-gateway/`)
-- gateway.js: Express + http-proxy-middleware
+**2. KGB (Enhanced)** (`/mnt/projects/ICCM/kgb/`)
+- **WebSocket Spy** (port 9000): MCP tool traffic logging
+- **HTTP Gateway** (port 8089): Anthropic API traffic logging
+- Both use DeweyClient for unified logging
 - Sanitizes headers (redacts x-api-key, authorization, cookie)
-- Logs request/response to Dewey
 - Health checks on `/health`
 
 **3. Integration Points**
-- **KGB:** Parallel logging (KGB=MCP, Gateway=API)
-- **Dewey:** Unified logging endpoint
+- **KGB Unified**: Single proxy for both WebSocket and HTTP traffic
+- **Dewey:** Unified logging endpoint for all traffic types
 - **Winni:** Single database for all conversations
 
 ---
 
 ## Implementation Files
 
-### Created Files
+### Created/Modified Files
 
 ```
 /mnt/projects/ICCM/
 ├── claude-container/
 │   ├── Dockerfile
-│   └── docker-compose.yml
+│   └── docker-compose.yml (updated to use KGB)
 │
-├── anthropic-gateway/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── gateway.js
-│   ├── healthcheck.js
-│   └── README.md
+├── kgb/
+│   ├── kgb/http_gateway.py (NEW - HTTP reverse proxy)
+│   ├── kgb/proxy_server.py (UPDATED - dual protocol)
+│   ├── Dockerfile (UPDATED - expose port 8089)
+│   ├── docker-compose.yml (UPDATED - expose port 8089)
+│   ├── requirements.txt (UPDATED - add aiohttp)
+│   └── README.md (UPDATED - document HTTP gateway)
 │
 └── architecture/triplet_consultations/
     ├── anthropic_api_logging_gemini.md
@@ -112,28 +114,35 @@ Dewey → Winni PostgreSQL (unified storage)
     └── anthropic_api_logging_grok4.md
 ```
 
-### Key Code: Gateway Middleware
+### Key Code: KGB HTTP Gateway
 
-```javascript
-// Intercept and log request
-onProxyReq: (proxyReq, req, res) => {
-  req.requestId = uuidv4();
-  req.capturedRequest = {
-    method: req.method,
-    path: req.path,
-    headers: sanitizeHeaders(req.headers), // Redact API keys
-    body: requestBody
-  };
-}
+```python
+# kgb/http_gateway.py - aiohttp reverse proxy
+async def proxy_request(self, request: web.Request):
+    """Proxy request to upstream and log to Dewey."""
+    # Create conversation in Dewey
+    dewey_client = DeweyClient()
+    conv = await dewey_client.begin_conversation(...)
 
-// Intercept and log response
-onProxyRes: (proxyRes, req, res) => {
-  // Capture response body
-  // Log to Dewey asynchronously (don't block)
-  logToDewey(logEntry).catch(err => {
-    console.error('Failed to log to Dewey:', err);
-  });
-}
+    # Log request (sanitized)
+    await dewey_client.store_message(
+        conversation_id=conv_id,
+        role="user",
+        content=sanitize_headers(request.headers)
+    )
+
+    # Forward to Anthropic API
+    async with aiohttp.ClientSession() as session:
+        response = await session.request(...)
+
+    # Log response (sanitized)
+    await dewey_client.store_message(
+        conversation_id=conv_id,
+        role="assistant",
+        content=response.body
+    )
+
+    return response  # Return to Claude Code
 ```
 
 ---
