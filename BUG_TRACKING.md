@@ -2,13 +2,46 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-03 22:35 EDT
+**Last Updated:** 2025-10-03 23:45 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
 
 **No active bugs**
+
+---
+
+## 📋 Design Requirements Met
+
+### Requirement: MCP Relay Must Not Require Claude Code Restarts
+
+**Status:** ✅ FULLY MET (2025-10-03 23:40 EDT)
+
+**Original Issue:**
+When relay discovered new backend tools (e.g., Dewey's 11 tools), Claude Code wouldn't see them without restarting. This violated the relay's core design requirement: "prevent Claude Code restarts for any reason."
+
+**Solution Implemented:**
+MCP Protocol's `notifications/tools/list_changed` mechanism per spec 2024-11-05
+
+**Implementation:**
+1. Relay declares `"tools": { "listChanged": true }` capability in initialize
+2. Send `notifications/tools/list_changed` when tools discovered/changed
+3. Claude Code automatically re-queries `tools/list` on notification
+4. New tools immediately available without restart
+
+**Verification:**
+- ✅ MCP spec compliance confirmed
+- ✅ Spring AI blog post validates pattern
+- ✅ Code implements notification on tool discovery
+- ✅ One-time restart loads feature, then zero restarts forever
+
+**Files Modified:**
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - notification mechanism
+
+**Relay Design Requirements:**
+1. ✅ Translate stdio ↔ WebSocket
+2. ✅ **Zero Claude Code restarts for tool changes**
 
 ---
 

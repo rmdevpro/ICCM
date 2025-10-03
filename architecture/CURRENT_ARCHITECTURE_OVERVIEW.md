@@ -96,6 +96,7 @@ LEGEND:
 - **Direct WebSocket connections** - No intermediary relay in bare metal mode
 - **Tool aggregation** - Single "iccm" MCP entry exposes all backend tools
 - **Dynamic discovery** - Relay queries backends for tools on startup
+- **Zero-restart tool updates** - MCP `notifications/tools/list_changed` protocol
 - **Network extensible** - Can connect to any WebSocket MCP server by updating backends.yaml
 - **No logging in bare metal** - Connections go directly to Fiedler/Dewey, bypassing KGB
 - **Trust must be accepted** - `hasTrustDialogAccepted: true` required for MCP servers to load
@@ -155,9 +156,15 @@ LEGEND:
 - **Startup Config:** `/mnt/projects/ICCM/mcp-relay/backends.yaml` (initial servers only)
 - **Features:**
   - Dynamic tool discovery and aggregation
+  - **Zero-restart tool updates** via MCP notifications
   - Auto-reconnect on backend failures
   - Config file watching (hot-reload)
   - Runtime server management via MCP tools
+- **MCP Protocol Support:**
+  - `initialize` - Declares `"tools": { "listChanged": true }` capability
+  - `tools/list` - Returns aggregated tools from all backends
+  - `tools/call` - Routes to appropriate backend
+  - `notifications/tools/list_changed` - Notifies client when tools change
 - **Management Tools:**
   - `relay_add_server(name, url)` - Add new MCP server
   - `relay_remove_server(name)` - Remove MCP server

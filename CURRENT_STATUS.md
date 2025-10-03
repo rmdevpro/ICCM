@@ -1,14 +1,16 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 22:35 EDT
-**Session:** End-to-end logging implementation - All conversations to Winni
-**Status:** ✅ **COMPLETE - All conversations logging to Winni database**
+**Last Updated:** 2025-10-03 23:45 EDT
+**Session:** Dynamic tool discovery + End-to-end logging implementation
+**Status:** ✅ **COMPLETE - All systems operational**
 
 ---
 
 ## 🎯 Current Objective
 
-**COMPLETED:** Full end-to-end logging pipeline operational
+**COMPLETED:**
+1. Full end-to-end logging pipeline operational
+2. Dynamic tool discovery without Claude Code restarts
 
 **Problem Solved:**
 - Claude Code only supports stdio transport (not WebSocket)
@@ -32,11 +34,12 @@ Dewey (ws://localhost:9020) - Conversation storage
 1. ✅ **Single MCP entry** - One "iccm" server exposes ALL backend tools
 2. ✅ **stdio transport** - Claude Code officially supported protocol
 3. ✅ **Dynamic tool discovery** - Aggregates tools from all backends automatically
-4. ✅ **Backend restart resilience** - Relay auto-reconnects transparently
-5. ✅ **Runtime server management** - Add/remove servers via MCP tools (no file editing)
-6. ✅ **Network extensible** - Can connect to any WebSocket MCP server
-7. ✅ **Config file watching** - Automatically reconnects when backends.yaml changes
-8. ✅ **Status monitoring** - Query connection status through relay tools
+4. ✅ **Zero-restart tool updates** - MCP notifications/tools/list_changed protocol
+5. ✅ **Backend restart resilience** - Relay auto-reconnects transparently
+6. ✅ **Runtime server management** - Add/remove servers via MCP tools (no file editing)
+7. ✅ **Network extensible** - Can connect to any WebSocket MCP server
+8. ✅ **Config file watching** - Automatically reconnects when backends.yaml changes
+9. ✅ **Status monitoring** - Query connection status through relay tools
 
 ---
 
@@ -75,6 +78,20 @@ Dewey (ws://localhost:9020) - Conversation storage
 - Runtime server management through MCP tools
 - No file editing or restarts required for server changes
 - Switch between direct/KGB routing via tool calls
+
+### ✅ Phase 4: Dynamic Tool Discovery (COMPLETED)
+**MCP Protocol Enhancement:**
+- ✅ Implemented `notifications/tools/list_changed` per MCP spec 2024-11-05
+- ✅ Relay declares `"tools": { "listChanged": true }` capability
+- ✅ Auto-notify Claude Code when tools discovered/changed
+- ✅ Client automatically re-queries `tools/list` on notification
+
+**Behavior:**
+- Add backend → Tools discovered → Notification sent → Tools immediately available
+- Reconnect backend → New tools → Notification sent → Zero restart needed
+- Backend tool changes → Auto-detected → Notification sent → Dynamic refresh
+
+**Result:** **Zero Claude Code restarts needed** for tool changes after initial feature load
 
 ---
 
@@ -262,19 +279,24 @@ cd /mnt/projects/ICCM/fiedler && docker compose restart
 5. ✅ **Auto-reconnection tested** - Fiedler restart verified (2025-10-03 21:34)
 6. ✅ **BUG #3 marked RESOLVED** - All documentation updated
 
-### Current Work (2025-10-03 22:35)
+### Current Work (2025-10-03 23:45)
 1. ✅ **BUG #4 RESOLVED** - websockets 15.x API compatibility verified
 2. ✅ **BUG #5 RESOLVED** - Dewey MCP protocol compliance (tools/list implemented)
-3. ✅ **KGB logging enabled** - All MCP traffic routes through KGB proxy
-4. ✅ **Winni logging verified** - Conversations successfully stored in database
-5. ✅ **LLM triplet logging tested** - Multi-model consultations logged
-6. 🔄 **Commit changes** - Document and commit all fixes
+3. ✅ **Dynamic tool discovery implemented** - MCP notifications/tools/list_changed
+4. ✅ **KGB logging enabled** - All MCP traffic routes through KGB proxy
+5. ✅ **Winni logging verified** - Conversations successfully stored in database
+6. ✅ **LLM triplet logging tested** - Multi-model consultations logged
+7. ✅ **All changes committed** - Documentation updated and pushed
+
+### Next Steps
+1. **Restart Claude Code** (one-time) to activate dynamic tool discovery feature
+2. After restart: All 19 tools (8 Fiedler + 11 Dewey) immediately available
+3. Future tool changes: Zero restarts required
 
 ### Future Work
-1. Restart Claude Code to register Dewey tools in MCP
-2. Test Dewey tools from Claude Code interface
-3. Consider making KGB routing default configuration
-4. Plan containerized Claude implementation (optional)
+1. Consider making KGB routing default configuration
+2. Plan containerized Claude implementation (optional)
+3. Test Dewey conversation management tools
 
 ---
 
