@@ -2,7 +2,7 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-03 20:15 EDT
+**Last Updated:** 2025-10-03 17:35 EDT
 
 ---
 
@@ -19,38 +19,42 @@ None - All bugs resolved
 **Status:** ✅ RESOLVED
 **Priority:** HIGHEST
 **Started:** 2025-10-03 16:50 EDT
-**Resolved:** 2025-10-03 17:25 EDT
+**Resolved:** 2025-10-03 17:35 EDT
 
 **Problem:**
-Claude Code only supports stdio transport, but all ICCM MCP servers use WebSocket. Need unified bridge for multiple backends with dynamic tool discovery.
+Claude Code only supports stdio transport, but all ICCM MCP servers use WebSocket. Need unified bridge for multiple backends with dynamic tool discovery and backend restart resilience.
 
 **Root Cause:**
 - Claude Code MCP limitation: Only stdio, SSE, HTTP (no WebSocket)
 - Initial attempt used unnecessary Stable Relay intermediary
 - Fiedler MCP had bugs (lines 298, 321) preventing tool discovery
 - MCP relay wasn't consuming notification error responses
+- No automatic reconnection on backend restart
 
 **Solution Implemented:**
 1. Built MCP Relay (`/mnt/projects/ICCM/mcp-relay/mcp_relay.py`) - stdio to WebSocket multiplexer
 2. Direct connections to backends (no intermediary relay)
 3. Fixed Fiedler MCP bugs (rebuilt container)
 4. Fixed notification response handling in relay
+5. Added WebSocket connection error handling with automatic reconnection and retry
 
 **Architecture:**
 ```
 Claude Code → MCP Relay (stdio subprocess) → Direct WebSocket
-                  ├→ ws://localhost:9010 (Fiedler - 8 LLM models)
+                  ├→ ws://localhost:9010 (Fiedler - 10 LLM models)
                   └→ ws://localhost:9020 (Dewey - conversation storage)
 ```
 
 **Files:**
-- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Main implementation
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Main implementation (371 lines + reconnection logic)
 - `/mnt/projects/ICCM/mcp-relay/backends.yaml` - Configuration
 - Archived: `/mnt/projects/General Tools and Docs/archive/stable-relay_archived_2025-10-03/`
 
 **Verification:**
-- ✅ All 8 Fiedler tools discovered successfully (manual test)
-- ⏸️ Awaiting Claude Code restart for full integration test
+- ✅ All 10 Fiedler models accessible via MCP tools
+- ✅ Both MCP servers (sequential-thinking, iccm) connected
+- ✅ Auto-reconnection code implemented (pending restart test)
+- ⏸️ Final verification: Test reconnection after backend restart
 
 ---
 

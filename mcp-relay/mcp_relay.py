@@ -191,6 +191,20 @@ class MCPRelay:
             await ws.send(json.dumps(request))
             response = json.loads(await ws.recv())
             return response
+        except (websockets.exceptions.ConnectionClosed,
+                websockets.exceptions.ConnectionClosedError,
+                websockets.exceptions.ConnectionClosedOK) as e:
+            # Connection lost - reconnect and retry
+            logger.warning(f"Backend {backend_name} connection lost: {e}, reconnecting...")
+            backend['ws'] = None  # Mark as disconnected
+            await self.reconnect_backend(backend_name)
+            ws = backend['ws']
+
+            # Retry the tool call once
+            logger.info(f"Retrying tool call: {tool_name}")
+            await ws.send(json.dumps(request))
+            response = json.loads(await ws.recv())
+            return response
         except Exception as e:
             logger.error(f"Tool call failed for {tool_name}: {e}")
             raise
