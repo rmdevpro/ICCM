@@ -55,8 +55,8 @@ print("Sending consultation to triplet...", file=sys.stderr)
 
 try:
     result = fiedler_send(
-        prompt=consultation_text,
-        models=["gemini-2.5-pro", "gpt-5", "deepseek-ai/DeepSeek-R1"]
+        prompt=consultation_text
+        # Uses Fiedler's default triplet models (configured in models.yaml)
     )
 
     print(json.dumps(result, indent=2))
@@ -129,8 +129,8 @@ print("Sending consultation to triplet...", file=sys.stderr)
 print("=" * 80, file=sys.stderr)
 
 result = fiedler_send(
-    prompt=consultation,
-    models=["gemini-2.5-pro", "gpt-5", "deepseek-ai/DeepSeek-R1"]
+    prompt=consultation
+    # Uses Fiedler's default triplet models (configured in models.yaml)
 )
 
 print(json.dumps(result, indent=2))
@@ -145,16 +145,24 @@ docker exec fiedler-mcp cat /app/fiedler_output/*_${CORR_ID}/deepseek-ai_DeepSee
 
 ---
 
-## Available Models
+## Model Selection
 
-| Model | ID | Provider |
-|-------|-----|----------|
-| Gemini 2.5 Pro | `gemini-2.5-pro` | Google |
-| GPT-5 | `gpt-5` | OpenAI |
-| DeepSeek-R1 | `deepseek-ai/DeepSeek-R1` | Together.AI |
-| Llama 3.3 70B | `meta-llama/Llama-3.3-70B-Instruct-Turbo` | Together.AI |
-| Qwen 2.5 72B | `Qwen/Qwen2.5-72B-Instruct-Turbo` | Together.AI |
-| Grok 4 | `grok-4-0709` | xAI |
+**Default behavior:** When `models` parameter is omitted, Fiedler uses its configured default models.
+
+**To use specific models:** Pass `models=[...]` parameter with model IDs:
+```python
+result = fiedler_send(
+    prompt=consultation,
+    models=["gemini-2.5-pro"]  # Single model
+)
+
+result = fiedler_send(
+    prompt=consultation,
+    models=["gemini-2.5-pro", "gpt-4o", "grok-4-0709"]  # Multiple models
+)
+```
+
+**To check available models:** See `/app/fiedler/config/models.yaml` in the container.
 
 ---
 

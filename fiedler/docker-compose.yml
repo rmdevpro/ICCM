@@ -49,8 +49,8 @@ services:
 
     # Volumes
     volumes:
-      # Output directory
-      - fiedler_output:/app/fiedler_output
+      # Output directory (bind mount to host for easy access)
+      - ./fiedler_output:/app/fiedler_output
 
       # Allowed files directory (read-only)
       - ./allowed_files:/app/allowed_files:ro
@@ -82,7 +82,6 @@ services:
       start_period: 5s
 
 volumes:
-  fiedler_output:
   fiedler_state:
 
 networks:

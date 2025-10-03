@@ -1,0 +1,4 @@
+# Ultra-Stable Relay Configuration
+# Change backend URL here - relay auto-reloads on restart
+
+backend: "ws://kgb-proxy:9000"

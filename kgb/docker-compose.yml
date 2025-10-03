@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  kgb-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kgb-proxy:latest
+    container_name: kgb-proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9000:9000"
+    networks:
+      - iccm_network
+
+networks:
+  iccm_network:
+    external: true

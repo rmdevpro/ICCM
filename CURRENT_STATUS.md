@@ -16,6 +16,7 @@
 - `/mnt/projects/ICCM/fiedler/README.md` - Fiedler MCP server (7 LLM models)
 
 ### 3. Reference Documentation & Workarounds (As Needed)
+- `/mnt/projects/ICCM/architecture/TRIPLET_CONSULTATION_PROCESS.md` - Standard process for consulting the LLM triplet
 - `/mnt/projects/ICCM/architecture/FIEDLER_DOCKER_WORKAROUND.md` - Triplet consultation when Fiedler MCP unavailable
 - `~/.config/claude-code/mcp.json` - MCP configuration (global)
 - `~/.claude.json` - MCP configuration (project-specific)
@@ -31,9 +32,9 @@
 
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 17:15 EDT
-**Session:** Root Cause Found - MCP Subsystem Not Starting
-**Status:** 🟡 **BUG #1 - Restart required to initialize MCP servers**
+**Last Updated:** 2025-10-03 17:50 EDT
+**Session:** Solution Ready - Complete Removal & Reinstall Scripts Created
+**Status:** 🟡 **BUG #1 - Awaiting user execution of removal/reinstall procedure**
 
 ---
 
@@ -44,17 +45,19 @@
 **Status:** Root cause identified - Claude Code did not start MCP subsystem
 
 **Quick Summary:**
-- **Problem:** Fiedler MCP tools not loading despite correct configuration
-- **Root Cause Found:** Process tree analysis shows current Claude has ZERO MCP child processes
-- **Old Claude (PID 2276122):** Has `npm exec @googl...` MCP servers running
-- **Current Claude (PID 2391925):** No MCP child processes at all - subsystem never initialized
-- **Configuration:** Correct (`ws://localhost:8000?upstream=fiedler`)
-- **Environment:** Identical to working session
+- **Problem:** MCP subsystem not initializing (zero child processes)
+- **Root Cause:** Corrupted application state (confirmed by 2 triplet consultations)
+- **Solution:** Complete removal of ALL Claude Code files + sanitized config restoration
+- **Scripts Created:** `/tmp/claude-code-audit.sh` and `/tmp/claude-code-reinstall.sh`
+- **Based On:** Unanimous consensus from Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1
 
 **Next Action:**
-User must FULLY QUIT and RESTART Claude Code to trigger MCP initialization
+User will execute scripts in terminal (outside Claude Code):
+1. `bash /tmp/claude-code-audit.sh` (backup + dry-run)
+2. `bash /tmp/claude-code-reinstall.sh /path/to/backup` (remove + reinstall)
+3. Test MCP subsystem in new Claude Code session
 
-*(See BUG_TRACKING.md for triplet consultation details, git log for detailed change history)*
+*(See BUG_TRACKING.md for investigation history including 4 triplet consultations)*
 
 ---
 

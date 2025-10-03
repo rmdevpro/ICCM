@@ -244,20 +244,165 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 
 async def _amain():
-    """Async entry point for MCP server."""
-    from mcp.server.stdio import stdio_server
+    """Async entry point for MCP server - WebSocket mode."""
+    import sys
+    import websockets
+    import json
+    import logging
+    from websockets.server import WebSocketServerProtocol
 
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options(),
-        )
+    print("=== FIEDLER: _amain() ENTRY POINT ===", flush=True, file=sys.stderr)
+
+    # Force logging to stderr with explicit configuration
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        stream=sys.stderr,
+        force=True
+    )
+    logger = logging.getLogger(__name__)
+    print("=== FIEDLER: Logger configured ===", flush=True, file=sys.stderr)
+    logger.info("=== FIEDLER STARTUP: _amain() called ===")
+
+    async def handle_client(websocket: WebSocketServerProtocol):
+        """Handle WebSocket client connection."""
+        logger.info(f"=== FIEDLER: Client connected from {websocket.remote_address} ===")
+
+        try:
+            async for message in websocket:
+                try:
+                    # Parse MCP request
+                    request = json.loads(message)
+                    method = request.get("method")
+                    params = request.get("params", {})
+                    request_id = request.get("id")
+
+                    logger.info(f"Received request: {method}")
+
+                    # Handle MCP protocol methods
+                    if method == "initialize":
+                        response = {
+                            "jsonrpc": "2.0",
+                            "result": {
+                                "protocolVersion": "2024-11-05",
+                                "capabilities": {"tools": {}},
+                                "serverInfo": {
+                                    "name": "fiedler",
+                                    "version": "1.0.0"
+                                }
+                            },
+                            "id": request_id
+                        }
+
+                    elif method == "tools/list":
+                        tools_list = await app._list_tools_handler()
+                        response = {
+                            "jsonrpc": "2.0",
+                            "result": {
+                                "tools": [
+                                    {
+                                        "name": tool.name,
+                                        "description": tool.description,
+                                        "inputSchema": tool.inputSchema
+                                    }
+                                    for tool in tools_list
+                                ]
+                            },
+                            "id": request_id
+                        }
+
+                    elif method == "tools/call":
+                        tool_name = params.get("name")
+                        arguments = params.get("arguments", {})
+
+                        logger.info(f"Calling tool: {tool_name}")
+
+                        # Call the tool via the app's handler
+                        result = await app._call_tool_handler(tool_name, arguments)
+
+                        response = {
+                            "jsonrpc": "2.0",
+                            "result": {
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": item.text
+                                    }
+                                    for item in result
+                                ]
+                            },
+                            "id": request_id
+                        }
+
+                    else:
+                        response = {
+                            "jsonrpc": "2.0",
+                            "error": {
+                                "code": -32601,
+                                "message": f"Method not found: {method}"
+                            },
+                            "id": request_id
+                        }
+
+                    # Send response
+                    await websocket.send(json.dumps(response))
+
+                except json.JSONDecodeError:
+                    error_response = {
+                        "jsonrpc": "2.0",
+                        "error": {
+                            "code": -32700,
+                            "message": "Parse error"
+                        },
+                        "id": None
+                    }
+                    await websocket.send(json.dumps(error_response))
+
+                except Exception as e:
+                    logger.exception(f"Error processing request: {e}")
+                    error_response = {
+                        "jsonrpc": "2.0",
+                        "error": {
+                            "code": -32603,
+                            "message": str(e)
+                        },
+                        "id": request_id if 'request_id' in locals() else None
+                    }
+                    await websocket.send(json.dumps(error_response))
+
+        except websockets.exceptions.ConnectionClosed:
+            logger.info("Client disconnected")
+
+    # Start WebSocket server on port 8080
+    host = "0.0.0.0"
+    port = 8080
+    print(f"=== FIEDLER: About to start WebSocket server on {host}:{port} ===", flush=True, file=sys.stderr)
+    logger.info(f"=== FIEDLER STARTUP: Starting WebSocket MCP server on {host}:{port} ===")
+
+    try:
+        print(f"=== FIEDLER: Calling websockets.serve ===", flush=True, file=sys.stderr)
+        async with websockets.serve(handle_client, host, port):
+            print(f"=== FIEDLER: WebSocket server STARTED on port {port} ===", flush=True, file=sys.stderr)
+            logger.info(f"=== FIEDLER STARTUP: WebSocket MCP server RUNNING on ws://{host}:{port} ===")
+            await asyncio.Future()  # Run forever
+    except Exception as e:
+        print(f"=== FIEDLER ERROR: {e} ===", flush=True, file=sys.stderr)
+        logger.error(f"=== FIEDLER ERROR: Failed to start WebSocket server: {e} ===", exc_info=True)
+        raise
 
 
 def main():
     """Synchronous entry point for console script."""
-    asyncio.run(_amain())
+    import sys
+    print("=== FIEDLER: main() ENTRY POINT ===", flush=True, file=sys.stderr)
+    print("=== FIEDLER: About to call asyncio.run(_amain()) ===", flush=True, file=sys.stderr)
+    try:
+        asyncio.run(_amain())
+    except Exception as e:
+        print(f"=== FIEDLER FATAL ERROR: {e} ===", flush=True, file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        raise
 
 
 if __name__ == "__main__":

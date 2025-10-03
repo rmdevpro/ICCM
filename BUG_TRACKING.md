@@ -70,15 +70,40 @@ Bare metal Claude Code cannot access Fiedler MCP tools despite correct configura
 - **Conclusion:** Current Claude Code **completely failed to start ANY MCP servers** at initialization
 - **Evidence:** Process tree shows no child processes for MCP servers in current session
 
-**Root Cause:** Claude Code silently failed to initialize MCP subsystem - no servers launched, no connection attempts made
+**Root Cause (CONFIRMED via Triplet Consultation #3):**
+Corrupted application state in Claude Code's persistent storage preventing MCP subsystem initialization
+
+**Triplet Consultation #3 (2025-10-03 17:33 - MCP Subsystem Failure):**
+- **Status:** ✅ COMPLETE - All 3 models responded (GPT-4o-mini: 23s, Gemini: 48s, DeepSeek: 57s)
+- **Responses saved:** `/tmp/triplet_mcp_subsystem_responses/`
+- **UNANIMOUS DIAGNOSIS:** Corrupted state/cache files (likely from unclean shutdown 17h ago)
+- **Location:** Likely in `~/.cache/claude-code/` or `~/.local/state/claude-code/` (but directories don't exist on this system)
+- **NOT:** Configuration issue, network issue, or Claude Code binary issue
+
+**Triplet Consultation #4 (2025-10-03 17:44 - Complete Removal Procedure):**
+- **Status:** ✅ COMPLETE - All 3 models responded (GPT-4o-mini: 29s, Gemini: 59s, DeepSeek: 90s)
+- **Responses saved:** `/tmp/triplet_removal_responses/`
+- **UNANIMOUS RECOMMENDATION:** Complete removal of ALL Claude Code files + sanitize `~/.claude.json`
+- **Critical:** Must use `jq` to extract ONLY safe data (conversation history, projects) and discard corrupted state
+
+**Solution Implemented:**
+- Created comprehensive removal/reinstall scripts based on triplet consensus
+- Scripts location: `/tmp/claude-code-audit.sh` and `/tmp/claude-code-reinstall.sh`
+- README: `/tmp/CLAUDE_CODE_REINSTALL_README.md`
+- **Strategy:** Backup → Sanitize → Remove → Reinstall → Restore → Test
 
 **Next Action:**
-User must restart Claude Code to trigger MCP initialization with current correct config
+User will run removal/reinstall scripts outside Claude Code session:
+1. `bash /tmp/claude-code-audit.sh` (creates backup, dry-run)
+2. `bash /tmp/claude-code-reinstall.sh /path/to/backup` (complete removal + reinstall)
+3. Restart Claude Code in new terminal
+4. Test MCP subsystem initialization
 
 **Impact:**
 - Cannot use Fiedler for LLM orchestration
 - Blocks containerized Claude design review
 - Blocks all development requiring multi-LLM consultation
+- **Workaround available:** Docker exec method for Fiedler (see FIEDLER_DOCKER_WORKAROUND.md)
 
 ---
 

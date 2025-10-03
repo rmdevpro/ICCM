@@ -28,5 +28,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD python -c "import sys; sys.exit(0)"
 
-# Run Fiedler MCP server
-CMD ["python", "-m", "fiedler.server"]
+# Run Fiedler MCP server with unbuffered output
+CMD ["python", "-u", "-m", "fiedler.server"]
