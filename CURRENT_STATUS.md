@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 22:05 EDT
-**Session:** MCP Relay enhanced with runtime management tools
-**Status:** ✅ **MCP Relay production-ready with dynamic server control**
+**Last Updated:** 2025-10-03 22:35 EDT
+**Session:** MCP Relay bug fix - websockets 15.x compatibility
+**Status:** ⏸️ **Bug fixed, awaiting Claude Code restart for verification**
 
 ---
 
@@ -240,9 +240,31 @@ cd /mnt/projects/ICCM/fiedler && docker compose restart
 
 ## 🐛 Known Issues
 
-### None Currently
+### BUG #4: Relay Management Tools - websockets 15.x API Incompatibility
 
-All bugs resolved:
+**Status:** ✅ Fixed, awaiting restart
+**Discovered:** 2025-10-03 22:20 EDT
+**Fixed:** 2025-10-03 22:30 EDT
+
+**Problem:**
+- `relay_list_servers()` and `relay_get_status()` fail with error: `'ClientConnection' object has no attribute 'closed'`
+- Fiedler tools work fine, only relay management tools affected
+
+**Root Cause:**
+- websockets 15.x changed API: `ClientConnection` objects don't have `.closed` or `.open` attributes
+- Must use `ws.state == State.OPEN` instead
+- Code was checking `ws.closed` (doesn't exist)
+
+**Fix Applied:**
+- Added `from websockets.protocol import State` import
+- Changed all connection checks from `ws.closed` to `ws.state == State.OPEN`
+- Lines affected: 22, 388, 456-457
+
+**Next Step:**
+- Restart Claude Code to reload relay subprocess with fixed code
+- Then verify all relay management tools work
+
+**Previous bugs (all resolved):**
 - ✅ Fiedler `_list_tools_handler` bug fixed (lines 298, 321)
 - ✅ MCP relay notification response handling fixed
 - ✅ Direct WebSocket connections working
@@ -261,10 +283,10 @@ All bugs resolved:
 5. ✅ **Auto-reconnection tested** - Fiedler restart verified (2025-10-03 21:34)
 6. ✅ **BUG #3 marked RESOLVED** - All documentation updated
 
-### Current Work (2025-10-03 22:05)
-1. 🔄 **Restart Claude Code** - Load new relay with management tools
-2. ⏸️ **Test relay management tools** - Verify dynamic server control works
-3. ⏸️ **Test KGB logging** - Use relay_add_server to route through KGB, verify Dewey logs
+### Current Work (2025-10-03 22:35)
+1. ✅ **BUG #4 Fixed** - websockets 15.x API compatibility issue resolved
+2. 🔄 **Restart Claude Code** - Load relay with fixed code
+3. ⏸️ **Comprehensive relay testing** - All tools, KGB routing, reconnection, Dewey integration
 
 ### Future Work
 1. Investigate Dewey MCP tools (currently not implementing tools/list)

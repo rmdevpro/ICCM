@@ -2,13 +2,57 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-03 21:34 EDT
+**Last Updated:** 2025-10-03 22:35 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
 
-None - All bugs resolved
+### BUG #4: Relay Management Tools - websockets 15.x API Incompatibility
+
+**Status:** ✅ FIXED, awaiting restart for verification
+**Priority:** HIGH
+**Discovered:** 2025-10-03 22:20 EDT
+**Fixed:** 2025-10-03 22:30 EDT
+
+**Problem:**
+Relay management tools (`relay_list_servers`, `relay_get_status`) fail with error:
+```
+MCP error -32603: 'ClientConnection' object has no attribute 'closed'
+```
+
+**Symptoms:**
+- Fiedler tools work perfectly (10 models accessible, `fiedler_list_models` succeeds)
+- Only relay management tools fail
+- Error occurs when checking websocket connection status
+
+**Root Cause:**
+websockets library version 15.x API change:
+- Old API (pre-15.x): `ws.closed` attribute
+- New API (15.x+): `ws.state` attribute with `State` enum
+- `ClientConnection` objects don't have `.closed` or `.open` attributes
+- Must check `ws.state == State.OPEN` instead
+
+**Investigation:**
+1. Tested websockets library version: 15.0.1
+2. Inspected `ClientConnection` attributes: no `.closed` or `.open` found
+3. Discovered `.state` attribute with `State` enum (CONNECTING, OPEN, CLOSING, CLOSED)
+4. Confirmed `ws.state == State.OPEN` is correct check for connected websockets
+
+**Fix Applied:**
+File: `/mnt/projects/ICCM/mcp-relay/mcp_relay.py`
+1. Line 22: Added `from websockets.protocol import State` import
+2. Line 388: Changed `ws is not None and ws.open if hasattr(ws, 'open') else ws is not None` → `ws is not None and ws.state == State.OPEN`
+3. Lines 456-457: Changed `is_connected()` helper to use `ws.state == State.OPEN`
+
+**Verification Needed:**
+- Restart Claude Code to reload relay subprocess with fixed code
+- Test `relay_list_servers()` - should show connection status
+- Test `relay_get_status()` - should show detailed status with tool counts
+- Test all relay management tools (add/remove/reconnect)
+
+**Files Modified:**
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - websockets API compatibility fix
 
 ---
 

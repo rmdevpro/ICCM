@@ -19,6 +19,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 import websockets
+from websockets.protocol import State
 import yaml
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -383,7 +384,8 @@ class MCPRelay:
         """Handle relay_list_servers tool call."""
         servers = []
         for name, backend in self.backends.items():
-            connected = backend['ws'] is not None and not backend['ws'].closed
+            ws = backend['ws']
+            connected = ws is not None and ws.state == State.OPEN
             servers.append({
                 "name": name,
                 "url": backend['url'],
@@ -450,15 +452,19 @@ class MCPRelay:
 
     async def handle_get_status(self, arguments: dict) -> dict:
         """Handle relay_get_status tool call."""
+        # Helper to check if websocket is connected
+        def is_connected(ws):
+            return ws is not None and ws.state == State.OPEN
+
         status = {
             "total_servers": len(self.backends),
-            "connected_servers": sum(1 for b in self.backends.values() if b['ws'] and not b['ws'].closed),
+            "connected_servers": sum(1 for b in self.backends.values() if is_connected(b['ws'])),
             "total_tools": sum(len(b['tools']) for b in self.backends.values()),
             "servers": []
         }
 
         for name, backend in self.backends.items():
-            connected = backend['ws'] is not None and not backend['ws'].closed
+            connected = is_connected(backend['ws'])
             status["servers"].append({
                 "name": name,
                 "url": backend['url'],
