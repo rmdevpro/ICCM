@@ -318,7 +318,7 @@ async def _amain():
                         logger.info(f"Calling tool: {tool_name}")
 
                         # Call the tool via the app's handler
-                        result = await app._call_tool_handler(tool_name, arguments)
+                        result = await call_tool(tool_name, arguments)
 
                         response = {
                             "jsonrpc": "2.0",

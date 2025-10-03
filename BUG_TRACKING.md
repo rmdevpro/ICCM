@@ -58,20 +58,25 @@ Claude Code (stdio) → stdio_adapter.py → ws://localhost:9010 → Fiedler
 - `/mnt/projects/ICCM/fiedler/stdio_adapter.py` - Adapter script
 - `/mnt/projects/ICCM/fiedler/.venv/` - Python venv with websockets library
 
-**Additional Bug Fixed (2025-10-03 21:25):**
-Fiedler server had code bug at line 298 calling non-existent method `app._list_tools_handler()`
-- **Fix:** Changed to `await list_tools()`
-- **Result:** Tools list request now succeeds
+**Additional Bugs Fixed:**
+1. **(2025-10-03 21:25)** Line 298: `app._list_tools_handler()` → `await list_tools()`
+   - **Result:** Tools list request now succeeds
+2. **(2025-10-03 16:35)** Line 321: `app._call_tool_handler(tool_name, arguments)` → `await call_tool(tool_name, arguments)`
+   - **Result:** Tool execution request now succeeds
+   - **Discovery:** Found when testing `mcp__fiedler__fiedler_list_models` after restart
+   - **Container rebuilt:** Both fixes now in production
 
 **Verification Completed:**
 - ✅ stdio adapter tested via command line (returns all 8 tools)
 - ✅ Both MCP servers show "Connected" in `claude mcp list`
 - ✅ MCP child processes spawned successfully
 - ✅ Sequential-thinking accessible
-- ⏸️ Fiedler tools require Claude Code restart
+- ✅ Second bug found and fixed (line 321)
+- ✅ Container rebuilt with both fixes
+- ⏸️ MCP connection lost during rebuild - awaiting restart
 
 **Next Step:**
-User must restart Claude Code client for Fiedler tools to become accessible
+User must restart Claude Code client to restore MCP connection and verify both fixes work
 
 ---
 

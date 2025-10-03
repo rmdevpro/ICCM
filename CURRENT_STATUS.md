@@ -32,9 +32,9 @@
 
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 21:30 EDT
-**Session:** BUG #2 RESOLVED - stdio adapter working + Fiedler server bug fixed
-**Status:** ✅ **Both MCP servers connected - awaiting Claude Code restart for tool access**
+**Last Updated:** 2025-10-03 16:35 EDT
+**Session:** Fiedler server bug fix applied - second bug found and resolved
+**Status:** ✅ **Server bug fixed - awaiting Claude Code restart for verification**
 
 ---
 
@@ -86,18 +86,21 @@ LLM Providers
 - `/mnt/projects/ICCM/fiedler/stdio_adapter.py` - Adapter script (tested and working)
 - `/mnt/projects/ICCM/fiedler/.venv/` - Python venv with websockets library
 
-**Additional Fix Applied:**
-Fixed Fiedler server bug at line 298 - changed `await app._list_tools_handler()` to `await list_tools()`
+**Additional Fixes Applied:**
+1. Fixed Fiedler server bug at line 298 - changed `await app._list_tools_handler()` to `await list_tools()`
+2. Fixed Fiedler server bug at line 321 - changed `await app._call_tool_handler(tool_name, arguments)` to `await call_tool(tool_name, arguments)`
 
 **Verification Status:**
 - ✅ stdio adapter tested successfully (returns all 8 Fiedler tools)
 - ✅ Both MCP servers show as "Connected" in `claude mcp list`
 - ✅ MCP child processes spawned (verified with ps/pstree)
 - ✅ Sequential-thinking tools accessible
-- ⏸️ Fiedler tools require Claude Code restart to become accessible
+- ✅ Second server bug found and fixed (line 321 - tools/call handler)
+- ✅ Fiedler container rebuilt with both fixes
+- ⏸️ MCP connection lost during container rebuild - requires Claude Code restart
 
 **Next Action:**
-User must restart Claude Code client to access Fiedler MCP tools
+User must restart Claude Code client to restore MCP connection and verify both fixes work
 
 ---
 
