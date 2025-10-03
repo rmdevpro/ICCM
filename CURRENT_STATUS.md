@@ -120,18 +120,26 @@ Claude Code (bare metal)
 
 ```
 Claude Code (container)
-    ├→ Anthropic API Gateway (http://anthropic-gateway:8089/v1)
+    ├→ KGB HTTP Gateway (http://host.docker.internal:8089/v1)
     │   └→ https://api.anthropic.com (with logging to Dewey)
     └→ MCP Relay (stdio subprocess inside container)
-         └→ ws://kgb-proxy:9000 → KGB Proxy
+         └→ ws://kgb-proxy:9000 → KGB WebSocket Spy
               ├→ Fiedler (automatic logging to Winni)
               └→ Dewey (automatic logging to Winni)
 ```
 
+**Architecture:**
+- **KGB Dual-Protocol Proxy**: Single unified logging service
+  - Port 9000: WebSocket spy (MCP traffic)
+  - Port 8089: HTTP gateway (Anthropic API traffic)
+- **Universal Anthropic Gateway**: Any component can route through KGB
+  - Claude Code → KGB → api.anthropic.com ✅
+  - Fiedler → KGB → api.anthropic.com (future when Anthropic provider added)
+
 **Benefits:**
 - **Complete logging** - BOTH Anthropic API conversations AND MCP tool calls logged
 - **No TLS issues** - Gateway uses simple reverse proxy (no certificate trust needed)
-- **Same relay code** - Just different backends.yaml configuration
+- **Unified logging proxy** - KGB is single point for all traffic logging
 - **Production mode** - Full audit trail of all Claude Code activity
 - **Blue/Green deployment** - Bare metal Claude remains untouched for safety
 

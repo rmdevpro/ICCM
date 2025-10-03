@@ -85,8 +85,12 @@ Dewey → Winni PostgreSQL (unified storage)
 
 **3. Integration Points**
 - **KGB Unified**: Single proxy for both WebSocket and HTTP traffic
+  - Port 9000: WebSocket spy for MCP traffic
+  - Port 8089: HTTP gateway for Anthropic API traffic
+  - Universal gateway: ANY component can route Anthropic calls through KGB
 - **Dewey:** Unified logging endpoint for all traffic types
 - **Winni:** Single database for all conversations
+- **Future: Fiedler + Anthropic**: When Fiedler adds Anthropic provider support, it will also route through KGB HTTP gateway for unified logging
 
 ---
 
