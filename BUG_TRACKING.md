@@ -8,12 +8,63 @@
 
 ## 🐛 ACTIVE BUGS
 
+**No active bugs**
+
+---
+
+## ✅ RESOLVED BUGS
+
+### BUG #5: Dewey MCP Protocol Compliance - Missing tools/list Implementation
+
+**Status:** ✅ FULLY RESOLVED
+**Priority:** HIGH
+**Discovered:** 2025-10-03 23:10 EDT
+**Fixed:** 2025-10-03 22:30 EDT
+**Verified:** 2025-10-03 22:32 EDT
+
+**Problem:**
+Dewey MCP server showed 0 tools in relay despite having 11 tools implemented. MCP relay couldn't discover Dewey tools automatically.
+
+**Root Cause:**
+`/mnt/projects/ICCM/dewey/dewey/mcp_server.py` didn't implement MCP protocol methods:
+- Missing `initialize` - MCP handshake
+- Missing `tools/list` - Tool discovery endpoint
+- Missing `tools/call` - MCP-format tool execution wrapper
+
+**Fix Applied:**
+1. Added tool definitions in `__init__` with schemas for all 11 tools
+2. Added `initialize` handler returning protocol version and capabilities
+3. Added `tools/list` handler returning tool definitions
+4. Added `tools/call` handler wrapping tool execution in MCP format
+5. Kept legacy direct tool calls for backward compatibility
+
+**Container Issue:**
+- `docker compose restart` didn't load new code
+- Solution: `docker compose down && docker compose up -d` to recreate container
+
+**Verification Results:**
+- ✅ Direct WebSocket test: All 11 tools returned
+- ✅ Relay reconnect: 11 tools discovered automatically
+- ✅ Total tools: 19 (11 Dewey + 8 Fiedler)
+- ✅ KGB logging: All operations logged to Winni
+
+**Files Modified:**
+- `/mnt/projects/ICCM/dewey/dewey/mcp_server.py` - MCP protocol implementation
+
+**Lessons Learned:**
+- MCP protocol requires specific methods: `initialize`, `tools/list`, `tools/call`
+- Docker container restart doesn't reload code - must recreate container
+- Tool discovery is automatic once protocol implemented correctly
+
+---
+
 ### BUG #4: Relay Management Tools - websockets 15.x API Incompatibility
 
-**Status:** ✅ FIXED, awaiting restart for verification
+**Status:** ✅ FULLY RESOLVED
 **Priority:** HIGH
 **Discovered:** 2025-10-03 22:20 EDT
 **Fixed:** 2025-10-03 22:30 EDT
+**Verified:** 2025-10-03 23:10 EDT
 
 **Problem:**
 Relay management tools (`relay_list_servers`, `relay_get_status`) fail with error:
@@ -33,30 +84,27 @@ websockets library version 15.x API change:
 - `ClientConnection` objects don't have `.closed` or `.open` attributes
 - Must check `ws.state == State.OPEN` instead
 
-**Investigation:**
-1. Tested websockets library version: 15.0.1
-2. Inspected `ClientConnection` attributes: no `.closed` or `.open` found
-3. Discovered `.state` attribute with `State` enum (CONNECTING, OPEN, CLOSING, CLOSED)
-4. Confirmed `ws.state == State.OPEN` is correct check for connected websockets
-
 **Fix Applied:**
 File: `/mnt/projects/ICCM/mcp-relay/mcp_relay.py`
 1. Line 22: Added `from websockets.protocol import State` import
 2. Line 388: Changed `ws is not None and ws.open if hasattr(ws, 'open') else ws is not None` → `ws is not None and ws.state == State.OPEN`
 3. Lines 456-457: Changed `is_connected()` helper to use `ws.state == State.OPEN`
 
-**Verification Needed:**
-- Restart Claude Code to reload relay subprocess with fixed code
-- Test `relay_list_servers()` - should show connection status
-- Test `relay_get_status()` - should show detailed status with tool counts
-- Test all relay management tools (add/remove/reconnect)
+**Verification Results (2025-10-03 23:10 EDT):**
+- ✅ `relay_list_servers()` - Works without errors, shows 2 connected servers
+- ✅ `relay_get_status()` - Works without errors, shows detailed status with all 8 Fiedler tools
+- ✅ Fiedler: 8 tools exposed correctly
+- ✅ Dewey: Connected but 0 tools (separate investigation needed)
 
 **Files Modified:**
 - `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - websockets API compatibility fix
 
----
+**Lessons Learned:**
+- websockets 15.x breaking change: `.closed` → `.state == State.OPEN`
+- Always check library version when upgrading dependencies
+- MCP Relay management tools now fully operational
 
-## ✅ RESOLVED BUGS
+---
 
 ### BUG #3: MCP Relay Implementation
 
