@@ -157,7 +157,27 @@ For development or testing without Docker:
 
 3. **Configure Claude Code:**
 
+   **Option A: stdio adapter (Recommended for Claude Code)**
+
    Add to `~/.claude.json`:
+   ```json
+   {
+     "projects": {
+       "/your/project/path": {
+         "mcpServers": {
+           "fiedler": {
+             "type": "stdio",
+             "command": "/mnt/projects/ICCM/fiedler/stdio_adapter.py",
+             "args": []
+           }
+         }
+       }
+     }
+   }
+   ```
+
+   **Option B: Direct WebSocket (For containerized Claude or AutoGen)**
+
    ```json
    {
      "projects": {
@@ -175,26 +195,45 @@ For development or testing without Docker:
    }
    ```
 
+   **Note:** Claude Code MCP only supports stdio, SSE, HTTP. Use stdio adapter for bare metal Claude Code.
+
 ## Claude Code Integration
 
 ### How It Works
 
-Fiedler integrates with Claude Code through the **Model Context Protocol (MCP)**. When configured, Fiedler runs as an MCP server that Claude Code connects to via WebSocket.
+Fiedler integrates with Claude Code through the **Model Context Protocol (MCP)**. When configured, Fiedler runs as an MCP server that Claude Code connects to.
 
-**Architecture:**
+**Architecture (stdio adapter - Recommended):**
 ```
 ┌─────────────────┐
 │  Claude Code    │ (The AI assistant)
 └────────┬────────┘
          │
-         │ MCP Protocol (WebSocket)
+         │ MCP Protocol (stdio)
          │
     ┌────┴─────────────┐
-    │                  │
-┌───┴──────────┐   ┌──┴────────────┐
-│ Desktop      │   │  Fiedler      │
-│ Commander    │   │  MCP Server   │
-└──────────────┘   └───────────────┘
+    │  stdio_adapter   │ (Python bridge script)
+    └────┬─────────────┘
+         │
+         │ WebSocket (ws://localhost:9010)
+         │
+    ┌────┴─────────────┐
+    │  Fiedler Server  │
+    └──────────────────┘
+```
+
+**Alternative Architecture (WebSocket direct - For AutoGen/containerized frameworks):**
+```
+┌─────────────────┐
+│  AutoGen / LLM  │
+│   Framework     │
+└────────┬────────┘
+         │
+         │ WebSocket (ws://localhost:9010)
+         │
+    ┌────┴─────────────┐
+    │  Fiedler Server  │
+    └──────────────────┘
 ```
 
 **MCP Server Implementation:**

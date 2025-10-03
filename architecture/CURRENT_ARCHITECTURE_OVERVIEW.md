@@ -57,13 +57,13 @@ LEGEND:
    - Purpose: AI assistant conversations
 
 2. **Claude Code → Fiedler**
-   - **Protocol:** WebSocket (direct connection to Fiedler container)
-   - **Current Config:** `ws://localhost:9010`
-   - **Status:** ✅ Fixed - Awaiting restart verification
-   - **Configuration Location:** `~/.claude.json` lines 218-221
-   - **Trust Status:** ✅ Enabled (`hasTrustDialogAccepted: true` at line 221)
-   - **Note:** Uses top-level format `{ "type": "ws", "url": "..." }` NOT nested transport wrapper
-   - Purpose: LLM orchestration via MCP tools (7 models: Gemini 2.5 Pro, GPT-5, etc.)
+   - **Protocol:** stdio (via adapter to WebSocket)
+   - **Current Config:** stdio adapter at `/mnt/projects/ICCM/fiedler/stdio_adapter.py`
+   - **Status:** ✅ Working - Both MCP servers connected (awaiting Claude restart for tool access)
+   - **Configuration Location:** `~/.claude.json` lines 269-282
+   - **Architecture:** Claude Code (stdio) → stdio_adapter.py → ws://localhost:9010 → Fiedler
+   - **Trust Status:** ✅ Enabled (`hasTrustDialogAccepted: true`)
+   - Purpose: LLM orchestration via MCP tools (8 models: Gemini 2.5 Pro, GPT-5, etc.)
 
 3. **Claude Code → Sequential Thinking**
    - **Protocol:** stdio (NPM package)
@@ -85,13 +85,12 @@ LEGEND:
 - `dewey-mcp` - Port 9020 (localhost) - For containerized Claude (future)
 
 **Characteristics:**
-- Bare metal Claude uses WebSocket for Fiedler (NOT stdio)
+- Bare metal Claude uses stdio adapter for Fiedler (bridges stdio ↔ WebSocket)
 - Sequential-thinking uses stdio (NPM package execution)
-- Current config correctly set to WebSocket `ws://localhost:9010`
-- MCP subsystem operational (verified via other Claude Code sessions)
+- stdio adapter allows Claude Code compatibility while preserving Fiedler's WebSocket for AutoGen
+- MCP subsystem operational (both servers show "Connected")
 - **Trust must be accepted** - `hasTrustDialogAccepted: true` required for MCP servers to load
-- Fiedler README.md updated to reflect correct WebSocket protocol
-- Direct connection to Fiedler container (bypasses Relay/KGB for simplicity)
+- Direct connection to Fiedler container via adapter (bypasses Relay/KGB for simplicity)
 
 ---
 
@@ -237,7 +236,7 @@ User sees result
 **Section:** `projects["/home/aristotle9"].mcpServers`
 **Lines:** 129-142
 
-**Current Configuration (FIXED - Top-level format for both servers):**
+**Current Configuration (WORKING - stdio adapter solution):**
 ```json
 {
   "mcpServers": {
@@ -248,26 +247,27 @@ User sees result
       "env": {}
     },
     "fiedler": {
-      "type": "ws",
-      "url": "ws://localhost:9010"
+      "type": "stdio",
+      "command": "/mnt/projects/ICCM/fiedler/stdio_adapter.py",
+      "args": []
     }
   }
 }
 ```
 
-**Trust Configuration (Line 221):**
+**Trust Configuration (Line 286):**
 ```json
 "hasTrustDialogAccepted": true
 ```
 
-**Status:** ✅ Fixed - Both servers use consistent top-level format, awaiting restart verification
+**Status:** ✅ Both MCP servers connected - awaiting Claude Code restart for Fiedler tool access
 
 **Critical Notes:**
-- **IMPORTANT:** Must use top-level format `{ "type": "ws", ... }` NOT nested `{ "transport": { "type": "ws", ... } }`
-- Mixing formats in same `mcpServers` block breaks MCP parser
-- Direct connection to Fiedler bypasses Relay/KGB for bare metal simplicity
+- **IMPORTANT:** Claude Code MCP only supports stdio, SSE, HTTP (NOT WebSocket)
+- stdio adapter bridges Claude Code (stdio) ↔ Fiedler (WebSocket)
+- Fiedler keeps WebSocket for AutoGen/agent ecosystem compatibility
 - **Trust must be accepted** (`hasTrustDialogAccepted: true`) for MCP servers to load
-- Containerized Claude (future) will use the Relay chain at `ws://localhost:8000?upstream=fiedler`
+- Containerized Claude (future) can use stdio adapter or SSE/HTTP transport
 
 ### Containerized Claude (when active)
 **File:** `~/.config/claude-code/mcp.json` or `~/.claude.json`
@@ -324,9 +324,9 @@ No circular dependency because the internal client bypasses the MCP layer.
 ## 🚧 Current Deployment Status
 
 **Active:** Bare Metal Claude
-**Configuration:** stdio transport to Fiedler (NOT WORKING - BUG #1)
+**Configuration:** stdio adapter to Fiedler (WORKING)
 **Logging:** None (by design)
-**Status:** MCP tools not loading
+**Status:** Both MCP servers connected, awaiting restart for tool access
 
 **Future:** Containerized Claude
 **Components:** Relay, KGB, Fiedler, Dewey containers exist
@@ -354,7 +354,8 @@ No circular dependency because the internal client bypasses the MCP layer.
 ## ⚠️ Important Notes
 
 1. **Architecture changes** (component relationships in PNG) require formal planning session
-2. **Protocol configuration** (WebSocket URLs, ports, transport types) documented here - can be updated in regular sessions
-3. **Bare metal deployment** uses WebSocket (NOT stdio) per triplet analysis
+2. **Protocol configuration** (transport types, adapters, ports) documented here - can be updated in regular sessions
+3. **Bare metal deployment** uses stdio adapter to WebSocket (Claude Code limitation)
 4. **This document** reflects current configuration state and should be updated when protocols change
 5. **Configuration bugs** should be tracked in BUG_TRACKING.md with attempted solutions
+6. **stdio adapter** is the bridge solution for Claude Code ↔ WebSocket-based services

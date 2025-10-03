@@ -16,10 +16,10 @@ None - All bugs resolved
 
 ### BUG #2: MCP Config Format Incompatibility + WebSocket Not Supported
 
-**Status:** ✅ RESOLVED - stdio adapter solution implemented
+**Status:** ✅ RESOLVED - stdio adapter + server bug fix implemented
 **Priority:** HIGHEST
 **Started:** 2025-10-03 16:10 EDT
-**Resolved:** 2025-10-03 21:00 EDT
+**Resolved:** 2025-10-03 21:30 EDT
 
 **Problem:**
 After Claude Code reinstall, sequential-thinking MCP was working. Added Fiedler WebSocket config, now NO MCP servers load (zero child processes).
@@ -58,8 +58,20 @@ Claude Code (stdio) → stdio_adapter.py → ws://localhost:9010 → Fiedler
 - `/mnt/projects/ICCM/fiedler/stdio_adapter.py` - Adapter script
 - `/mnt/projects/ICCM/fiedler/.venv/` - Python venv with websockets library
 
-**Verification Required:**
-Restart Claude Code and test `mcp__fiedler__fiedler_list_models`
+**Additional Bug Fixed (2025-10-03 21:25):**
+Fiedler server had code bug at line 298 calling non-existent method `app._list_tools_handler()`
+- **Fix:** Changed to `await list_tools()`
+- **Result:** Tools list request now succeeds
+
+**Verification Completed:**
+- ✅ stdio adapter tested via command line (returns all 8 tools)
+- ✅ Both MCP servers show "Connected" in `claude mcp list`
+- ✅ MCP child processes spawned successfully
+- ✅ Sequential-thinking accessible
+- ⏸️ Fiedler tools require Claude Code restart
+
+**Next Step:**
+User must restart Claude Code client for Fiedler tools to become accessible
 
 ---
 
