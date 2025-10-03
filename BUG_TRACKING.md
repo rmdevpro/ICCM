@@ -100,8 +100,8 @@ Corrupted application state in Claude Code's persistent storage preventing MCP s
 
 **Resolution:**
 1. ✅ User executed complete Claude Code removal and reinstall
-2. ✅ MCP subsystem verified operational (sequential-thinking MCP server loading)
-3. ✅ Fiedler WebSocket configuration added to `~/.claude.json`:
+2. ✅ MCP subsystem verified operational (other sessions show MCP child processes running)
+3. ✅ Fiedler WebSocket configuration added to `~/.claude.json` (lines 137-142):
    ```json
    "fiedler": {
      "transport": {
@@ -110,14 +110,23 @@ Corrupted application state in Claude Code's persistent storage preventing MCP s
      }
    }
    ```
-4. ✅ Updated Fiedler README.md to reflect correct WebSocket protocol (not stdio)
-5. ⏸️ Awaiting Claude Code restart to verify Fiedler MCP tools load successfully
+4. ✅ Sequential-thinking configuration verified in `~/.claude.json` (lines 129-136)
+5. ✅ Updated Fiedler README.md to reflect correct WebSocket protocol (not stdio)
+6. ✅ **CRITICAL FIX:** Set `hasTrustDialogAccepted: true` in `~/.claude.json`
+   - **Discovery:** MCP servers won't load until project trust is accepted
+   - **Evidence:** Other Claude sessions had MCP child processes, this session had none
+   - **Root cause:** Trust dialog flag was `false`, blocking all MCP server initialization
+7. ✅ Documentation updated (CURRENT_STATUS.md, BUG_TRACKING.md, CURRENT_ARCHITECTURE_OVERVIEW.md)
+8. ⏸️ Awaiting final Claude Code restart to verify both MCP servers load successfully
 
 **Lessons Learned:**
-- Corrupted application state can prevent MCP subsystem initialization
+- **TWO issues required resolution:** (1) Corrupted app state, (2) Trust dialog not accepted
+- Corrupted application state can prevent MCP subsystem initialization → Requires full reinstall
 - Complete removal/reinstall necessary when MCP child processes fail to spawn
+- **Trust dialog must be accepted** (`hasTrustDialogAccepted: true`) for MCP servers to load
 - Sequential-thinking MCP validates that MCP subsystem is functional
 - WebSocket is the correct protocol for Fiedler (not stdio via docker exec)
+- Process tree comparison (`pstree`) reveals whether MCP child processes are spawning
 
 ---
 

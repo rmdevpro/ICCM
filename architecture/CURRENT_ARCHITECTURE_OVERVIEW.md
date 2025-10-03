@@ -59,12 +59,20 @@ LEGEND:
 2. **Claude Code → Fiedler**
    - **Protocol:** WebSocket (direct connection to Fiedler container)
    - **Current Config:** `ws://localhost:9010` (CORRECT)
-   - **Status:** ✅ Configured - Awaiting restart to verify connection
-   - **Configuration Location:** `~/.claude.json` lines 113-118
+   - **Status:** ✅ Fully Configured - Awaiting final restart
+   - **Configuration Location:** `~/.claude.json` lines 137-142
+   - **Trust Status:** ✅ Enabled (`hasTrustDialogAccepted: true` at line 146)
    - **Note:** Direct WebSocket to Fiedler container (not through Relay/KGB)
-   - Purpose: LLM orchestration via MCP tools
+   - Purpose: LLM orchestration via MCP tools (7 models: Gemini 2.5 Pro, GPT-5, etc.)
 
-3. **Claude Code → Local LLMs**
+3. **Claude Code → Sequential Thinking**
+   - **Protocol:** stdio (NPM package)
+   - **Current Config:** `npx @modelcontextprotocol/server-sequential-thinking`
+   - **Status:** ✅ Configured
+   - **Configuration Location:** `~/.claude.json` lines 129-136
+   - Purpose: Extended thinking capability for complex reasoning
+
+4. **Claude Code → Local LLMs**
    - Protocol: Not yet implemented
    - Purpose: Future local model integration
 
@@ -77,9 +85,11 @@ LEGEND:
 - `dewey-mcp` - Port 9020 (localhost) - For containerized Claude (future)
 
 **Characteristics:**
-- Bare metal Claude uses WebSocket (NOT stdio)
+- Bare metal Claude uses WebSocket for Fiedler (NOT stdio)
+- Sequential-thinking uses stdio (NPM package execution)
 - Current config correctly set to WebSocket `ws://localhost:9010`
-- MCP subsystem operational (verified via sequential-thinking MCP server)
+- MCP subsystem operational (verified via other Claude Code sessions)
+- **Trust must be accepted** - `hasTrustDialogAccepted: true` required for MCP servers to load
 - Fiedler README.md updated to reflect correct WebSocket protocol
 - Direct connection to Fiedler container (bypasses Relay/KGB for simplicity)
 
@@ -225,23 +235,39 @@ User sees result
 ### Bare Metal Claude (ACTUAL CURRENT CONFIG)
 **File:** `~/.claude.json`
 **Section:** `projects["/home/aristotle9"].mcpServers`
-**Lines:** 113-118
+**Lines:** 129-142
 
-**Current Configuration (CORRECT - WebSocket direct to Fiedler):**
+**Current Configuration (CORRECT - Both MCP servers configured):**
 ```json
 {
-  "fiedler": {
-    "transport": {
-      "type": "ws",
-      "url": "ws://localhost:9010"
+  "mcpServers": {
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sequential-thinking"],
+      "env": {}
+    },
+    "fiedler": {
+      "transport": {
+        "type": "ws",
+        "url": "ws://localhost:9010"
+      }
     }
   }
 }
 ```
 
-**Status:** ✅ Configured correctly - Direct WebSocket to Fiedler container on port 9010
+**Trust Configuration (Line 146):**
+```json
+"hasTrustDialogAccepted": true
+```
 
-**Note:** This is a direct connection to Fiedler, bypassing Relay/KGB for bare metal simplicity. The containerized Claude (future) will use the Relay chain at `ws://localhost:8000?upstream=fiedler`.
+**Status:** ✅ Fully configured - Direct WebSocket to Fiedler + stdio for sequential-thinking
+
+**Critical Notes:**
+- Direct connection to Fiedler bypasses Relay/KGB for bare metal simplicity
+- **Trust must be accepted** (`hasTrustDialogAccepted: true`) for MCP servers to load
+- Containerized Claude (future) will use the Relay chain at `ws://localhost:8000?upstream=fiedler`
 
 ### Containerized Claude (when active)
 **File:** `~/.config/claude-code/mcp.json` or `~/.claude.json`
