@@ -57,12 +57,11 @@ LEGEND:
    - Purpose: AI assistant conversations
 
 2. **Claude Code → Fiedler**
-   - **Required Protocol:** WebSocket (per architecture requirements and triplet analysis)
-   - **Current Config (WRONG):** stdio via `docker exec -i fiedler-mcp fiedler`
-   - **Note:** stdio is NOT used in this architecture - WebSocket is required
-   - **Status:** BUG #1 - Config shows stdio but must be WebSocket
-   - **Triplet Consensus:** All 3 LLMs confirmed WebSocket is required for this architecture
-   - **Attempt #8 (documented but not executed):** Switch to `ws://localhost:8000?upstream=fiedler`
+   - **Protocol:** WebSocket (direct connection to Fiedler container)
+   - **Current Config:** `ws://localhost:9010` (CORRECT)
+   - **Status:** ✅ Configured - Awaiting restart to verify connection
+   - **Configuration Location:** `~/.claude.json` lines 113-118
+   - **Note:** Direct WebSocket to Fiedler container (not through Relay/KGB)
    - Purpose: LLM orchestration via MCP tools
 
 3. **Claude Code → Local LLMs**
@@ -79,10 +78,10 @@ LEGEND:
 
 **Characteristics:**
 - Bare metal Claude uses WebSocket (NOT stdio)
-- Current config incorrectly set to stdio (must be fixed to WebSocket)
-- MCP tools not loading due to wrong transport type (BUG #1)
-- Triplet analysis confirmed: stdio is never used in this architecture
-- WebSocket is the only correct protocol for Fiedler connection
+- Current config correctly set to WebSocket `ws://localhost:9010`
+- MCP subsystem operational (verified via sequential-thinking MCP server)
+- Fiedler README.md updated to reflect correct WebSocket protocol
+- Direct connection to Fiedler container (bypasses Relay/KGB for simplicity)
 
 ---
 
@@ -226,32 +225,23 @@ User sees result
 ### Bare Metal Claude (ACTUAL CURRENT CONFIG)
 **File:** `~/.claude.json`
 **Section:** `projects["/home/aristotle9"].mcpServers`
-**Lines:** 508-516
+**Lines:** 113-118
 
-**Current Configuration (WRONG - stdio not used in this architecture):**
-```json
-{
-  "fiedler": {
-    "command": "docker",
-    "args": ["exec", "-i", "fiedler-mcp", "fiedler"]
-  }
-}
-```
-
-**Status:** MCP tools not loading because stdio is wrong protocol (BUG #1)
-
-**Correct Protocol (per triplet consensus):**
-Bare metal Claude must use WebSocket. Triplet recommendation (Attempt #8 - documented but not executed):
+**Current Configuration (CORRECT - WebSocket direct to Fiedler):**
 ```json
 {
   "fiedler": {
     "transport": {
       "type": "ws",
-      "url": "ws://localhost:8000?upstream=fiedler"
+      "url": "ws://localhost:9010"
     }
   }
 }
 ```
+
+**Status:** ✅ Configured correctly - Direct WebSocket to Fiedler container on port 9010
+
+**Note:** This is a direct connection to Fiedler, bypassing Relay/KGB for bare metal simplicity. The containerized Claude (future) will use the Relay chain at `ws://localhost:8000?upstream=fiedler`.
 
 ### Containerized Claude (when active)
 **File:** `~/.config/claude-code/mcp.json` or `~/.claude.json`

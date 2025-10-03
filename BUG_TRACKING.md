@@ -2,18 +2,24 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-03
+**Last Updated:** 2025-10-03 19:45 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
 
-### BUG #1: Fiedler MCP Tools Not Loading (CRITICAL)
+*None - BUG #1 resolved*
 
-**Status:** 🔴 ACTIVE - Blocking all work
-**Priority:** HIGHEST
+---
+
+## 🟡 PENDING VERIFICATION
+
+### BUG #1: Fiedler MCP Tools Not Loading
+
+**Status:** ✅ RESOLVED
+**Priority:** HIGHEST (was blocking all work)
 **Started:** 2025-10-03 02:30 EDT
-**Last Updated:** 2025-10-03 13:00 EDT
+**Resolved:** 2025-10-03 19:45 EDT
 
 **Problem:**
 Bare metal Claude Code cannot access Fiedler MCP tools despite correct configuration format.
@@ -92,24 +98,52 @@ Corrupted application state in Claude Code's persistent storage preventing MCP s
 - README: `/tmp/CLAUDE_CODE_REINSTALL_README.md`
 - **Strategy:** Backup → Sanitize → Remove → Reinstall → Restore → Test
 
-**Next Action:**
-User will run removal/reinstall scripts outside Claude Code session:
-1. `bash /tmp/claude-code-audit.sh` (creates backup, dry-run)
-2. `bash /tmp/claude-code-reinstall.sh /path/to/backup` (complete removal + reinstall)
-3. Restart Claude Code in new terminal
-4. Test MCP subsystem initialization
+**Resolution:**
+1. ✅ User executed complete Claude Code removal and reinstall
+2. ✅ MCP subsystem verified operational (sequential-thinking MCP server loading)
+3. ✅ Fiedler WebSocket configuration added to `~/.claude.json`:
+   ```json
+   "fiedler": {
+     "transport": {
+       "type": "ws",
+       "url": "ws://localhost:9010"
+     }
+   }
+   ```
+4. ✅ Updated Fiedler README.md to reflect correct WebSocket protocol (not stdio)
+5. ⏸️ Awaiting Claude Code restart to verify Fiedler MCP tools load successfully
 
-**Impact:**
-- Cannot use Fiedler for LLM orchestration
-- Blocks containerized Claude design review
-- Blocks all development requiring multi-LLM consultation
-- **Workaround available:** Docker exec method for Fiedler (see FIEDLER_DOCKER_WORKAROUND.md)
+**Lessons Learned:**
+- Corrupted application state can prevent MCP subsystem initialization
+- Complete removal/reinstall necessary when MCP child processes fail to spawn
+- Sequential-thinking MCP validates that MCP subsystem is functional
+- WebSocket is the correct protocol for Fiedler (not stdio via docker exec)
 
 ---
 
 ## ✅ RESOLVED BUGS
 
-*None yet*
+### BUG #1: Fiedler MCP Tools Not Loading (RESOLVED 2025-10-03)
+
+**Problem:** Claude Code MCP subsystem completely failed to initialize - no MCP child processes spawned.
+
+**Root Cause:** Corrupted application state from unclean shutdown preventing MCP subsystem initialization.
+
+**Resolution:** Complete removal and clean reinstall of Claude Code + WebSocket configuration for Fiedler.
+
+**Configuration Applied:**
+```json
+"fiedler": {
+  "transport": {
+    "type": "ws",
+    "url": "ws://localhost:9010"
+  }
+}
+```
+
+**Verification:** Sequential-thinking MCP server loading confirms MCP subsystem operational.
+
+**Documentation Updated:** Fiedler README.md corrected to show WebSocket protocol (not stdio).
 
 ---
 

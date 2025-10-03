@@ -64,13 +64,10 @@ Fiedler is an MCP (Model Context Protocol) server that provides a unified interf
        "/your/project/path": {
          "mcpServers": {
            "fiedler": {
-             "command": "docker",
-             "args": [
-               "exec",
-               "-i",
-               "fiedler-mcp",
-               "fiedler"
-             ]
+             "transport": {
+               "type": "ws",
+               "url": "ws://localhost:9010"
+             }
            }
          }
        }
@@ -117,9 +114,10 @@ For development or testing without Docker:
        "/your/project/path": {
          "mcpServers": {
            "fiedler": {
-             "command": "python",
-             "args": ["-m", "fiedler.mcp_server"],
-             "cwd": "/mnt/projects/ICCM/fiedler"
+             "transport": {
+               "type": "ws",
+               "url": "ws://localhost:9010"
+             }
            }
          }
        }
@@ -131,7 +129,7 @@ For development or testing without Docker:
 
 ### How It Works
 
-Fiedler integrates with Claude Code through the **Model Context Protocol (MCP)**. When configured, Fiedler runs as an MCP server that Claude Code connects to via stdio (stdin/stdout).
+Fiedler integrates with Claude Code through the **Model Context Protocol (MCP)**. When configured, Fiedler runs as an MCP server that Claude Code connects to via WebSocket.
 
 **Architecture:**
 ```
@@ -139,7 +137,7 @@ Fiedler integrates with Claude Code through the **Model Context Protocol (MCP)**
 │  Claude Code    │ (The AI assistant)
 └────────┬────────┘
          │
-         │ MCP Protocol (stdio)
+         │ MCP Protocol (WebSocket)
          │
     ┌────┴─────────────┐
     │                  │
@@ -151,25 +149,20 @@ Fiedler integrates with Claude Code through the **Model Context Protocol (MCP)**
 
 **MCP Server Implementation:**
 
-The MCP server (exposed via the `fiedler` command) implements the stdio-based MCP protocol:
-1. **Reads JSON requests** from stdin (one per line)
+The MCP server implements the WebSocket-based MCP protocol:
+1. **Accepts WebSocket connections** on port 9010
 2. **Routes to Fiedler tools** based on method name
-3. **Returns JSON responses** to stdout
-4. **Logs to stderr** (stdout reserved for MCP protocol)
+3. **Returns JSON responses** over WebSocket
+4. **Logs internally** (separate from protocol communication)
 
 **Key MCP Methods:**
 - `initialize` - Server handshake and capability negotiation
 - `tools/list` - Returns available Fiedler tools
 - `tools/call` - Executes a specific tool with arguments
 
-**Docker Stdio Communication:**
+**WebSocket Communication:**
 
-Claude Code communicates with the Dockerized Fiedler via:
-```bash
-docker exec -i fiedler-mcp fiedler
-```
-
-The `-i` flag keeps stdin open for interactive MCP communication. The `fiedler` command is installed as a console script entry point (see `pyproject.toml`) that runs `fiedler.server:main()`.
+Claude Code communicates with the Dockerized Fiedler via WebSocket at `ws://localhost:9010`. The Fiedler container exposes port 9010 (mapped from internal port 8080) for MCP communication.
 
 ### Natural Usage
 
