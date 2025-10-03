@@ -3,11 +3,22 @@
 # Each backend is a WebSocket MCP server that the relay connects to.
 # The relay aggregates tools from all backends and exposes them via stdio.
 
+# LOGGING MODE: Route through KGB for automatic conversation logging
 backends:
   - name: fiedler
-    url: ws://localhost:9010
-    # Fiedler MCP server on host port 9010 (container port 8080)
+    url: ws://localhost:9000?upstream=fiedler
+    # KGB proxy routes to Fiedler MCP and logs to Dewey
 
   - name: dewey
-    url: ws://localhost:9020
-    # Dewey MCP server on port 9020
+    url: ws://localhost:9000?upstream=dewey
+    # KGB proxy routes to Dewey MCP and logs conversations
+
+# DIRECT MODE (no logging): Uncomment to bypass KGB
+# backends:
+#   - name: fiedler
+#     url: ws://localhost:9010
+#     # Direct to Fiedler MCP server on host port 9010 (container port 8080)
+#
+#   - name: dewey
+#     url: ws://localhost:9020
+#     # Direct to Dewey MCP server on port 9020

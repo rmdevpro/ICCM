@@ -20,6 +20,8 @@ from pathlib import Path
 
 import websockets
 import yaml
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +29,22 @@ logging.basicConfig(
     stream=sys.stderr
 )
 logger = logging.getLogger(__name__)
+
+
+class ConfigFileHandler(FileSystemEventHandler):
+    """Watches backends.yaml for changes and triggers reload."""
+
+    def __init__(self, relay, config_path: str):
+        self.relay = relay
+        self.config_path = str(Path(config_path).absolute())
+
+    def on_modified(self, event):
+        # Check if the modified file matches our config file
+        if not event.is_directory and str(Path(event.src_path).absolute()) == self.config_path:
+            logger.info(f"Config file changed: {self.config_path}")
+            # Schedule reload in the event loop
+            loop = asyncio.get_event_loop()
+            loop.create_task(self.relay.reload_config())
 
 
 class MCPRelay:
@@ -55,6 +73,59 @@ class MCPRelay:
         except Exception as e:
             logger.error(f"Config load failed: {e}")
             sys.exit(1)
+
+    async def reload_config(self):
+        """Reload configuration and reconnect to changed backends."""
+        logger.info("Reloading configuration...")
+
+        try:
+            # Load new config
+            config = yaml.safe_load(Path(self.config_path).read_text())
+            new_backends = {}
+
+            for backend in config['backends']:
+                name = backend['name']
+                new_url = backend['url']
+                new_backends[name] = new_url
+
+            # Compare with current backends and reconnect if URL changed
+            for name, new_url in new_backends.items():
+                if name in self.backends:
+                    old_url = self.backends[name]['url']
+                    if old_url != new_url:
+                        logger.info(f"Backend {name} URL changed: {old_url} → {new_url}")
+                        # Close old connection
+                        if self.backends[name]['ws']:
+                            await self.backends[name]['ws'].close()
+                        # Update URL and reconnect
+                        self.backends[name]['url'] = new_url
+                        self.backends[name]['ws'] = None
+                        self.backends[name]['tools'] = []
+                        await self.reconnect_backend(name)
+                else:
+                    # New backend added
+                    logger.info(f"New backend added: {name}")
+                    self.backends[name] = {
+                        'url': new_url,
+                        'ws': None,
+                        'tools': []
+                    }
+                    await self.reconnect_backend(name)
+
+            # Remove backends that no longer exist in config
+            removed = set(self.backends.keys()) - set(new_backends.keys())
+            for name in removed:
+                logger.info(f"Backend removed: {name}")
+                if self.backends[name]['ws']:
+                    await self.backends[name]['ws'].close()
+                del self.backends[name]
+                # Remove tools from routing table
+                self.tool_routing = {k: v for k, v in self.tool_routing.items() if v != name}
+
+            logger.info("Configuration reloaded successfully")
+
+        except Exception as e:
+            logger.error(f"Config reload failed: {e}", exc_info=True)
 
     async def connect_backend(self, backend_name: str) -> bool:
         """Connect to a backend MCP server."""
@@ -300,6 +371,14 @@ class MCPRelay:
         """Main stdio loop."""
         logger.info("MCP Relay starting on stdio")
 
+        # Start file watcher for config changes
+        config_dir = str(Path(self.config_path).parent)
+        event_handler = ConfigFileHandler(self, self.config_path)
+        observer = Observer()
+        observer.schedule(event_handler, config_dir, recursive=False)
+        observer.start()
+        logger.info(f"Watching config file: {self.config_path}")
+
         # Read from stdin, write to stdout
         reader = asyncio.StreamReader()
         protocol = asyncio.StreamReaderProtocol(reader)
@@ -336,6 +415,8 @@ class MCPRelay:
 
         finally:
             # Cleanup
+            observer.stop()
+            observer.join()
             for backend in self.backends.values():
                 if backend['ws']:
                     await backend['ws'].close()
