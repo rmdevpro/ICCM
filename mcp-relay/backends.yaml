@@ -1,0 +1,13 @@
+# MCP Relay Backend Configuration
+#
+# Each backend is a WebSocket MCP server that the relay connects to.
+# The relay aggregates tools from all backends and exposes them via stdio.
+
+backends:
+  - name: fiedler
+    url: ws://localhost:9010
+    # Fiedler MCP server on host port 9010 (container port 8080)
+
+  - name: dewey
+    url: ws://localhost:9020
+    # Dewey MCP server on port 9020

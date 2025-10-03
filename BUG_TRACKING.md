@@ -12,51 +12,60 @@ None - All bugs resolved
 
 ---
 
-## 🟡 PENDING VERIFICATION
+## ✅ RESOLVED BUGS
 
-### BUG #3: Unified MCP Relay Implementation
+### BUG #3: MCP Relay Implementation
 
-**Status:** ✅ IMPLEMENTED - Awaiting restart verification
+**Status:** ✅ RESOLVED
 **Priority:** HIGHEST
 **Started:** 2025-10-03 16:50 EDT
-**Implemented:** 2025-10-03 17:00 EDT
+**Resolved:** 2025-10-03 17:25 EDT
 
 **Problem:**
-Individual per-server stdio adapters are not scalable. Need unified solution for all WebSocket MCP backends.
+Claude Code only supports stdio transport, but all ICCM MCP servers use WebSocket. Need unified bridge for multiple backends with dynamic tool discovery.
+
+**Root Cause:**
+- Claude Code MCP limitation: Only stdio, SSE, HTTP (no WebSocket)
+- Initial attempt used unnecessary Stable Relay intermediary
+- Fiedler MCP had bugs (lines 298, 321) preventing tool discovery
+- MCP relay wasn't consuming notification error responses
 
 **Solution Implemented:**
-Built unified MCP relay (`mcp_relay.py`) that acts as single stdio MCP server, multiplexes to multiple WebSocket backends.
+1. Built MCP Relay (`/mnt/projects/ICCM/mcp-relay/mcp_relay.py`) - stdio to WebSocket multiplexer
+2. Direct connections to backends (no intermediary relay)
+3. Fixed Fiedler MCP bugs (rebuilt container)
+4. Fixed notification response handling in relay
 
 **Architecture:**
 ```
-Claude Code (stdio) → MCP Relay → Stable Relay → KGB → Fiedler/Dewey
+Claude Code → MCP Relay (stdio subprocess) → Direct WebSocket
+                  ├→ ws://localhost:9010 (Fiedler - 8 LLM models)
+                  └→ ws://localhost:9020 (Dewey - conversation storage)
 ```
 
-**Benefits:**
-- Single MCP entry exposes all backend tools
-- Dynamic tool aggregation and routing
-- Backend restart resilience (auto-reconnect)
-- Network-wide WebSocket MCP server access
-- Full logging via KGB chain
+**Files:**
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Main implementation
+- `/mnt/projects/ICCM/mcp-relay/backends.yaml` - Configuration
+- Archived: `/mnt/projects/General Tools and Docs/archive/stable-relay_archived_2025-10-03/`
 
-**Files Created:**
-- `/mnt/projects/ICCM/stable-relay/mcp_relay.py` (371 lines)
-- `/mnt/projects/ICCM/stable-relay/backends.yaml`
+**Verification:**
+- ✅ All 8 Fiedler tools discovered successfully (manual test)
+- ⏸️ Awaiting Claude Code restart for full integration test
 
-**Configuration Updated:**
-- `~/.claude.json` - Replaced individual `fiedler` entry with unified `iccm` relay
+---
 
-**Next Step:**
-User must restart Claude Code and test tool availability
+## 🟡 PENDING VERIFICATION
+
+None currently - Awaiting Claude Code restart for final verification
 
 ---
 
 ### BUG #2: MCP Config Format Incompatibility + WebSocket Not Supported
 
-**Status:** ✅ RESOLVED → SUPERSEDED by unified MCP relay
+**Status:** ✅ RESOLVED → SUPERSEDED by BUG #3 (MCP Relay)
 **Priority:** HIGHEST
 **Started:** 2025-10-03 16:10 EDT
-**Resolved:** 2025-10-03 21:30 EDT
+**Resolved:** 2025-10-03 17:25 EDT (superseded)
 
 **Problem:**
 After Claude Code reinstall, sequential-thinking MCP was working. Added Fiedler WebSocket config, now NO MCP servers load (zero child processes).

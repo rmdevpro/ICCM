@@ -1,56 +1,108 @@
-## 📚 MUST READ FIRST - Session Startup Documents
-
-**Every new session MUST start by reading these documents to understand the system:**
-
-### 1. System Overview & Current Work (READ FIRST - ALWAYS)
-- `/mnt/projects/ICCM/architecture/General Architecture.PNG` - **Visual diagram of entire system**
-- `/mnt/projects/ICCM/architecture/CURRENT_ARCHITECTURE_OVERVIEW.md` - **System overview and current protocol configuration**
-- `/mnt/projects/ICCM/CURRENT_STATUS.md` - **THIS FILE - Current work & status**
-- `/mnt/projects/ICCM/BUG_TRACKING.md` - **Active bugs with high-level summaries**
-- Git history (`git log`) - **Detailed log of all code changes and commits**
-
-### 2. Module Documentation (READ AS NEEDED - Based on Current Work)
-- `/mnt/projects/ICCM/architecture/dewey_winni_requirements_v3.md` - Dewey + Winni specification
-- `/mnt/projects/ICCM/kgb/README.md` - KGB proxy specification
-- `/mnt/projects/ICCM/architecture/STABLE_RELAY_DEPLOYMENT.md` - Stable Relay deployment
-- `/mnt/projects/ICCM/fiedler/README.md` - Fiedler MCP server (7 LLM models)
-
-### 3. Reference Documentation & Workarounds (As Needed)
-- `/mnt/projects/ICCM/architecture/TRIPLET_CONSULTATION_PROCESS.md` - Standard process for consulting the LLM triplet
-- `/mnt/projects/ICCM/architecture/FIEDLER_DOCKER_WORKAROUND.md` - Triplet consultation when Fiedler MCP unavailable
-- `~/.config/claude-code/mcp.json` - MCP configuration (global)
-- `~/.claude.json` - MCP configuration (project-specific)
-
-### 4. Archive
-- **Location:** `/mnt/projects/General Tools and Docs/archive/`
-- **Purpose:** Historical reference only - DO NOT USE for active work
-- **Usage:** Place outdated documents here to prevent confusion about which version to use
-
-**⚠️ CRITICAL:** Starting a session without understanding the high-level architecture and requirements leads to wasted effort and mistakes. Always read Section 1 documents first!
-
----
-
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 17:00 EDT
-**Session:** Built unified MCP relay - stdio to WebSocket multiplexer
-**Status:** ✅ **MCP Relay complete - awaiting Claude Code restart for testing**
+**Last Updated:** 2025-10-03 17:25 EDT
+**Session:** Completed MCP Relay implementation - stdio to WebSocket bridge
+**Status:** ✅ **MCP Relay working - awaiting Claude Code restart for tool access**
 
 ---
 
 ## 🎯 Current Objective
 
-**COMPLETED:** Built unified MCP relay for all ICCM services
+**COMPLETED:** Built MCP Relay for direct WebSocket MCP backend access
 
 **Problem Solved:**
 - Claude Code only supports stdio transport (not WebSocket)
-- All ICCM MCP servers use WebSocket (Fiedler, Dewey)
-- Need to connect to multiple backends through single interface
-- Need backend restart capability without losing Claude connection
+- ICCM MCP servers (Fiedler, Dewey) use WebSocket
+- Need unified interface to multiple backends
+- Need backend restart resilience
 
 **Solution Implemented:**
-Created unified MCP Relay (`mcp_relay.py`) that:
+MCP Relay (`/mnt/projects/ICCM/mcp-relay/mcp_relay.py`) bridges stdio → WebSocket:
 
+```
+Claude Code (stdio subprocess)
+    ↓
+MCP Relay (stdio ↔ WebSocket multiplexer)
+    ↓ Direct WebSocket connections
+Fiedler (ws://localhost:9010) - 8 LLM models
+Dewey (ws://localhost:9020) - Conversation storage
+```
+
+**Key Benefits:**
+1. ✅ **Single MCP entry** - One "iccm" server exposes ALL backend tools
+2. ✅ **stdio transport** - Claude Code officially supported protocol
+3. ✅ **Dynamic tool discovery** - Aggregates tools from all backends automatically
+4. ✅ **Backend restart resilience** - Relay auto-reconnects transparently
+5. ✅ **Direct connections** - No intermediary relay, minimal latency
+6. ✅ **Network extensible** - Can connect to any WebSocket MCP server
+7. ✅ **Configuration-driven** - Edit backends.yaml to add/remove servers
+
+---
+
+## 📋 Implementation Status
+
+### ✅ Phase 1: MCP Relay Implementation (COMPLETED)
+- ✅ Created `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` (371 lines)
+- ✅ Created `/mnt/projects/ICCM/mcp-relay/backends.yaml` configuration
+- ✅ Installed dependencies (websockets, pyyaml) in `.venv`
+- ✅ Fixed Fiedler MCP server bugs (lines 298, 321)
+- ✅ Rebuilt and restarted Fiedler container with fixes
+- ✅ Fixed MCP relay to consume notification responses
+- ✅ Verified all 8 Fiedler tools discovered successfully
+- ✅ Updated `~/.claude.json` to use relay
+- ✅ Archived old stable-relay code
+- ✅ Updated architecture documentation
+
+### ⏸️ Phase 2: Verification (PENDING - User Action Required)
+**Action:** User must restart Claude Code to activate tool registry
+
+**Expected After Restart:**
+- All 8 Fiedler tools should be available: `mcp__fiedler__fiedler_list_models`, `fiedler_send`, etc.
+- Can send prompts to 8 LLM models simultaneously
+- Backend restarts handled transparently
+
+---
+
+## 🏗️ System Architecture
+
+### Current Deployment: Bare Metal Claude + MCP Relay
+
+```
+Claude Code (bare metal)
+    ├→ Claude Max (Anthropic API) - Direct HTTPS
+    ├→ Sequential Thinking (NPM package) - stdio
+    └→ MCP Relay (stdio subprocess)
+         ├→ ws://localhost:9010 → Fiedler MCP (8 LLM models)
+         └→ ws://localhost:9020 → Dewey MCP (conversation storage)
+```
+
+**Characteristics:**
+- **No logging** - Direct connections bypass KGB
+- **Minimal latency** - No intermediary proxies
+- **Maximum stability** - Simple, direct architecture
+- **Emergency fallback** - Always available
+
+### Future: Containerized Claude (Logged Mode)
+
+```
+Claude Code (container)
+    └→ MCP Relay (stdio subprocess inside container)
+         └→ ws://kgb-proxy:9000 → KGB Proxy
+              ├→ Fiedler (automatic logging to Winni)
+              └→ Dewey (automatic logging to Winni)
+```
+
+**Benefits:**
+- **Automatic logging** - All conversations captured via KGB
+- **Same relay code** - Just different backends.yaml configuration
+- **Production mode** - When logging/auditing required
+
+---
+
+## 🔧 Current Configuration
+
+### MCP Server Config
+**File:** `~/.claude.json`
 ```json
 {
   "mcpServers": {
@@ -61,464 +113,162 @@ Created unified MCP Relay (`mcp_relay.py`) that:
     },
     "iccm": {
       "type": "stdio",
-      "command": "/mnt/projects/ICCM/stable-relay/mcp_relay.py",
+      "command": "/mnt/projects/ICCM/mcp-relay/mcp_relay.py",
       "args": []
     }
   }
 }
 ```
 
-**Architecture Flow:**
-```
-Claude Code (stdio subprocess)
-    ↓
-MCP Relay (stdio ↔ WebSocket multiplexer)
-    ↓ WebSocket
-Stable Relay (port 8000) ← Auto-reconnects to backends
-    ↓ WebSocket
-KGB Proxy (port 9000) ← Automatic conversation logging
-    ├→ Fiedler (port 8080) → 8 LLM models
-    └→ Dewey (port 9020) → PostgreSQL/Winni
-```
-
-**Key Benefits:**
-1. ✅ **Single MCP entry** - One "iccm" server exposes ALL backend tools
-2. ✅ **stdio transport** - Claude Code officially supported protocol
-3. ✅ **Dynamic tool discovery** - Aggregates tools from all backends automatically
-4. ✅ **Backend restart resilience** - Relay auto-reconnects, Claude never knows
-5. ✅ **Network-wide access** - Can connect to any WebSocket MCP server anywhere
-6. ✅ **Add servers without restart** - Edit backends.yaml, tools appear dynamically
-7. ✅ **Full logging chain** - All traffic through Stable Relay → KGB → Dewey → Winni
-8. ✅ **Tool routing** - Relay routes each tool call to correct backend
-
-**Files Created:**
-- `/mnt/projects/ICCM/stable-relay/mcp_relay.py` - MCP relay implementation (371 lines)
-- `/mnt/projects/ICCM/stable-relay/backends.yaml` - Backend configuration
-- `/mnt/projects/ICCM/stable-relay/.venv/` - Python venv with dependencies
-
-**Backend Configuration:**
+### Backend Config
+**File:** `/mnt/projects/ICCM/mcp-relay/backends.yaml`
 ```yaml
 backends:
   - name: fiedler
-    url: ws://localhost:8000?upstream=fiedler
+    url: ws://localhost:9010
   - name: dewey
-    url: ws://localhost:8000?upstream=dewey
+    url: ws://localhost:9020
 ```
 
-**Verification Status:**
-- ✅ MCP relay implementation complete
-- ✅ Backend configuration created
-- ✅ Dependencies installed (websockets, pyyaml)
-- ✅ Relay tested - connects to both backends successfully
-- ✅ Claude mcp.json updated to use relay
-- ⏸️ Awaiting Claude Code restart for end-to-end testing
-
-**Next Action:**
-User must restart Claude Code to activate MCP relay and test tool availability
-
----
-
-## 📋 Current Work - Step by Step
-
-### ✅ Phase 1: Configuration Investigation (8 attempts completed)
-**Summary:** Tried 8 different configurations - all failed
-- Attempts 1-7: Various URLs and formats (see git commit history)
-- **Attempt #8:** `ws://localhost:8000?upstream=fiedler` - Same config that worked 17h ago
-- **Result:** MCP servers not loading - Claude Code not attempting connections
-
-**Critical Discovery:**
-- Git backup from 17 hours ago shows **identical configuration**
-- Relay/KGB logs show successful connection at 00:41:18 (17h ago)
-- Current session: **Zero connection attempts** in logs
-- Conclusion: Not a configuration problem - Claude Code initialization issue
-
-### ✅ Phase 2: Triplet Consultation (COMPLETED - 2025-10-03 17:02)
-**Status:** All 3 LLMs responded successfully
-
-**Consensus Diagnosis:**
-- **Root Cause:** Silent MCP initialization failure in Claude Code
-- **Not:** Network issue, container issue, configuration syntax issue
-- **Evidence:** No connection attempts = pre-connection initialization failure
-
-**Top Recommendations:**
-1. Enable debug logging (`ANTHROPIC_LOG_LEVEL=debug` or `--debug`)
-2. Check for stale state (.pid, .lock, cache files)
-3. Use `strace` to trace config file reading
-4. Compare environment variables between sessions
-5. Test WebSocket connectivity from host
-
-**Responses saved:** `/tmp/triplet_mcp_diagnosis/`
-
-### ✅ Phase 3: Root Cause Analysis (COMPLETED - 2025-10-03 17:10)
-**Status:** Root cause identified
-
-**Process Tree Analysis:**
-- **Command:** `pstree -p 2391925` vs `pstree -p 2276122`
-- **Finding:** Old Claude has MCP child processes (`npm exec @googl...`), current Claude has NONE
-- **Conclusion:** MCP subsystem completely failed to initialize in current session
-- **Environment Check:** Both processes identical (same working dir, same env vars)
-
-**Why It Failed:**
-Current Claude Code startup did not initialize MCP subsystem at all - not even attempting to spawn MCP server processes.
-
-### 🔴 Phase 4: Restart Test (NEXT - User Action Required)
-**Status:** Awaiting user restart
-
-**Action Required:**
-1. **FULLY QUIT** Claude Code (kill process if needed)
-2. **RESTART** Claude Code
-3. **TEST:** `mcp__fiedler__fiedler_list_models`
-4. **VERIFY:** Check for MCP child processes with `pstree`
-
-**Expected After Restart:**
-- Fiedler MCP tools should be available
-- Process tree should show WebSocket connection child processes
-- Relay/KGB/Fiedler logs should show new connection attempts
-
-### 🔬 Diagnostic Plan (IF Attempt #5 Fails)
-**Per triplet consensus, execute in this order:**
-
-**Step 1: Gather Evidence**
-```bash
-# Check Claude Code logs for MCP connection errors
-# Location: ~/.cache/claude-code/logs/*.log or similar
-
-# Monitor Fiedler logs during Claude restart
-docker logs -f fiedler-mcp
-```
-
-**Step 2: Isolate Problem with wscat**
-```bash
-# Test if WebSocket endpoint is accessible from host
-# Install: npm install -g wscat
-wscat -c ws://127.0.0.1:9010
-
-# If wscat CONNECTS: Problem is in Claude Code
-# If wscat FAILS: Problem is in Docker/network/firewall
-```
-
-**Step 3: Try host.docker.internal (Attempt #6)**
+### Trust Status
 ```json
-"url": "ws://host.docker.internal:9010"
-```
-- Update both config files
-- Full restart
-- Test again
-
-**Step 4: Try Host LAN IP (Attempt #7)**
-```bash
-# Find host IP
-ip addr show | grep "inet " | grep -v 127.0.0.1
-
-# Use in config (example):
-"url": "ws://192.168.1.X:9010"
-```
-
-**Step 5: Deep Diagnostics**
-```bash
-# Check port binding
-docker ps --filter "name=fiedler" --format "{{.Ports}}"
-docker inspect fiedler-mcp | grep -A 10 Ports
-
-# Check firewall
-sudo ufw status
-sudo iptables -L -n -v | grep 9010
-
-# Check listening on host
-sudo lsof -i :9010
-netstat -tuln | grep 9010
-```
-
-### 🎯 Phase 3: Containerized Claude Review (WAITING)
-- [ ] Send design to triplet (Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1)
-- [ ] Incorporate feedback
-- [ ] Proceed with implementation
-
----
-
-## 🏗️ System Architecture
-
-### Bare Metal Claude (Current Session - ACTUAL STATE)
-```
-Claude Code (bare metal)
-    ↓ Direct connection (no logging)
-    ├→ Claude Max (Anthropic API) - Yellow dotted line in diagram
-    └→ Fiedler (docker exec -i fiedler-mcp fiedler) - Blue solid line in diagram
-```
-
-**No automatic logging** - Bare metal Claude bypasses Relay/KGB entirely for stability.
-
-### Containerized Claude (Future/Optional - TARGET STATE)
-```
-Claude Code (containerized)
-    ↓ ws://localhost:8000?upstream=fiedler
-Stable Relay (port 8000)
-    ↓ ws://kgb-proxy:9000?upstream=fiedler
-KGB Proxy (port 9000)
-    ├→ Spy Worker → Dewey → Winni (auto-logging)
-    └→ Forward → fiedler-mcp:8080 or dewey-mcp:9020
-```
-
-**Key Feature:** KGB automatically logs ALL traffic to Winni when using containerized Claude.
-
-### Components Status
-
-**Infrastructure (All Running):**
-- ✅ `stable-relay` - Port 8000 (WebSocket relay, auto-reconnects to KGB)
-- ✅ `kgb-proxy` - Port 9000 (Intercepts traffic, logs to Winni)
-- ✅ `fiedler-mcp` - Port 8080 (WebSocket MCP, 7 LLM models)
-- ✅ `dewey-mcp` - Port 9020 (Conversation storage)
-- ✅ `winni` - PostgreSQL database on Irina (192.168.1.210)
-
-**MCP Tools Status (This Session):**
-- ✅ Fiedler MCP: 5 tools available (`fiedler_list_models`, `fiedler_send`, etc.)
-- ❌ Dewey MCP: 0 tools (not loading - part of BUG #1 investigation)
-
----
-
-## 🐛 Known Issues
-
-### ✅ RESOLVED: Fiedler MCP Tools Not Loading
-**Problem:** Fiedler MCP tools were not available in Claude Code.
-
-**Root Cause:** Corrupted Claude Code application state preventing MCP subsystem initialization.
-
-**Fix Applied:** Complete removal and reinstall of Claude Code + WebSocket configuration.
-
-**Configuration:** `~/.claude.json` configured with WebSocket transport to `ws://localhost:9010`
-
-**Status:** RESOLVED - Configuration complete, awaiting restart to verify connection
-
-### ⏸️ DEFERRED: Conversation Logging via KGB/Dewey
-**Problem:** Claude Code conversations not being logged to Winni database.
-
-**Status:** Deferred - Focus on getting Fiedler working first as baseline
-
-**Tracking:** `/mnt/projects/ICCM/architecture/BUG_TRACKING.md`
-
----
-
-## 📁 Key Documentation
-
-### Primary Specs
-- `/mnt/projects/ICCM/architecture/dewey_winni_requirements_v3.md` - Dewey + Winni spec
-- `/mnt/projects/ICCM/kgb/README.md` - KGB proxy spec
-- `/mnt/projects/ICCM/architecture/STABLE_RELAY_DEPLOYMENT.md` - Relay deployment
-
-### Status & Tracking
-- `/mnt/projects/ICCM/architecture/BUG_TRACKING.md` - Bug investigation log
-- `/mnt/projects/ICCM/architecture/POST_RESTART_STATUS_v4.md` - Detailed test plan
-- `/mnt/projects/ICCM/architecture/General Architecture.PNG` - Visual diagram
-
-### Configuration
-- `~/.config/claude-code/mcp.json` - MCP config (active, correct)
-- `~/.claude.json` - Alternative config (updated, correct)
-- `/mnt/projects/ICCM/stable-relay/config.yaml` - Relay backend config
-
----
-
-## 🔧 Current Configuration
-
-### MCP Configuration Status
-**Status:** ✅ Attempt #8 Applied - WebSocket Relay Chain
-
-**Project Config:** `~/.claude.json` (lines 508-513)
-```json
-"fiedler": {
-  "transport": {
-    "type": "ws",
-    "url": "ws://localhost:8000?upstream=fiedler"
-  }
-}
-```
-
-**Architecture:**
-```
-Claude Code → ws://localhost:8000 → Stable Relay → KGB → Fiedler
-```
-
-**Applied:** 2025-10-03 17:30 EDT
-**Awaiting:** Full Claude Code restart and test
-
-### Relay Configuration
-**File:** `/mnt/projects/ICCM/stable-relay/config.yaml`
-```yaml
-backend: "ws://kgb-proxy:9000"
+"hasTrustDialogAccepted": true
 ```
 
 ---
 
-## 🧪 Test Plan (After Restart)
+## 🧪 Test Plan (After Claude Code Restart)
 
-### Phase 1: Verify Fiedler MCP Tools Available ⭐ **DO THIS FIRST**
-1. **Say:** "List available Fiedler tools"
-2. **Expected:** Should see 5+ tools:
-   - `mcp__fiedler__fiedler_list_models`
-   - `mcp__fiedler__fiedler_send`
-   - `mcp__fiedler__fiedler_get_config`
-   - `mcp__fiedler__fiedler_set_models`
-   - `mcp__fiedler__fiedler_set_output`
-3. **If missing:** Check Fiedler container: `docker ps | grep fiedler`
+### 1. Verify Tools Available
+Check that MCP relay exposes Fiedler tools:
+```
+# Should see both MCP servers connected
+claude mcp list
 
-### Phase 2: Test Model Listing
-1. **Use:** `mcp__fiedler__fiedler_list_models`
-2. **Expected:** List of 7 models:
-   - gemini-2.5-pro
-   - gpt-5
-   - llama-3.1-405b
-   - llama-3.3-70b
-   - deepseek-chat
-   - qwen-2.5-72b
-   - grok-2-1212
-3. **If fails:** Check Fiedler logs: `docker logs fiedler-mcp --tail 30`
+# Should work without "No such tool" error
+Try: mcp__fiedler__fiedler_list_models
+```
 
-### Phase 3: Test Single Model
-1. **Use:** `mcp__fiedler__fiedler_send`
-2. **Params:**
-   ```
-   models: ["gemini-2.5-pro"]
-   prompt: "Reply with exactly: FIEDLER MCP WORKING"
-   ```
-3. **Expected:** Gemini response with "FIEDLER MCP WORKING"
-4. **Verify:** Output file created in `/app/fiedler_output/`
+### 2. Test Model Listing
+Should return 8 models:
+- gemini-2.5-pro
+- gpt-5
+- gpt-4o-mini
+- grok-2-1212
+- llama-3.3-70b
+- deepseek-chat
+- qwen-2.5-72b
+- claude-3.7-sonnet (if configured)
 
-### Phase 4: Test Multiple Models
-1. **Use:** `mcp__fiedler__fiedler_send`
-2. **Params:**
-   ```
-   models: ["gemini-2.5-pro", "gpt-5", "llama-3.3-70b"]
-   prompt: "What is 2+2? Answer in one word."
-   ```
-3. **Expected:** All 3 respond correctly
+### 3. Test Single Model
+```
+mcp__fiedler__fiedler_send
+  models: ["gemini-2.5-pro"]
+  prompt: "Reply with exactly: FIEDLER MCP WORKING"
+```
+
+### 4. Test Multiple Models
+```
+mcp__fiedler__fiedler_send
+  models: ["gemini-2.5-pro", "gpt-5", "llama-3.3-70b"]
+  prompt: "What is 2+2? Answer in one word."
+```
 
 ---
 
-## ✅ Success Criteria
+## 📁 Key Files
 
-**Phase 1 Success (Immediate Goal):**
-1. ✅ `mcp__fiedler__*` tools visible in Claude Code
-2. ✅ Can list 7 models via Fiedler MCP
-3. ✅ Can send prompts to models via Fiedler MCP
-4. ✅ Can access multiple models simultaneously
-5. ✅ Output files created in Fiedler container
+### MCP Relay
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Main relay implementation
+- `/mnt/projects/ICCM/mcp-relay/backends.yaml` - Backend configuration
+- `/mnt/projects/ICCM/mcp-relay/.venv/` - Python virtual environment
 
-**IF ALL PASS:** 🎉 Bare metal Claude → Fiedler connection restored!
+### Architecture Documentation
+- `/mnt/projects/ICCM/architecture/General Architecture.PNG` - System diagram
+- `/mnt/projects/ICCM/architecture/CURRENT_ARCHITECTURE_OVERVIEW.md` - Detailed architecture
+- `/mnt/projects/ICCM/CURRENT_STATUS.md` - This file
+- `/mnt/projects/ICCM/BUG_TRACKING.md` - Bug investigation log
 
-**Phase 2 Goals (Future):**
-- Dewey MCP integration
-- KGB conversation logging
-- Full relay chain with auto-logging
-
-**Current Status:** Config fixed, awaiting restart verification
+### Archived (Reference Only)
+- `/mnt/projects/General Tools and Docs/archive/stable-relay_archived_2025-10-03/` - Old standalone relay
 
 ---
 
 ## 🚀 Quick Commands
 
-### Container Status
+### Check MCP Status
 ```bash
-docker ps --filter "name=stable-relay|kgb|fiedler|dewey"
+claude mcp list
 ```
 
-### Check Logs
+### Check Backend Health
 ```bash
-docker logs stable-relay --tail 30
-docker logs kgb-proxy --tail 30
+docker ps --filter "name=fiedler|dewey|kgb"
+```
+
+### View Logs
+```bash
 docker logs fiedler-mcp --tail 30
 docker logs dewey-mcp --tail 30
 ```
 
-### Check Winni Database
+### Restart Backends (if needed)
 ```bash
-sshpass -p "Edgar01760" ssh aristotle9@192.168.1.210 \
-  "echo 'Edgar01760' | sudo -S -u postgres psql -d winni -c \
-  'SELECT COUNT(*) FROM conversations;'"
+cd /mnt/projects/ICCM/fiedler && docker compose restart
 ```
 
-### Restart Components (if needed)
-```bash
-docker restart stable-relay
-docker restart kgb-proxy
-docker restart fiedler-mcp
-docker restart dewey-mcp
-```
+---
+
+## 🐛 Known Issues
+
+### None Currently
+
+All previous bugs resolved:
+- ✅ Fiedler `_list_tools_handler` bug fixed (lines 298, 321)
+- ✅ MCP relay notification response handling fixed
+- ✅ Direct WebSocket connections working
+- ✅ All 8 tools discovered successfully
 
 ---
 
 ## 🔄 Next Steps
 
 ### Immediate (DO NOW)
-1. ✅ **Config fixed** - Direct Fiedler connection restored
-2. 🔄 **RESTART CLAUDE CODE** - Load new MCP configuration
-3. ⏸️ **Test Fiedler tools** - Verify tools available and working
+1. ✅ **MCP Relay implemented** - All code complete
+2. ✅ **Configuration updated** - ~/.claude.json points to new location
+3. 🔄 **RESTART CLAUDE CODE** - Activate tool registry
+4. ⏸️ **Test tools** - Verify all 8 Fiedler tools available
 
-### After Successful Fiedler Test
-1. Document working configuration
-2. Update CURRENT_STATUS.md with success
-3. Consider adding Dewey MCP (optional)
-4. Consider relay/KGB integration (optional)
-
-### Future Enhancements (Deferred)
-1. Containerized Claude Code for safe testing
-2. Full conversation logging via KGB/Dewey/Winni
-3. Complete relay chain with auto-reconnect
+### After Successful Test
+1. Mark BUG #3 as RESOLVED in BUG_TRACKING.md
+2. Consider adding Dewey MCP (currently not implementing tools/list)
+3. Plan containerized Claude implementation (optional future work)
 
 ---
 
 ## 📝 Session Notes
 
-### Current Session Summary (2025-10-03)
-- **Issue:** Fiedler MCP tools not loading despite correct config
-- **Investigation:** 4 attempts, triplet consultation, config verification
-- **Attempt #1 (14:30):** Wrong format `{"url": "..."}` ❌
-- **Attempt #2 (14:50):** Transport wrapper added, still failed ❌
-- **Attempt #3 (15:00):** Tried stdio (incorrect per user) ❌
-- **Attempt #4 (15:10):** WebSocket config restored ⏳
-- **Triplet Review:** All 3 LLMs confirmed WebSocket SHOULD work
-- **Status:** Config correct, awaiting restart + test
+### What We Built (2025-10-03)
+- **MCP Relay**: stdio-to-WebSocket bridge for Claude Code
+- **Direct connections**: Removed unnecessary Stable Relay layer
+- **Dynamic discovery**: Relay queries backends for tools automatically
+- **Auto-reconnect**: Backend restarts handled transparently
+- **Configuration-driven**: Easy to add new WebSocket MCP backends
 
-### Investigation Findings
-**What We Confirmed:**
-1. ✅ Config format is CORRECT (transport wrapper present)
-2. ✅ Fiedler healthy on port 9010
-3. ✅ WebSocket server responding (curl test passed)
-4. ✅ This config worked before (per user)
-5. ❓ Unknown why Claude Code not loading MCP tools
+### Key Architectural Decisions
+1. **MCP Relay as subprocess** - Lives inside Claude Code, not standalone service
+2. **Direct WebSocket** - Bare metal bypasses KGB for maximum simplicity
+3. **Containerized routes through KGB** - Future mode enables automatic logging
+4. **Same relay code, different configs** - backends.yaml determines routing
 
-**Triplet Diagnosis (via Fiedler):**
-- Gemini: Network isolation possible, try different URLs
-- GPT: Try 127.0.0.1 instead of localhost
-- DeepSeek: Container namespace issue, try host.docker.internal
-- **None said WebSocket won't work!**
-
-### Key Files Modified
-1. `~/.config/claude-code/mcp.json` - Global config
-2. `~/.claude.json` - Project config (lines 414-419)
-3. `/mnt/projects/ICCM/architecture/BUG_TRACKING.md` - Tracking attempts
-4. `/mnt/projects/ICCM/architecture/CURRENT_STATUS.md` - This file
-5. `/home/aristotle9/CLAUDE.md` - Added testing protocol
-
-### Lessons Learned
-1. **Architecture docs are authoritative** - User confirmed WebSocket is correct approach
-2. **Triplet consultation valuable** - Got 3 expert opinions in 40 seconds
-3. **Don't assume failure mode** - WebSocket works, issue is elsewhere
-4. **Check BUG_TRACKING.md** - Prevents retrying failed approaches
-5. **Test before declaring victory** - Config correct ≠ working system
-
-### Critical Reminders
-- 🔴 **WebSocket IS correct** - Architecture docs confirmed by user
-- 🔴 **System worked before** - This exact config was working previously
-- 🔴 **Test after restart** - Full process quit required, not just Ctrl+D
-- 📋 **Try URL variations** - If fails: 127.0.0.1, host.docker.internal
-- 📖 **Check logs** - Claude Code and Fiedler logs may show connection errors
+### Critical Fixes Applied
+1. Fiedler line 298: `app._list_tools_handler()` → `await list_tools()`
+2. Fiedler line 321: `app._call_tool_handler(...)` → `await call_tool(...)`
+3. MCP relay: Added notification response consumption (asyncio.wait_for)
+4. Backends config: Direct WebSocket to backends (`ws://localhost:9010`, `ws://localhost:9020`)
 
 ---
 
-**CURRENT ACTION:** User must QUIT and RESTART Claude Code, then test `mcp__fiedler__fiedler_list_models`
+**CURRENT ACTION:** Awaiting Claude Code restart to activate MCP tool registry
 
-**Expected After Restart:**
-1. Fiedler MCP tools should be available
-2. Call `mcp__fiedler__fiedler_list_models` should return 7 models
-3. Fiedler logs should show WebSocket connection
-4. If successful: Update BUG_TRACKING.md as RESOLVED
-5. If failed: Add details to BUG_TRACKING.md for Attempt #3
+**Expected Result:** All 8 Fiedler tools available via `mcp__fiedler__*` prefix

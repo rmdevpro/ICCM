@@ -1,4 +1,4 @@
-#!/mnt/projects/ICCM/stable-relay/.venv/bin/python3
+#!/mnt/projects/ICCM/mcp-relay/.venv/bin/python3
 """
 MCP Relay - stdio to WebSocket multiplexer for Claude Code.
 
@@ -7,7 +7,7 @@ aggregates their tools, and routes tool calls to the appropriate backend.
 
 Design:
 - Claude Code connects via stdio (officially supported)
-- Relay connects to backends via WebSocket (through Stable Relay → KGB chain)
+- Relay connects to backends via WebSocket (direct in bare metal, through KGB in containerized)
 - Auto-reconnects to backends if they restart
 - Exposes all backend tools as a unified interface
 """
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class MCPRelay:
     """MCP server that multiplexes stdio to multiple WebSocket backends."""
 
-    def __init__(self, config_path: str = "/mnt/projects/ICCM/stable-relay/backends.yaml"):
+    def __init__(self, config_path: str = "/mnt/projects/ICCM/mcp-relay/backends.yaml"):
         self.config_path = config_path
         self.backends: Dict[str, dict] = {}  # backend_name -> {url, ws, tools}
         self.tool_routing: Dict[str, str] = {}  # tool_name -> backend_name
@@ -90,6 +90,13 @@ class MCPRelay:
                 "method": "notifications/initialized"
             }))
 
+            # Consume any response to the notification (some servers send errors for unknown notifications)
+            try:
+                notification_response = await asyncio.wait_for(ws.recv(), timeout=0.5)
+                logger.debug(f"{backend_name} notification response: {notification_response}")
+            except asyncio.TimeoutError:
+                pass  # No response is fine for notifications
+
             # Discover tools
             await self.discover_tools(backend_name)
             return True
@@ -116,6 +123,7 @@ class MCPRelay:
             }
             await ws.send(json.dumps(request))
             response = json.loads(await ws.recv())
+            logger.info(f"Tool discovery response from {backend_name}: {json.dumps(response)[:200]}")
 
             if 'result' in response and 'tools' in response['result']:
                 tools = response['result']['tools']
@@ -324,7 +332,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="MCP Relay - stdio to WebSocket multiplexer")
-    parser.add_argument("--config", default="/mnt/projects/ICCM/stable-relay/backends.yaml",
+    parser.add_argument("--config", default="/mnt/projects/ICCM/mcp-relay/backends.yaml",
                        help="Path to backends configuration file")
     args = parser.parse_args()
 
