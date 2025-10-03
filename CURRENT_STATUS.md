@@ -7,7 +7,7 @@
 - `/mnt/projects/ICCM/architecture/CURRENT_ARCHITECTURE_OVERVIEW.md` - **System overview and current protocol configuration**
 - `/mnt/projects/ICCM/CURRENT_STATUS.md` - **THIS FILE - Current work & status**
 - `/mnt/projects/ICCM/BUG_TRACKING.md` - **Active bugs with high-level summaries**
-- `/mnt/projects/ICCM/CODE_CHANGE_TRACKER.md` - **Detailed log of all configuration changes and attempts**
+- Git history (`git log`) - **Detailed log of all code changes and commits**
 
 ### 2. Module Documentation (READ AS NEEDED - Based on Current Work)
 - `/mnt/projects/ICCM/architecture/dewey_winni_requirements_v3.md` - Dewey + Winni specification
@@ -54,7 +54,7 @@
 **Next Action:**
 User must FULLY QUIT and RESTART Claude Code to trigger MCP initialization
 
-*(See BUG_TRACKING.md for triplet consultation details, CODE_CHANGE_TRACKER.md for all attempts)*
+*(See BUG_TRACKING.md for triplet consultation details, git log for detailed change history)*
 
 ---
 
@@ -62,7 +62,7 @@ User must FULLY QUIT and RESTART Claude Code to trigger MCP initialization
 
 ### ✅ Phase 1: Configuration Investigation (8 attempts completed)
 **Summary:** Tried 8 different configurations - all failed
-- Attempts 1-7: Various URLs and formats (see CODE_CHANGE_TRACKER.md)
+- Attempts 1-7: Various URLs and formats (see git commit history)
 - **Attempt #8:** `ws://localhost:8000?upstream=fiedler` - Same config that worked 17h ago
 - **Result:** MCP servers not loading - Claude Code not attempting connections
 

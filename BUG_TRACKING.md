@@ -39,7 +39,7 @@ Bare metal Claude Code cannot access Fiedler MCP tools despite correct configura
 - **Diagnosis:** Claude Code failed to initialize MCP servers on startup, not a config problem
 
 **Attempts Made:** 8 different configurations tried
-- See `/mnt/projects/ICCM/CODE_CHANGE_TRACKER.md` for detailed change log
+- See git commit history for detailed change log
 - Attempt #8 applied: `ws://localhost:8000?upstream=fiedler` (same as working config from 17h ago)
 
 **Current State:**
@@ -90,7 +90,7 @@ User must restart Claude Code to trigger MCP initialization with current correct
 
 ## 📋 Bug Investigation Guidelines
 
-1. **High-level summary only** - Technical details go in CODE_CHANGE_TRACKER.md
+1. **High-level summary only** - Technical details go in git commits
 2. **Root cause analysis** - What we've ruled out, what we suspect
 3. **Triplet consultation** - Record expert LLM recommendations
 4. **Impact assessment** - What's blocked by this bug
@@ -100,6 +100,6 @@ User must restart Claude Code to trigger MCP initialization with current correct
 
 ## 📚 Related Documentation
 
-- `/mnt/projects/ICCM/CODE_CHANGE_TRACKER.md` - Detailed change log with all attempts
+- Git commit history (`git log`) - Detailed change log with all code modifications
 - `/mnt/projects/ICCM/CURRENT_STATUS.md` - Current work status
 - `/mnt/projects/ICCM/architecture/CURRENT_ARCHITECTURE_OVERVIEW.md` - Architecture and protocols
