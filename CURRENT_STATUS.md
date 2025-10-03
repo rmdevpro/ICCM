@@ -32,36 +32,26 @@
 
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 16:00 EDT
-**Session:** BUG #1 FULLY RESOLVED - Fiedler MCP Configured and Trusted
-**Status:** 🟢 **System ready - Awaiting final restart**
+**Last Updated:** 2025-10-03 16:10 EDT
+**Session:** BUG #1 INVESTIGATION ONGOING - MCP Servers Not Loading
+**Status:** 🔴 **Debugging MCP initialization failure**
 
 ---
 
 ## 🎯 Current Objective
 
-**COMPLETED:** Fixed BUG #1 - Fiedler MCP tools not loading in bare metal Claude Code
+**ACTIVE:** Investigating BUG #1 - MCP servers not loading after Claude Code reinstall
 
-**Status:** ✅ FULLY RESOLVED - All configuration complete
+**Status:** 🔴 IN PROGRESS - Sequential-thinking working but stopped after Fiedler added
 
-**Resolution Summary:**
-- **Problem:** MCP subsystem not initializing (zero child processes)
-- **Root Cause #1:** Corrupted application state from unclean shutdown
-- **Root Cause #2:** Project trust dialog not accepted (`hasTrustDialogAccepted: false`)
-- **Solution Applied:** Complete removal + clean reinstall of Claude Code + trust configuration
-- **Result:** MCP subsystem operational, configuration complete
-- **Fiedler Config:** WebSocket configuration added to `~/.claude.json` (lines 137-142)
-- **Trust Enabled:** Set `hasTrustDialogAccepted: true` to allow MCP servers to load
+**Current Situation:**
+- **Before:** Sequential-thinking MCP was working after Claude Code reinstall
+- **Change:** Added Fiedler WebSocket config to `~/.claude.json`
+- **After:** Both MCP servers stopped loading (zero child processes spawning)
+- **Action Taken:** Removed Fiedler config, reverted to sequential-thinking only
+- **Next:** Restart Claude Code and verify sequential-thinking loads again
 
-**Actions Completed:**
-1. ✅ User executed complete Claude Code reinstall
-2. ✅ MCP subsystem verified working (other sessions show MCP child processes)
-3. ✅ Fiedler WebSocket config added to `~/.claude.json`
-4. ✅ Sequential-thinking config verified in `~/.claude.json` (lines 129-136)
-5. ✅ Trust dialog acceptance enabled (`hasTrustDialogAccepted: true`)
-6. ✅ Documentation updated (Fiedler README.md, CURRENT_STATUS.md, BUG_TRACKING.md)
-
-**Final Configuration:**
+**Current Configuration (sequential-thinking only):**
 ```json
 "mcpServers": {
   "sequential-thinking": {
@@ -69,18 +59,15 @@
     "command": "npx",
     "args": ["@modelcontextprotocol/server-sequential-thinking"],
     "env": {}
-  },
-  "fiedler": {
-    "transport": {
-      "type": "ws",
-      "url": "ws://localhost:9010"
-    }
   }
 }
 ```
 
+**Hypothesis:**
+Adding Fiedler WebSocket config may have caused JSON parsing error or MCP initialization failure. Testing with sequential-thinking only to isolate the issue.
+
 **Next Action:**
-User must restart Claude Code to load both MCP servers (sequential-thinking + fiedler).
+User must restart Claude Code. If sequential-thinking loads, issue is with Fiedler config format. If still broken, deeper investigation needed.
 
 ---
 

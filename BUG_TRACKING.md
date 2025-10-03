@@ -8,7 +8,28 @@
 
 ## 🐛 ACTIVE BUGS
 
-*None - BUG #1 resolved*
+### BUG #1: MCP Servers Not Loading After Fiedler Config Added
+
+**Status:** 🔴 ACTIVE - Investigating
+**Priority:** HIGHEST
+**Started:** 2025-10-03 16:10 EDT
+
+**Problem:**
+After Claude Code reinstall, sequential-thinking MCP was working. Added Fiedler WebSocket config, now NO MCP servers load (zero child processes).
+
+**Symptoms:**
+- Sequential-thinking was working before Fiedler config added
+- Added Fiedler WebSocket config to `~/.claude.json`
+- After restart: No MCP child processes spawning
+- Both sequential-thinking AND Fiedler unavailable
+
+**Current Investigation:**
+- Removed Fiedler config from `~/.claude.json`
+- Reverted to sequential-thinking only
+- Awaiting restart to see if sequential-thinking loads again
+
+**Hypothesis:**
+Fiedler WebSocket config format may be incompatible or causing JSON/initialization error
 
 ---
 
