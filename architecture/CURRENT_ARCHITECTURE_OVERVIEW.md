@@ -1,6 +1,6 @@
 # Current Architecture Overview - ICCM System
 
-**Last Updated:** 2025-10-03
+**Last Updated:** 2025-10-03 22:10 EDT
 **Purpose:** Explain the immutable architecture (PNG) and document current protocol configuration
 
 ---
@@ -41,7 +41,8 @@ LEGEND:
 2. **Two deployment modes**: Bare metal (direct, no logging) and containerized (logged through KGB)
 3. **Bare metal connects directly**: MCP Relay → WebSocket MCP servers (no intermediary relay)
 4. **Containerized routes through KGB**: MCP Relay → KGB → backends (automatic logging)
-5. **Architecture changes** require formal architecture planning session
+5. **Runtime server management**: Switch modes via MCP tools (no file editing or restarts)
+6. **Architecture changes** require formal architecture planning session
 
 ---
 
@@ -150,10 +151,20 @@ LEGEND:
 ### MCP Relay
 - **Location:** `/mnt/projects/ICCM/mcp-relay/mcp_relay.py`
 - **Type:** Python subprocess (stdio transport)
-- **Purpose:** Bridge Claude Code (stdio) to WebSocket MCP backends
-- **Config:** `/mnt/projects/ICCM/mcp-relay/backends.yaml`
-- **Features:** Dynamic tool discovery, multi-backend aggregation, auto-reconnect
-- **Current Backends:** Fiedler (ws://localhost:9010), Dewey (ws://localhost:9020)
+- **Purpose:** Bridge Claude Code (stdio) to WebSocket MCP servers
+- **Startup Config:** `/mnt/projects/ICCM/mcp-relay/backends.yaml` (initial servers only)
+- **Features:**
+  - Dynamic tool discovery and aggregation
+  - Auto-reconnect on backend failures
+  - Config file watching (hot-reload)
+  - Runtime server management via MCP tools
+- **Management Tools:**
+  - `relay_add_server(name, url)` - Add new MCP server
+  - `relay_remove_server(name)` - Remove MCP server
+  - `relay_list_servers()` - List all servers with status
+  - `relay_reconnect_server(name)` - Force reconnect
+  - `relay_get_status()` - Detailed status report
+- **Default Backends:** Fiedler (ws://localhost:9010), Dewey (ws://localhost:9020)
 
 ### Fiedler MCP Server
 - **Container:** `fiedler-mcp`
@@ -178,7 +189,9 @@ LEGEND:
 - **Purpose:** Transparent WebSocket proxy with automatic conversation logging
 - **Pattern:** Spy worker per connection
 - **Logs to:** Dewey via internal client
-- **Usage:** Containerized Claude only (bare metal bypasses KGB)
+- **Usage:** Optional - enable via relay_add_server tool
+  - Direct mode: `ws://localhost:9010` (no logging)
+  - Logged mode: `ws://localhost:9000?upstream=fiedler` (automatic logging)
 
 ### Winni Database
 - **Type:** PostgreSQL

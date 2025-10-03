@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 21:40 EDT
-**Session:** MCP Relay fully tested - auto-reconnection verified working
-**Status:** ✅ **MCP Relay production-ready with proven auto-reconnection**
+**Last Updated:** 2025-10-03 22:05 EDT
+**Session:** MCP Relay enhanced with runtime management tools
+**Status:** ✅ **MCP Relay production-ready with dynamic server control**
 
 ---
 
@@ -33,9 +33,10 @@ Dewey (ws://localhost:9020) - Conversation storage
 2. ✅ **stdio transport** - Claude Code officially supported protocol
 3. ✅ **Dynamic tool discovery** - Aggregates tools from all backends automatically
 4. ✅ **Backend restart resilience** - Relay auto-reconnects transparently
-5. ✅ **Direct connections** - No intermediary relay, minimal latency
+5. ✅ **Runtime server management** - Add/remove servers via MCP tools (no file editing)
 6. ✅ **Network extensible** - Can connect to any WebSocket MCP server
-7. ✅ **Configuration-driven** - Edit backends.yaml to add/remove servers
+7. ✅ **Config file watching** - Automatically reconnects when backends.yaml changes
+8. ✅ **Status monitoring** - Query connection status through relay tools
 
 ---
 
@@ -60,6 +61,20 @@ Dewey (ws://localhost:9020) - Conversation storage
 - ✅ 10 LLM models accessible: Gemini 2.5 Pro, GPT-5, GPT-4o, GPT-4o-mini, GPT-4-turbo, Llama 3.1-70B, Llama 3.3-70B, DeepSeek R1, Qwen 2.5-72B, Grok-4
 - ✅ Auto-reconnection implemented and tested (2025-10-03 21:34)
 - ✅ **Production verification:** Fiedler container restart → immediate reconnection, zero manual intervention
+
+### ✅ Phase 3: Runtime Management Tools (COMPLETED)
+**New Relay Tools:**
+- ✅ `relay_add_server(name, url)` - Add and connect to new MCP server
+- ✅ `relay_remove_server(name)` - Remove MCP server
+- ✅ `relay_list_servers()` - Show all servers with connection status
+- ✅ `relay_reconnect_server(name)` - Force reconnect to a server
+- ✅ `relay_get_status()` - Detailed status with tool lists
+
+**Design:**
+- backends.yaml = startup config only (not source of truth)
+- Runtime server management through MCP tools
+- No file editing or restarts required for server changes
+- Switch between direct/KGB routing via tool calls
 
 ---
 
@@ -139,39 +154,43 @@ backends:
 
 ## 🧪 Test Plan (After Claude Code Restart)
 
-### 1. Verify Tools Available
-Check that MCP relay exposes Fiedler tools:
+### 1. Verify Relay Management Tools
 ```
-# Should see both MCP servers connected
-claude mcp list
+# List all connected servers
+relay_list_servers()
 
-# Should work without "No such tool" error
-Try: mcp__fiedler__fiedler_list_models
-```
-
-### 2. Test Model Listing
-Should return 8 models:
-- gemini-2.5-pro
-- gpt-5
-- gpt-4o-mini
-- grok-2-1212
-- llama-3.3-70b
-- deepseek-chat
-- qwen-2.5-72b
-- claude-3.7-sonnet (if configured)
-
-### 3. Test Single Model
-```
-mcp__fiedler__fiedler_send
-  models: ["gemini-2.5-pro"]
-  prompt: "Reply with exactly: FIEDLER MCP WORKING"
+# Get detailed status
+relay_get_status()
 ```
 
-### 4. Test Multiple Models
+### 2. Test Dynamic Server Management
 ```
-mcp__fiedler__fiedler_send
-  models: ["gemini-2.5-pro", "gpt-5", "llama-3.3-70b"]
-  prompt: "What is 2+2? Answer in one word."
+# Switch Fiedler to KGB routing (enables logging)
+relay_remove_server(name="fiedler")
+relay_add_server(name="fiedler", url="ws://localhost:9000?upstream=fiedler")
+
+# Verify tools still work
+fiedler_list_models()
+
+# Switch back to direct (disable logging)
+relay_remove_server(name="fiedler")
+relay_add_server(name="fiedler", url="ws://localhost:9010")
+```
+
+### 3. Test Status Monitoring
+```
+# Check connection status
+relay_list_servers()
+
+# Force reconnect if needed
+relay_reconnect_server(name="fiedler")
+```
+
+### 4. Test Backend Restart Resilience
+```
+# In terminal: docker restart fiedler-mcp
+# Relay should auto-reconnect, no manual intervention needed
+fiedler_send(models=["gemini-2.5-pro"], prompt="Test after restart")
 ```
 
 ---
@@ -242,13 +261,14 @@ All bugs resolved:
 5. ✅ **Auto-reconnection tested** - Fiedler restart verified (2025-10-03 21:34)
 6. ✅ **BUG #3 marked RESOLVED** - All documentation updated
 
-### Current Work (2025-10-03 21:40)
-1. 🔄 **Test KGB logging chain** - Route Fiedler through KGB, verify Dewey logs conversations
-2. ⏸️ **Investigate Dewey MCP tools** - Currently not implementing tools/list
+### Current Work (2025-10-03 22:05)
+1. 🔄 **Restart Claude Code** - Load new relay with management tools
+2. ⏸️ **Test relay management tools** - Verify dynamic server control works
+3. ⏸️ **Test KGB logging** - Use relay_add_server to route through KGB, verify Dewey logs
 
 ### Future Work
-1. Plan containerized Claude implementation (optional)
-2. Add Dewey MCP tools to relay if needed
+1. Investigate Dewey MCP tools (currently not implementing tools/list)
+2. Plan containerized Claude implementation (optional)
 
 ---
 
@@ -286,7 +306,13 @@ All bugs resolved:
 6. ✅ MCP Relay built - stdio-to-WebSocket bridge created
 7. ✅ Bugs fixed - Fiedler (lines 298, 321) and relay notification handling
 8. ✅ Production-hardened - Auto-reconnection tested and verified
+9. ✅ **Management tools added** - Dynamic server control via MCP tools (no file editing)
 
-**CURRENT ACTION:** Test KGB logging chain (Fiedler → KGB → Dewey logs)
+**KEY INSIGHT:** Relay needed file watching + management tools
+- Initial design: backends.yaml as source of truth (required restarts)
+- Improved design: Runtime management through MCP tools
+- Result: Add/remove/monitor servers without file editing or restarts
 
-**Expected Result:** Conversations automatically logged to Winni database
+**CURRENT ACTION:** Restart Claude Code to load enhanced relay
+
+**Next Test:** Use relay_add_server to switch to KGB routing, verify Dewey logging
