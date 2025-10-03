@@ -225,14 +225,274 @@ class MCPRelay:
             await asyncio.sleep(self.reconnect_delay)
 
     def get_all_tools(self) -> List[dict]:
-        """Aggregate tools from all backends."""
+        """Aggregate tools from all backends plus relay management tools."""
         tools = []
+
+        # Add relay management tools
+        relay_tools = [
+            {
+                "name": "relay_add_server",
+                "description": "Add a new MCP server to the relay and connect to it",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name for this MCP server (e.g., 'fiedler', 'dewey')"
+                        },
+                        "url": {
+                            "type": "string",
+                            "description": "WebSocket URL of the MCP server (e.g., 'ws://localhost:9010')"
+                        }
+                    },
+                    "required": ["name", "url"]
+                }
+            },
+            {
+                "name": "relay_remove_server",
+                "description": "Remove an MCP server from the relay",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of the MCP server to remove"
+                        }
+                    },
+                    "required": ["name"]
+                }
+            },
+            {
+                "name": "relay_list_servers",
+                "description": "List all MCP servers managed by the relay with their status",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "relay_reconnect_server",
+                "description": "Force reconnect to an MCP server",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of the MCP server to reconnect"
+                        }
+                    },
+                    "required": ["name"]
+                }
+            },
+            {
+                "name": "relay_get_status",
+                "description": "Get detailed status of all MCP servers",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        ]
+
+        tools.extend(relay_tools)
+
+        # Add tools from all connected servers
         for backend in self.backends.values():
             tools.extend(backend['tools'])
+
         return tools
 
+    async def handle_add_server(self, arguments: dict) -> dict:
+        """Handle relay_add_server tool call."""
+        name = arguments.get("name")
+        url = arguments.get("url")
+
+        if name in self.backends:
+            return {
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": f"Server '{name}' already exists. Use relay_reconnect_server to reconnect or relay_remove_server first."
+                    }]
+                }
+            }
+
+        # Add new server
+        self.backends[name] = {
+            'url': url,
+            'ws': None,
+            'tools': []
+        }
+
+        # Connect to it
+        success = await self.connect_backend(name)
+
+        if success:
+            return {
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": f"✅ Server '{name}' added and connected successfully\nURL: {url}\nTools discovered: {len(self.backends[name]['tools'])}"
+                    }]
+                }
+            }
+        else:
+            return {
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": f"⚠️ Server '{name}' added but connection failed\nURL: {url}\nWill retry automatically..."
+                    }]
+                }
+            }
+
+    async def handle_remove_server(self, arguments: dict) -> dict:
+        """Handle relay_remove_server tool call."""
+        name = arguments.get("name")
+
+        if name not in self.backends:
+            return {
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": f"❌ Server '{name}' not found"
+                    }]
+                }
+            }
+
+        # Close connection
+        if self.backends[name]['ws']:
+            await self.backends[name]['ws'].close()
+
+        # Remove from routing table
+        self.tool_routing = {k: v for k, v in self.tool_routing.items() if v != name}
+
+        # Remove server
+        del self.backends[name]
+
+        return {
+            "result": {
+                "content": [{
+                    "type": "text",
+                    "text": f"✅ Server '{name}' removed successfully"
+                }]
+            }
+        }
+
+    async def handle_list_servers(self, arguments: dict) -> dict:
+        """Handle relay_list_servers tool call."""
+        servers = []
+        for name, backend in self.backends.items():
+            connected = backend['ws'] is not None and not backend['ws'].closed
+            servers.append({
+                "name": name,
+                "url": backend['url'],
+                "connected": connected,
+                "tools": len(backend['tools'])
+            })
+
+        text = "**MCP Relay - Connected Servers:**\n\n"
+        for s in servers:
+            status = "✅ Connected" if s['connected'] else "❌ Disconnected"
+            text += f"- **{s['name']}**: {status}\n"
+            text += f"  - URL: {s['url']}\n"
+            text += f"  - Tools: {s['tools']}\n\n"
+
+        return {
+            "result": {
+                "content": [{
+                    "type": "text",
+                    "text": text
+                }]
+            }
+        }
+
+    async def handle_reconnect_server(self, arguments: dict) -> dict:
+        """Handle relay_reconnect_server tool call."""
+        name = arguments.get("name")
+
+        if name not in self.backends:
+            return {
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": f"❌ Server '{name}' not found"
+                    }]
+                }
+            }
+
+        # Close existing connection
+        if self.backends[name]['ws']:
+            await self.backends[name]['ws'].close()
+            self.backends[name]['ws'] = None
+
+        # Reconnect
+        success = await self.connect_backend(name)
+
+        if success:
+            return {
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": f"✅ Server '{name}' reconnected successfully\nTools: {len(self.backends[name]['tools'])}"
+                    }]
+                }
+            }
+        else:
+            return {
+                "result": {
+                    "content": [{
+                        "type": "text",
+                        "text": f"❌ Failed to reconnect to '{name}'"
+                    }]
+                }
+            }
+
+    async def handle_get_status(self, arguments: dict) -> dict:
+        """Handle relay_get_status tool call."""
+        status = {
+            "total_servers": len(self.backends),
+            "connected_servers": sum(1 for b in self.backends.values() if b['ws'] and not b['ws'].closed),
+            "total_tools": sum(len(b['tools']) for b in self.backends.values()),
+            "servers": []
+        }
+
+        for name, backend in self.backends.items():
+            connected = backend['ws'] is not None and not backend['ws'].closed
+            status["servers"].append({
+                "name": name,
+                "url": backend['url'],
+                "connected": connected,
+                "tools": len(backend['tools']),
+                "tool_names": [t['name'] for t in backend['tools']]
+            })
+
+        import json
+        return {
+            "result": {
+                "content": [{
+                    "type": "text",
+                    "text": f"**MCP Relay Status:**\n\n```json\n{json.dumps(status, indent=2)}\n```"
+                }]
+            }
+        }
+
     async def call_tool(self, tool_name: str, arguments: dict) -> dict:
-        """Route tool call to appropriate backend."""
+        """Route tool call to appropriate backend or handle relay management tools."""
+
+        # Handle relay management tools
+        if tool_name == "relay_add_server":
+            return await self.handle_add_server(arguments)
+        elif tool_name == "relay_remove_server":
+            return await self.handle_remove_server(arguments)
+        elif tool_name == "relay_list_servers":
+            return await self.handle_list_servers(arguments)
+        elif tool_name == "relay_reconnect_server":
+            return await self.handle_reconnect_server(arguments)
+        elif tool_name == "relay_get_status":
+            return await self.handle_get_status(arguments)
+
+        # Route to backend server
         backend_name = self.tool_routing.get(tool_name)
 
         if not backend_name:
