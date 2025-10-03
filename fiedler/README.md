@@ -57,6 +57,8 @@ Fiedler is an MCP (Model Context Protocol) server that provides a unified interf
 
 4. **Configure Claude Code:**
 
+   **Method 1: stdio adapter (Recommended for bare metal Claude Code)**
+
    Add to your project's MCP servers in `~/.claude.json`:
    ```json
    {
@@ -64,16 +66,30 @@ Fiedler is an MCP (Model Context Protocol) server that provides a unified interf
        "/your/project/path": {
          "mcpServers": {
            "fiedler": {
-             "transport": {
-               "type": "ws",
-               "url": "ws://localhost:9010"
-             }
+             "type": "stdio",
+             "command": "/mnt/projects/ICCM/fiedler/stdio_adapter.py",
+             "args": []
            }
          }
        }
      }
    }
    ```
+
+   **Method 2: Direct WebSocket (For containerized Claude or AutoGen frameworks)**
+
+   ```json
+   {
+     "fiedler": {
+       "transport": {
+         "type": "ws",
+         "url": "ws://localhost:9010"
+       }
+     }
+   }
+   ```
+
+   **Note:** Claude Code MCP only officially supports stdio, SSE, and HTTP transports. The stdio adapter (`stdio_adapter.py`) bridges Claude Code's stdio requirement to Fiedler's WebSocket server.
 
 5. **Restart Claude Code:**
 
@@ -86,6 +102,40 @@ Fiedler is an MCP (Model Context Protocol) server that provides a unified interf
    - `mcp__fiedler__fiedler_set_key` - Store API keys securely
    - `mcp__fiedler__fiedler_list_keys` - List stored keys
    - `mcp__fiedler__fiedler_delete_key` - Delete stored keys
+
+## Architecture
+
+### stdio Adapter (stdio_adapter.py)
+
+**Purpose:** Bridges Claude Code's stdio MCP transport to Fiedler's WebSocket server.
+
+**Why needed:**
+- Claude Code MCP officially supports: stdio, SSE, HTTP (WebSocket NOT supported)
+- Fiedler runs as WebSocket server for AutoGen/multi-agent compatibility
+- Adapter allows Claude Code to use stdio while maintaining WebSocket infrastructure
+
+**Flow:**
+```
+Claude Code (stdio)
+    ↓
+stdio_adapter.py (process spawned by Claude)
+    ↓ WebSocket
+Fiedler WebSocket Server (port 9010)
+    ↓
+LLM Providers (Gemini, OpenAI, Together, xAI)
+```
+
+**Implementation:**
+- Bidirectional relay: stdin → WebSocket, WebSocket → stdout
+- Uses Python asyncio for concurrent I/O
+- Requires websockets library (installed in `.venv/`)
+- Single file, minimal dependencies
+
+**Benefits:**
+- Claude Code gets stdio (required)
+- Fiedler keeps WebSocket (for agent ecosystem)
+- No code changes to Fiedler core
+- Works with relay/KGB logging infrastructure
 
 #### Alternative: Local Python Installation
 

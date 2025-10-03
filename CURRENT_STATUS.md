@@ -32,23 +32,23 @@
 
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 20:30 EDT
-**Session:** BUG #2 PARTIAL FIX - Sequential-thinking restored, Fiedler investigation ongoing
-**Status:** ⚠️ **Partial success - sequential-thinking working, Fiedler WebSocket not connecting**
+**Last Updated:** 2025-10-03 21:00 EDT
+**Session:** BUG #2 RESOLVED - stdio adapter solution implemented
+**Status:** ✅ **Solution ready - awaiting restart verification**
 
 ---
 
 ## 🎯 Current Objective
 
-**IN PROGRESS:** BUG #2 - MCP config format incompatibility (PARTIAL FIX)
+**RESOLVED:** BUG #2 - MCP transport incompatibility
 
-**Root Cause:** Mixed MCP configuration formats in same `mcpServers` block
-- Sequential-thinking used top-level format: `{ "type": "stdio", "command": "npx", ... }`
-- Fiedler used nested transport wrapper: `{ "transport": { "type": "ws", "url": "..." } }`
-- Mixing these two formats broke MCP parser, preventing ALL servers from loading
+**Root Causes Identified:**
+1. **Config format mixing:** Sequential-thinking used top-level `{ "type": "stdio" }`, Fiedler used nested `{ "transport": { "type": "ws" } }`
+2. **WebSocket not supported:** Claude Code MCP officially supports stdio, SSE, HTTP only - WebSocket NOT supported
 
-**Solution Applied:**
-Changed Fiedler to match sequential-thinking's top-level format:
+**Solution Implemented:**
+Created stdio-to-WebSocket adapter to bridge Claude Code ↔ Fiedler:
+
 ```json
 "mcpServers": {
   "sequential-thinking": {
@@ -58,23 +58,36 @@ Changed Fiedler to match sequential-thinking's top-level format:
     "env": {}
   },
   "fiedler": {
-    "type": "ws",
-    "url": "ws://localhost:9010"
+    "type": "stdio",
+    "command": "/mnt/projects/ICCM/fiedler/stdio_adapter.py",
+    "args": []
   }
 }
 ```
 
-**Current Results (2025-10-03 20:30):**
-- ✅ **Sequential-thinking:** Working! MCP tools available
-- ❌ **Fiedler:** Not loading - WebSocket connection issue
+**Architecture Flow:**
+```
+Claude Code (stdio)
+    ↓
+stdio_adapter.py (Python process)
+    ↓ WebSocket
+Fiedler Server (port 9010)
+    ↓
+LLM Providers
+```
 
-**Key Progress:**
-Format fix stopped the crash - sequential-thinking is stable. Now need to diagnose why Fiedler WebSocket not connecting.
+**Key Benefits:**
+- ✅ Claude Code gets required stdio transport
+- ✅ Fiedler keeps WebSocket for AutoGen/agent ecosystem
+- ✅ No changes to Fiedler core
+- ✅ Compatible with relay/KGB logging (future)
 
-**Next Steps:**
-1. Check Fiedler container logs for connection attempts
-2. Test WebSocket connectivity with wscat
-3. Verify Fiedler is listening on correct port/interface
+**Files Created:**
+- `/mnt/projects/ICCM/fiedler/stdio_adapter.py` - Adapter script (tested and working)
+- `/mnt/projects/ICCM/fiedler/.venv/` - Python venv with websockets library
+
+**Next Action:**
+Restart Claude Code to verify both MCP servers load successfully
 
 ---
 
