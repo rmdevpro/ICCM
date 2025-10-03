@@ -16,10 +16,10 @@ None - All bugs resolved
 
 ### BUG #2: MCP Config Format Incompatibility
 
-**Status:** ✅ FIXED - Awaiting restart verification
+**Status:** ⚠️ PARTIAL FIX - Sequential-thinking restored, Fiedler still not loading
 **Priority:** HIGHEST
 **Started:** 2025-10-03 16:10 EDT
-**Fixed:** 2025-10-03 20:15 EDT
+**Partial Fix:** 2025-10-03 20:30 EDT
 
 **Problem:**
 After Claude Code reinstall, sequential-thinking MCP was working. Added Fiedler WebSocket config, now NO MCP servers load (zero child processes).
@@ -30,7 +30,7 @@ Mixed MCP configuration formats in same `mcpServers` block:
 - Fiedler: `{ "transport": { "type": "ws", ... } }` (nested wrapper format)
 - MCP parser couldn't handle mixed formats → failed to load ANY servers
 
-**Solution:**
+**Solution Applied:**
 Standardized both to top-level format:
 ```json
 "fiedler": {
@@ -39,8 +39,17 @@ Standardized both to top-level format:
 }
 ```
 
-**Verification Required:**
-Restart Claude Code and confirm both MCP servers load successfully
+**Current Status (2025-10-03 20:30):**
+- ✅ Sequential-thinking: **WORKING** (no longer crashes)
+- ❌ Fiedler: Still not loading (WebSocket connection failing)
+
+**Key Finding:**
+Config format fix **prevented the crash** but Fiedler WebSocket itself is not connecting. This is progress - sequential-thinking is stable again.
+
+**Next Steps:**
+1. Investigate why Fiedler WebSocket not connecting
+2. Check Fiedler/KGB/Relay logs for connection attempts
+3. Test direct WebSocket connection to Fiedler
 
 ---
 

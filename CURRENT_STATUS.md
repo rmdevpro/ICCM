@@ -32,15 +32,15 @@
 
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 20:15 EDT
-**Session:** BUG #1 RESOLVED - MCP Config Format Issue Fixed
-**Status:** ✅ **Configuration corrected, awaiting restart verification**
+**Last Updated:** 2025-10-03 20:30 EDT
+**Session:** BUG #2 PARTIAL FIX - Sequential-thinking restored, Fiedler investigation ongoing
+**Status:** ⚠️ **Partial success - sequential-thinking working, Fiedler WebSocket not connecting**
 
 ---
 
 ## 🎯 Current Objective
 
-**RESOLVED:** BUG #1 - MCP config format incompatibility
+**IN PROGRESS:** BUG #2 - MCP config format incompatibility (PARTIAL FIX)
 
 **Root Cause:** Mixed MCP configuration formats in same `mcpServers` block
 - Sequential-thinking used top-level format: `{ "type": "stdio", "command": "npx", ... }`
@@ -64,8 +64,17 @@ Changed Fiedler to match sequential-thinking's top-level format:
 }
 ```
 
-**Next Action:**
-User must restart Claude Code to verify both MCP servers load successfully.
+**Current Results (2025-10-03 20:30):**
+- ✅ **Sequential-thinking:** Working! MCP tools available
+- ❌ **Fiedler:** Not loading - WebSocket connection issue
+
+**Key Progress:**
+Format fix stopped the crash - sequential-thinking is stable. Now need to diagnose why Fiedler WebSocket not connecting.
+
+**Next Steps:**
+1. Check Fiedler container logs for connection attempts
+2. Test WebSocket connectivity with wscat
+3. Verify Fiedler is listening on correct port/interface
 
 ---
 
