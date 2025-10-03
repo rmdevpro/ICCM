@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-03 23:45 EDT
-**Session:** Dynamic tool discovery + End-to-end logging implementation
-**Status:** ✅ **COMPLETE - All systems operational**
+**Last Updated:** 2025-10-03 23:59 EDT
+**Session:** Containerized Claude Code + Anthropic API Gateway implementation
+**Status:** ✅ **COMPLETE - Containerized logging infrastructure ready for testing**
 
 ---
 
@@ -11,6 +11,8 @@
 **COMPLETED:**
 1. Full end-to-end logging pipeline operational
 2. Dynamic tool discovery without Claude Code restarts
+3. Containerized Claude Code infrastructure created
+4. Anthropic API Gateway (reverse proxy) implemented
 
 **Problem Solved:**
 - Claude Code only supports stdio transport (not WebSocket)
@@ -114,10 +116,12 @@ Claude Code (bare metal)
 - **Maximum stability** - Simple, direct architecture
 - **Emergency fallback** - Always available
 
-### Future: Containerized Claude (Logged Mode)
+### New: Containerized Claude (Complete Logging Mode) - READY FOR TESTING
 
 ```
 Claude Code (container)
+    ├→ Anthropic API Gateway (http://anthropic-gateway:8089/v1)
+    │   └→ https://api.anthropic.com (with logging to Dewey)
     └→ MCP Relay (stdio subprocess inside container)
          └→ ws://kgb-proxy:9000 → KGB Proxy
               ├→ Fiedler (automatic logging to Winni)
@@ -125,9 +129,11 @@ Claude Code (container)
 ```
 
 **Benefits:**
-- **Automatic logging** - All conversations captured via KGB
+- **Complete logging** - BOTH Anthropic API conversations AND MCP tool calls logged
+- **No TLS issues** - Gateway uses simple reverse proxy (no certificate trust needed)
 - **Same relay code** - Just different backends.yaml configuration
-- **Production mode** - When logging/auditing required
+- **Production mode** - Full audit trail of all Claude Code activity
+- **Blue/Green deployment** - Bare metal Claude remains untouched for safety
 
 ---
 
@@ -289,14 +295,20 @@ cd /mnt/projects/ICCM/fiedler && docker compose restart
 7. ✅ **All changes committed** - Documentation updated and pushed
 
 ### Next Steps
-1. **Restart Claude Code** (one-time) to activate dynamic tool discovery feature
-2. After restart: All 19 tools (8 Fiedler + 11 Dewey) immediately available
-3. Future tool changes: Zero restarts required
+1. **Build and test containerized Claude Code** (2025-10-03 23:59)
+   - Build Docker images for Claude Code and Gateway
+   - Start containers with docker-compose
+   - Test basic conversation through gateway
+   - Verify logging to Dewey/Winni
+2. **After successful testing:**
+   - Consider migrating to containerized mode as default
+   - Document switchover process
+   - Create backup/rollback procedures
 
 ### Future Work
-1. Consider making KGB routing default configuration
-2. Plan containerized Claude implementation (optional)
-3. Test Dewey conversation management tools
+1. ✅ ~~Plan containerized Claude implementation~~ - COMPLETE
+2. Test conversation history import from parsed CSV
+3. Evaluate making logged mode the default configuration
 
 ---
 
@@ -309,12 +321,17 @@ cd /mnt/projects/ICCM/fiedler && docker compose restart
 - **Auto-reconnect**: Backend restarts handled transparently with automatic retry
 - **Configuration-driven**: Easy to add new WebSocket MCP backends
 - **Connection resilience**: WebSocket error detection and transparent reconnection
+- **Containerized Claude Code**: Docker-based Claude Code with volume mounts
+- **Anthropic API Gateway**: Reverse proxy for logging Anthropic API conversations
+- **Complete logging architecture**: Captures ALL Claude Code activity (API + MCP)
 
 ### Key Architectural Decisions
 1. **MCP Relay as subprocess** - Lives inside Claude Code, not standalone service
 2. **Direct WebSocket** - Bare metal bypasses KGB for maximum simplicity
-3. **Containerized routes through KGB** - Future mode enables automatic logging
+3. **Containerized routes through KGB** - Full logging mode for production
 4. **Same relay code, different configs** - backends.yaml determines routing
+5. **Gateway over mitmproxy** - Chose reverse proxy (GPT-5 recommendation) to avoid TLS certificate issues
+6. **Blue/Green deployment** - Keep bare metal working while testing containerized version
 
 ### Critical Fixes Applied
 1. Fiedler line 298: `app._list_tools_handler()` → `await list_tools()`

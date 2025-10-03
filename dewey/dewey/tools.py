@@ -29,7 +29,10 @@ def _validate_uuid(uuid_str, param_name):
         raise ToolError(f"Invalid UUID format for parameter '{param_name}'.")
 
 def _serialize_item(item):
-    """Recursively serialize datetime and UUID objects in a dictionary or list."""
+    """Recursively serialize datetime, UUID, and asyncpg Record objects."""
+    # Handle asyncpg Record objects by converting to dict
+    if hasattr(item, '__class__') and item.__class__.__name__ == 'Record':
+        return _serialize_item(dict(item))
     if isinstance(item, dict):
         return {k: _serialize_item(v) for k, v in item.items()}
     if isinstance(item, list):
