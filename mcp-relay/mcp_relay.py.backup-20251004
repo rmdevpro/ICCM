@@ -153,7 +153,7 @@ class MCPRelay:
             logger.error(f"Config reload failed: {e}", exc_info=True)
 
     async def connect_backend(self, backend_name: str) -> bool:
-        """Connect to a backend MCP server with error resilience."""
+        """Connect to a backend MCP server."""
         backend = self.backends[backend_name]
         url = backend['url']
 
@@ -177,31 +177,8 @@ class MCPRelay:
                 "id": 1
             }
             await ws.send(json.dumps(init_request))
-
-            # Handle initialize response with error boundary
-            try:
-                response_text = await ws.recv()
-                response = json.loads(response_text)
-
-                if 'error' in response:
-                    # Backend returned error for initialize - mark as degraded
-                    error_msg = response['error'].get('message', 'Unknown error')
-                    logger.error(f"{backend_name} initialize failed: {error_msg}")
-                    backend['health'] = 'degraded'
-                    backend['error'] = f"Initialize error: {error_msg}"
-                    await ws.close()
-                    backend['ws'] = None
-                    return False
-
-                logger.info(f"{backend_name} initialized successfully")
-
-            except json.JSONDecodeError as e:
-                logger.error(f"{backend_name} returned invalid JSON during initialize: {e}")
-                backend['health'] = 'failed'
-                backend['error'] = f"Invalid JSON response: {e}"
-                await ws.close()
-                backend['ws'] = None
-                return False
+            response = await ws.recv()
+            logger.info(f"{backend_name} initialized")
 
             # Send initialized notification
             await ws.send(json.dumps({
@@ -216,35 +193,22 @@ class MCPRelay:
             except asyncio.TimeoutError:
                 pass  # No response is fine for notifications
 
-            # Discover tools with error boundary
-            success = await self.discover_tools(backend_name)
-            if not success:
-                # Tool discovery failed - mark as degraded but keep connection
-                backend['health'] = 'degraded'
-                backend['error'] = 'Tool discovery failed'
-                logger.warning(f"{backend_name} marked as degraded: tool discovery failed")
-                return True  # Still return True - we're connected, just degraded
-
-            # Fully healthy
-            backend['health'] = 'healthy'
-            backend['error'] = None
-            logger.info(f"{backend_name} is healthy with {len(backend['tools'])} tools")
+            # Discover tools
+            await self.discover_tools(backend_name)
             return True
 
         except Exception as e:
-            logger.error(f"Failed to connect to {backend_name}: {e}")
+            logger.warning(f"Failed to connect to {backend_name}: {e}")
             backend['ws'] = None
-            backend['health'] = 'failed'
-            backend['error'] = f"Connection failed: {e}"
             return False
 
-    async def discover_tools(self, backend_name: str) -> bool:
-        """Discover tools from a backend with error resilience."""
+    async def discover_tools(self, backend_name: str):
+        """Discover tools from a backend."""
         backend = self.backends[backend_name]
         ws = backend['ws']
 
         if not ws:
-            return False
+            return
 
         try:
             # Request tools list
@@ -254,68 +218,33 @@ class MCPRelay:
                 "id": 2
             }
             await ws.send(json.dumps(request))
+            response = json.loads(await ws.recv())
+            logger.info(f"Tool discovery response from {backend_name}: {json.dumps(response)[:200]}")
 
-            # Handle response with error boundary
-            try:
-                response_text = await ws.recv()
-                response = json.loads(response_text)
-            except json.JSONDecodeError as e:
-                logger.error(f"{backend_name} returned invalid JSON during tool discovery: {e}")
-                return False
+            if 'result' in response and 'tools' in response['result']:
+                tools = response['result']['tools']
+                old_tool_count = len(backend.get('tools', []))
+                backend['tools'] = tools
 
-            logger.debug(f"Tool discovery response from {backend_name}: {json.dumps(response)[:200]}")
+                # Update routing table
+                for tool in tools:
+                    tool_name = tool['name']
+                    self.tool_routing[tool_name] = backend_name
+                    logger.info(f"Registered tool: {tool_name} → {backend_name}")
 
-            # Check for error response
-            if 'error' in response:
-                error_msg = response['error'].get('message', 'Unknown error')
-                logger.error(f"{backend_name} tool discovery error: {error_msg}")
-                return False
-
-            # Validate response structure
-            if 'result' not in response or 'tools' not in response['result']:
-                logger.error(f"{backend_name} invalid tools/list response structure: {response}")
-                return False
-
-            tools = response['result']['tools']
-            old_tool_count = len(backend.get('tools', []))
-            backend['tools'] = tools
-
-            # Update routing table
-            for tool in tools:
-                tool_name = tool['name']
-                self.tool_routing[tool_name] = backend_name
-                logger.info(f"Registered tool: {tool_name} → {backend_name}")
-
-            # Notify client if tools changed (and we're initialized)
-            if self.initialized and len(tools) != old_tool_count:
-                await self.notify_tools_changed()
-
-            return True
+                # Notify client if tools changed (and we're initialized)
+                if self.initialized and len(tools) != old_tool_count:
+                    await self.notify_tools_changed()
 
         except Exception as e:
             logger.error(f"Failed to discover tools from {backend_name}: {e}")
-            return False
 
     async def connect_all_backends(self):
-        """Connect to all configured backends with graceful degradation."""
+        """Connect to all configured backends."""
         tasks = [self.connect_backend(name) for name in self.backends.keys()]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Count results, treating exceptions as failures
         connected = sum(1 for r in results if r is True)
         logger.info(f"Connected to {connected}/{len(self.backends)} backends")
-
-        # Log health status
-        for name, backend in self.backends.items():
-            health = backend.get('health', 'unknown')
-            if health == 'healthy':
-                logger.info(f"✅ {name}: healthy ({len(backend['tools'])} tools)")
-            elif health == 'degraded':
-                logger.warning(f"⚠️  {name}: degraded - {backend.get('error', 'unknown error')}")
-            elif health == 'failed':
-                logger.error(f"❌ {name}: failed - {backend.get('error', 'unknown error')}")
-            else:
-                logger.warning(f"❓ {name}: {health}")
 
     async def reconnect_backend(self, backend_name: str):
         """Reconnect to a backend with retry logic."""
@@ -422,9 +351,7 @@ class MCPRelay:
         self.backends[name] = {
             'url': url,
             'ws': None,
-            'tools': [],
-            'health': 'unknown',
-            'error': None
+            'tools': []
         }
 
         # Connect to it
@@ -488,37 +415,19 @@ class MCPRelay:
         for name, backend in self.backends.items():
             ws = backend['ws']
             connected = ws is not None and ws.state == State.OPEN
-            health = backend.get('health', 'unknown')
-            error = backend.get('error')
-
             servers.append({
                 "name": name,
                 "url": backend['url'],
                 "connected": connected,
-                "health": health,
-                "error": error,
                 "tools": len(backend['tools'])
             })
 
         text = "**MCP Relay - Connected Servers:**\n\n"
         for s in servers:
-            # Status icon based on health
-            if s['health'] == 'healthy':
-                status_icon = "✅"
-            elif s['health'] == 'degraded':
-                status_icon = "⚠️"
-            elif s['health'] == 'failed':
-                status_icon = "❌"
-            else:
-                status_icon = "❓"
-
-            status = "Connected" if s['connected'] else "Disconnected"
-            text += f"- **{s['name']}**: {status_icon} {status} ({s['health']})\n"
+            status = "✅ Connected" if s['connected'] else "❌ Disconnected"
+            text += f"- **{s['name']}**: {status}\n"
             text += f"  - URL: {s['url']}\n"
-            text += f"  - Tools: {s['tools']}\n"
-            if s['error']:
-                text += f"  - Error: {s['error']}\n"
-            text += "\n"
+            text += f"  - Tools: {s['tools']}\n\n"
 
         return {
             "result": {
@@ -579,26 +488,19 @@ class MCPRelay:
         status = {
             "total_servers": len(self.backends),
             "connected_servers": sum(1 for b in self.backends.values() if is_connected(b['ws'])),
-            "healthy_servers": sum(1 for b in self.backends.values() if b.get('health') == 'healthy'),
-            "degraded_servers": sum(1 for b in self.backends.values() if b.get('health') == 'degraded'),
-            "failed_servers": sum(1 for b in self.backends.values() if b.get('health') == 'failed'),
             "total_tools": sum(len(b['tools']) for b in self.backends.values()),
             "servers": []
         }
 
         for name, backend in self.backends.items():
             connected = is_connected(backend['ws'])
-            server_info = {
+            status["servers"].append({
                 "name": name,
                 "url": backend['url'],
                 "connected": connected,
-                "health": backend.get('health', 'unknown'),
                 "tools": len(backend['tools']),
                 "tool_names": [t['name'] for t in backend['tools']]
-            }
-            if backend.get('error'):
-                server_info['error'] = backend['error']
-            status["servers"].append(server_info)
+            })
 
         import json
         return {
