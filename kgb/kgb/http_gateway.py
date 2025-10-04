@@ -122,12 +122,31 @@ class HTTPGateway:
             )
 
             # Forward request to upstream
+            # Filter headers - remove Host and other proxy-specific headers
+            # Make headers case-insensitive by converting to regular dict
+            forward_headers = {}
+            for key, value in request.headers.items():
+                forward_headers[key] = value
+
+            # Remove headers that should not be forwarded (case-insensitive)
+            headers_to_remove = ['host', 'connection', 'keep-alive', 'proxy-connection']
+            forward_headers = {k: v for k, v in forward_headers.items() if k.lower() not in headers_to_remove}
+
+            # Ensure User-Agent is set (some APIs block requests without it)
+            if 'User-Agent' not in forward_headers and 'user-agent' not in forward_headers:
+                forward_headers['User-Agent'] = 'KGB-HTTP-Gateway/1.0'
+
+            # Debug logging
+            logger.debug(f"Gateway {request_id} forwarding to: {upstream_url}")
+            logger.debug(f"Gateway {request_id} headers: {list(forward_headers.keys())}")
+
             async with aiohttp.ClientSession() as session:
                 async with session.request(
                     method=request.method,
                     url=upstream_url,
-                    headers=request.headers,
-                    data=request_body
+                    headers=forward_headers,
+                    data=request_body,
+                    allow_redirects=True
                 ) as upstream_response:
 
                     # Read response body
@@ -135,10 +154,16 @@ class HTTPGateway:
                     response_body_str = response_body.decode('utf-8') if response_body else ""
 
                     # Log response to Dewey
+                    # Try to parse as JSON, but fall back to raw string if it fails
+                    try:
+                        response_body_parsed = json.loads(response_body_str) if response_body_str else None
+                    except json.JSONDecodeError:
+                        response_body_parsed = response_body_str or None
+
                     response_log = {
                         "status": upstream_response.status,
                         "headers": self.sanitize_headers(dict(upstream_response.headers)),
-                        "body": json.loads(response_body_str) if response_body_str else None
+                        "body": response_body_parsed
                     }
                     await dewey_client.store_message(
                         conversation_id=conversation_id,

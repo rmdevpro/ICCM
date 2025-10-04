@@ -7,6 +7,7 @@ services:
     container_name: claude-code-container
     stdin_open: true
     tty: true
+    command: /bin/bash
     networks:
       - iccm-network
     volumes:
@@ -17,6 +18,9 @@ services:
       # Mount MCP config (will create if needed)
       - ./config:/root/.config/claude-code
 
+      # Mount MCP relay backends config (containerized mode with KGB routing)
+      - ./config/backends.yaml:/mnt/projects/ICCM/mcp-relay/backends.yaml
+
       # Mount SSH keys for git operations (if needed)
       - ${HOME}/.ssh:/root/.ssh:ro
 
@@ -25,19 +29,16 @@ services:
 
     environment:
       # API Configuration - route through KGB HTTP gateway
-      - ANTHROPIC_BASE_URL=http://host.docker.internal:8089/v1
+      # Note: No /v1 suffix - Claude Code will add it
+      - ANTHROPIC_BASE_URL=http://kgb-proxy:8089
 
       # API Key - from host environment
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 
-      # MCP Relay connection (already running on host)
-      # Will connect to KGB on host network
-
-    extra_hosts:
-      # Access host services (KGB on localhost:8089 and localhost:9000)
-      - "host.docker.internal:host-gateway"
+      # MCP Relay connection - connects to KGB WebSocket spy
+      # Both Claude and KGB are on same Docker network (iccm_network)
 
 networks:
   iccm-network:
-    name: iccm-network
-    driver: bridge
+    name: iccm_network
+    external: true

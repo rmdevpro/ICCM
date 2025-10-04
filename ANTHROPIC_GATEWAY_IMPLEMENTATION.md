@@ -284,12 +284,75 @@ psql -h 192.168.1.210 -U dewey -d winni -c "SELECT * FROM conversations ORDER BY
 ## Next Steps
 
 1. ✅ Documentation complete
-2. ⏳ Commit changes
-3. ⏳ Build Docker images
-4. ⏳ Test gateway standalone
-5. ⏳ Test containerized Claude Code
+2. ✅ Commit changes
+3. ✅ Build Docker images
+4. ✅ Test gateway standalone (health check working)
+5. ⏸️ Test containerized Claude Code (Cloudflare 403 issue - see Known Issues)
 6. ⏳ Verify logging to Dewey/Winni
 7. ⏳ Evaluate making containerized mode default
+
+---
+
+## Known Issues
+
+### Issue: Cloudflare 403 Forbidden (2025-10-03)
+
+**Status:** Under investigation
+
+**Symptom:** When routing Claude Code API requests through KGB HTTP gateway, Anthropic's Cloudflare returns 403 Forbidden.
+
+**Testing Results:**
+- ✅ KGB gateway health check works (`/health` endpoint)
+- ✅ Direct aiohttp from KGB container to `api.anthropic.com` works (200 OK)
+- ✅ Bare metal Claude Code (direct to Anthropic) works fine
+- ❌ Claude Code → KGB Gateway → Anthropic API = 403 Forbidden
+
+**Evidence:**
+```
+2025-10-03 23:57:19,234 - kgb.http_gateway - INFO - Gateway 5749099a-e3e9-4e98-8888-fb2f6d4afd1f <- 403
+2025-10-03 23:57:19,236 - aiohttp.access - INFO - 172.29.0.6 [03/Oct/2025:23:57:19 +0000] "POST /v1/messages?beta=true HTTP/1.1" 403 334 "-" "claude-cli/2.0.5 (external, sdk-cli)"
+```
+
+**Hypotheses:**
+1. aiohttp's default SSL/TLS connector behavior differs from direct requests
+2. Missing or incorrect SNI (Server Name Indication) when proxying
+3. Cloudflare detecting proxy based on request fingerprint
+4. Header forwarding issue (despite filtering Host/Connection headers)
+
+**Working Direct Test (from KGB container):**
+```python
+# This works (200 OK):
+async with aiohttp.ClientSession() as session:
+    async with session.post(
+        'https://api.anthropic.com/v1/messages',
+        headers={'x-api-key': '...', 'Content-Type': 'application/json', ...},
+        json=data
+    ) as resp:
+        # Returns 200
+```
+
+**Non-Working Proxy:**
+```python
+# This gets 403:
+async with aiohttp.ClientSession() as session:
+    async with session.request(
+        method='POST',
+        url='https://api.anthropic.com/v1/messages',
+        headers=forward_headers,
+        data=request_body  # bytes
+    ) as resp:
+        # Returns 403
+```
+
+**Next Steps to Investigate:**
+1. Add SSL/TLS connector with proper configuration
+2. Test with explicit SNI hostname
+3. Compare request headers between working and non-working calls
+4. Consider using `requests` library instead of aiohttp
+5. Check if Cloudflare needs specific User-Agent patterns
+
+**Workaround:**
+Bare metal Claude Code continues to work normally (direct to Anthropic API). Containerized mode is optional for full logging.
 
 ---
 
