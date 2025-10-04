@@ -26,11 +26,12 @@
 - BUG #10 fix requires Claude Code restart to load updated relay code
 
 **Next Session (After Restart):**
-1. Verify Playfair tools auto-discovered (4 tools expected)
-2. Test diagram generation (simple SVG)
-3. Test all 4 MCP tools
-4. User acceptance testing
-5. Mark deployment complete
+1. **Import session to Dewey:** `/tmp/session_summary_bug10_playfair.md`
+2. Verify Playfair tools auto-discovered (4 tools expected)
+3. Test diagram generation (simple SVG)
+4. Test all 4 MCP tools
+5. User acceptance testing
+6. Mark deployment complete
 
 ---
 
