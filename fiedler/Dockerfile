@@ -21,8 +21,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Create output directory
 RUN mkdir -p /app/fiedler_output && chmod 777 /app/fiedler_output
 
-# Expose MCP server port
-EXPOSE 8080
+# Expose MCP server port and HTTP streaming proxy port
+EXPOSE 8080 8081
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

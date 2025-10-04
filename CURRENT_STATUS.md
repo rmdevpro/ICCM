@@ -1,41 +1,63 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 02:50 EDT
-**Session:** Claudette streaming fix + Triplet reference cleanup
-**Status:** ✅ **Claudette operational - All tests passing**
+**Last Updated:** 2025-10-04 03:15 EDT
+**Session:** Architecture Alignment - KGB routing through Fiedler
+**Status:** ✅ **Correct architecture implemented - All systems operational**
 
 ---
 
 ## 🎯 Session Accomplishments
 
-### 1. ✅ Fixed Claudette Streaming Issue (CRITICAL BUG)
+### 1. ✅ Implemented Correct Architecture (MAJOR MILESTONE)
 
-**Problem:** Claudette hung indefinitely on non-interactive commands through KGB
-**Root Cause:** KGB was buffering Server-Sent Events (SSE) responses instead of streaming
+**Problem:** Architecture showed Fiedler should be the central LLM gateway, but KGB was routing directly to Anthropic API
+**Required Architecture:** Claudette → KGB → Fiedler → Claude API (per architecture PNG)
+**Previous Implementation:** Claudette → KGB → Anthropic API (incorrect - bypassed Fiedler)
 
-**Solution (Fiedler Triplet Consensus):**
-- Consulted Fiedler's default triplet (Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1)
-- All three agreed on fix:
-  1. Use `iter_any()` instead of `iter_chunked(8192)` - streams immediately
-  2. Force `Accept-Encoding: identity` - prevents gzip compression
-  3. Add SSE headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`
-  4. Keep tee logging pattern (stream + accumulate for Dewey)
+**Solution (Fiedler Triplet Consensus - Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1):**
+All three models unanimously agreed on Option A: Add streaming proxy capability to Fiedler
+  1. **Added HTTP streaming proxy to Fiedler** (port 8081)
+     - Proxies requests to Anthropic API while streaming SSE responses
+     - Uses `iter_any()` for immediate, unbuffered streaming
+     - Forwards all headers including `x-api-key`
+  2. **Made KGB target URL configurable** via `KGB_TARGET_URL` environment variable
+  3. **Blue/Green Deployment Strategy:**
+     - Created KGB-green pointing to Fiedler (port 8090 for testing)
+     - Verified routing: KGB-green → Fiedler:8081 → Anthropic (got expected 401)
+     - Switched production KGB to route through Fiedler
+     - Removed green deployment after verification
+  4. **Network configuration:** Added Fiedler to `iccm_network` for KGB connectivity
 
 **Result:**
 ```
-✅ ALL 12 TESTS PASSING
+✅ ALL 12 CLAUDETTE TESTS PASSING
+✅ CORRECT ARCHITECTURE FLOW: Claudette → KGB → Fiedler → Anthropic
 - Non-interactive commands work (<2s response)
-- Stream-JSON format operational
+- SSE streaming through Fiedler confirmed
 - KGB logging pipeline functional
 - Full conversation logging to Dewey/Winni
+- Architecture PNG requirements satisfied
 ```
 
 **Files Changed:**
-- `/mnt/projects/ICCM/kgb/kgb/http_gateway.py` (lines 141, 178-180, 192-193)
+- `/mnt/projects/ICCM/fiedler/fiedler/proxy_server.py` (new file - HTTP streaming proxy)
+- `/mnt/projects/ICCM/fiedler/fiedler/server.py` (added proxy server startup)
+- `/mnt/projects/ICCM/fiedler/pyproject.toml` (added aiohttp dependency)
+- `/mnt/projects/ICCM/fiedler/Dockerfile` (exposed port 8081)
+- `/mnt/projects/ICCM/fiedler/docker-compose.yml` (added port 9011, iccm_network)
+- `/mnt/projects/ICCM/kgb/kgb/http_gateway.py` (added os import, KGB_TARGET_URL env var)
+- `/mnt/projects/ICCM/kgb/docker-compose.yml` (added KGB_TARGET_URL=http://fiedler-mcp:8081)
 
 ---
 
-### 2. ✅ Removed Hardcoded Triplet References
+### 2. ✅ Previous Session: Fixed Claudette Streaming Issue
+
+**Problem:** Claudette hung indefinitely on non-interactive commands through KGB
+**Root Cause:** KGB was buffering SSE responses using `iter_chunked(8192)`
+**Solution:** Used `iter_any()`, `Accept-Encoding: identity`, SSE headers
+**Status:** ✅ Fixed in previous session, remained working through architecture changes
+
+### 3. ✅ Previous Session: Removed Hardcoded Triplet References
 
 **Problem:** Documentation hardcoded specific model names (Gemini 2.5 Pro, GPT-5, Grok-4)
 **Issue:** Triplet composition is configurable in Fiedler - docs shouldn't assume specific models
@@ -81,20 +103,21 @@
 
 ---
 
-## 🔧 Known Issues / Next Steps
+## 🔧 Next Steps
 
-### ⚠️ Architecture Misalignment
+### Future Enhancements
 
-**Current:** Claudette → KGB → Anthropic API (direct)
-**Correct:** Claudette → KGB → Fiedler → Cloud LLMs
+1. **Performance Monitoring:**
+   - Monitor latency through Fiedler proxy layer
+   - Verify no performance degradation vs direct routing
 
-Per architecture PNG, Fiedler should be the gateway to ALL LLMs, not just for orchestration.
+2. **Additional LLM Integration:**
+   - Route other LLM clients through Fiedler
+   - Ensure all LLM traffic follows: Client → KGB/Proxy → Fiedler → Cloud LLM
 
-**Next Session Tasks:**
-1. Route KGB through Fiedler for Claude Max calls
-2. Implement blue/green deployment for testing
-3. Verify all tests still pass with Fiedler routing
-4. Update documentation to reflect final architecture
+3. **Documentation:**
+   - Create architecture flow diagram showing correct routing
+   - Document Fiedler's dual role: MCP orchestration + HTTP streaming proxy
 
 ---
 
@@ -112,9 +135,11 @@ Per architecture PNG, Fiedler should be the gateway to ALL LLMs, not just for or
 
 **Fiedler:**
 - Container: `fiedler-mcp`
-- Port: 9010 (host), 8080 (container)
+- MCP Port: 9010 (host), 8080 (container WebSocket)
+- HTTP Proxy Port: 9011 (host), 8081 (container)
 - Config: `/app/fiedler/config/models.yaml`
 - Default Triplet: gemini-2.5-pro, gpt-4o-mini, deepseek-ai/DeepSeek-R1
+- **Dual Role:** MCP orchestration server + HTTP streaming proxy for Anthropic
 
 **Dewey:**
 - Container: `dewey-mcp`
@@ -153,4 +178,5 @@ mcp__iccm__fiedler_get_config
 ---
 
 **Session Owner:** Claude Code (bare metal)
-**Last Verified:** 2025-10-04 02:50 EDT
+**Last Verified:** 2025-10-04 03:15 EDT
+**Architecture Status:** ✅ PNG requirements fully implemented

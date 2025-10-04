@@ -1,19 +1,18 @@
 version: '3.8'
 
 services:
-  kgb-proxy:
+  kgb-proxy-green:
     build:
       context: .
       dockerfile: Dockerfile
     image: kgb-proxy:latest
-    container_name: kgb-proxy
+    container_name: kgb-proxy-green
     restart: unless-stopped
     environment:
-      # Route through Fiedler's HTTP streaming proxy (correct architecture)
+      # Route through Fiedler's HTTP streaming proxy
       - KGB_TARGET_URL=http://fiedler-mcp:8081
     ports:
-      - "127.0.0.1:9000:9000"  # WebSocket spy
-      - "127.0.0.1:8089:8089"  # HTTP gateway
+      - "127.0.0.1:8090:8089"  # HTTP gateway (green on port 8090)
     networks:
       - iccm_network
 

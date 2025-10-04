@@ -6,6 +6,7 @@ Runs alongside WebSocket spy to provide complete coverage.
 import asyncio
 import json
 import logging
+import os
 import ssl
 import uuid
 from typing import Optional
@@ -21,13 +22,14 @@ logger = logging.getLogger(__name__)
 class HTTPGateway:
     """HTTP reverse proxy gateway with Dewey logging."""
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 8089, upstream: str = "https://api.anthropic.com"):
+    def __init__(self, host: str = "0.0.0.0", port: int = 8089, upstream: str = None):
         self.host = host
         self.port = port
-        self.upstream = upstream.rstrip('/')
+        # Use environment variable KGB_TARGET_URL, fallback to direct Anthropic API
+        self.upstream = (upstream or os.getenv("KGB_TARGET_URL", "https://api.anthropic.com")).rstrip('/')
         self.app = None
         self.runner = None
-        logger.info(f"HTTP Gateway initialized on {host}:{port} -> {upstream}")
+        logger.info(f"HTTP Gateway initialized on {host}:{port} -> {self.upstream}")
 
     async def start(self):
         """Start the HTTP gateway server."""

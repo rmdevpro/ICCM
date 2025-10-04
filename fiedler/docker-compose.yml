@@ -67,11 +67,13 @@ services:
 
     # Ports
     ports:
-      - "9010:8080"  # MCP server on port 9010
+      - "9010:8080"  # MCP WebSocket server on port 9010
+      - "9011:8081"  # HTTP streaming proxy on port 9011
 
-    # Network
+    # Networks
     networks:
       - fiedler_network
+      - iccm_network  # Shared network for KGB integration
 
     # Health check
     healthcheck:
@@ -87,3 +89,5 @@ volumes:
 networks:
   fiedler_network:
     driver: bridge
+  iccm_network:
+    external: true

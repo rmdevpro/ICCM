@@ -244,12 +244,13 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 
 async def _amain():
-    """Async entry point for MCP server - WebSocket mode."""
+    """Async entry point for MCP server - WebSocket mode + HTTP Streaming Proxy."""
     import sys
     import websockets
     import json
     import logging
     from websockets.server import WebSocketServerProtocol
+    from .proxy_server import start_proxy_server
 
     print("=== FIEDLER: _amain() ENTRY POINT ===", flush=True, file=sys.stderr)
 
@@ -373,7 +374,13 @@ async def _amain():
         except websockets.exceptions.ConnectionClosed:
             logger.info("Client disconnected")
 
-    # Start WebSocket server on port 8080
+    # Start HTTP Streaming Proxy on port 8081
+    print("=== FIEDLER: Starting HTTP Streaming Proxy ===", flush=True, file=sys.stderr)
+    proxy = await start_proxy_server(host="0.0.0.0", port=8081)
+    print("=== FIEDLER: HTTP Streaming Proxy STARTED on port 8081 ===", flush=True, file=sys.stderr)
+    logger.info("=== FIEDLER: HTTP Streaming Proxy RUNNING on port 8081 ===")
+
+    # Start WebSocket MCP server on port 8080
     host = "0.0.0.0"
     port = 8080
     print(f"=== FIEDLER: About to start WebSocket server on {host}:{port} ===", flush=True, file=sys.stderr)
@@ -384,6 +391,7 @@ async def _amain():
         async with websockets.serve(handle_client, host, port):
             print(f"=== FIEDLER: WebSocket server STARTED on port {port} ===", flush=True, file=sys.stderr)
             logger.info(f"=== FIEDLER STARTUP: WebSocket MCP server RUNNING on ws://{host}:{port} ===")
+            logger.info(f"=== FIEDLER STARTUP: Both servers operational (MCP: 8080, Proxy: 8081) ===")
             await asyncio.Future()  # Run forever
     except Exception as e:
         print(f"=== FIEDLER ERROR: {e} ===", flush=True, file=sys.stderr)
