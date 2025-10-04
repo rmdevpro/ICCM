@@ -1,12 +1,40 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 21:50 EDT
-**Session:** BUG #9 Resolution Complete - Fiedler Token Limits Fixed
-**Status:** ✅ **All bugs resolved, system ready for Playfair Phase 1 implementation**
+**Last Updated:** 2025-10-04 22:05 EDT
+**Session:** BUG #10 Fix + Playfair Deployment (In Progress)
+**Status:** ⚠️ **Playfair built and ready, BUG #10 fixed, awaiting Claude restart to test**
 
 ---
 
-## 🎯 Session Accomplishments
+## 🎯 Current Session Accomplishments
+
+### ✅ Playfair Diagram Gateway - Deployment Started (2025-10-04 22:05 EDT)
+
+**Deployment Cycle Phase:** Deploy → Test (blocked by BUG #10, now fixed)
+
+**Completed:**
+1. ✅ Built Playfair Docker container (`iccm/playfair:latest`)
+2. ✅ Container running healthy on port 9040
+3. ✅ Health check passing: graphviz + mermaid engines ready
+4. ✅ Added Playfair to MCP Relay backends.yaml
+5. ✅ Discovered BUG #10 during deployment testing
+6. ✅ Fixed BUG #10 (relay notification issue)
+7. ✅ Committed and pushed all changes
+
+**Blocked:**
+- Cannot test Playfair tools in current session (tools added after session start)
+- BUG #10 fix requires Claude Code restart to load updated relay code
+
+**Next Session (After Restart):**
+1. Verify Playfair tools auto-discovered (4 tools expected)
+2. Test diagram generation (simple SVG)
+3. Test all 4 MCP tools
+4. User acceptance testing
+5. Mark deployment complete
+
+---
+
+## 🎯 Previous Session Accomplishments
 
 ### ✅ BUG #9: Fiedler Token Limits - RESOLVED (2025-10-04 21:50 EDT)
 
@@ -526,7 +554,18 @@ mcp__iccm__fiedler_get_config
 
 ## 🐛 Known Issues
 
-**No known issues** - All bugs resolved as of 2025-10-04 03:15 EDT
+### BUG #10: MCP Relay Notification (FIXED - Awaiting Restart)
+
+**Status:** ✅ Fixed in code, requires Claude Code restart to load
+**Reported:** 2025-10-04 22:00 EDT
+**Fixed:** 2025-10-04 22:03 EDT
+**Component:** MCP Relay
+
+**Problem:** relay_add_server and relay_remove_server did not send notifications/tools/list_changed
+
+**Fix Applied:** Added notify_tools_changed() calls to both functions
+
+**Testing Required:** Restart Claude Code → Verify Playfair tools appear automatically
 
 **Previous bugs (all resolved):**
 - ✅ BUG #6: Claudette streaming - RESOLVED (2025-10-04)
