@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 00:10 EDT
+**Last Updated:** 2025-10-04 00:13 EDT
 **Session:** Containerized Claude Code + Anthropic API Gateway implementation
-**Status:** ✅ **CLOUDFLARE 403 RESOLVED - Gateway operational, containerized Claude needs config**
+**Status:** ✅ **COMPLETE - Claudette operational with full conversation logging**
 
 ---
 
@@ -318,17 +318,36 @@ cd /mnt/projects/ICCM/fiedler && docker compose restart
    - File: `/mnt/projects/ICCM/kgb/kgb/http_gateway.py`
    - Container recreated with fix (down + up, not just restart)
 2. ✅ **Gateway operational** - Health checks passing, requests forwarding correctly
-3. ✅ **Documentation updated** - ANTHROPIC_GATEWAY_IMPLEMENTATION.md reflects resolution
+3. ✅ **Claudette (containerized Claude) configured and tested**
+   - Theme pre-configured (dark mode, onboarding complete)
+   - MCP relay configured with KGB routing
+   - Successfully communicated through KGB gateway (200 OK responses)
+   - Config: `/mnt/projects/ICCM/claude-container/config/claude.json`
+4. ✅ **Full conversation logging verified**
+   - Conversations created in Dewey: `b02ea596-74fe-4919-b2a5-d8630751fd6d`, etc.
+   - Messages stored (turn 1: request, turn 2: response)
+   - Dewey logs confirm: "Began new conversation", "Stored message"
+   - KGB → Dewey → Winni pipeline operational
+
+### System Status
+**Architecture:**
+```
+Claudette (container) → KGB HTTP Gateway (8089) → api.anthropic.com
+                     ↓ Logging
+                   Dewey → Winni PostgreSQL
+```
+
+**Verification:**
+- ✅ Claudette container running (sleep infinity)
+- ✅ KGB gateway: 200 OK responses at 00:11:54
+- ✅ Dewey logging: Multiple conversations stored
+- ✅ Complete audit trail of Anthropic API conversations
 
 ### Next Steps
-1. **Configure containerized Claude Code:**
-   - Pre-configure theme selection (non-interactive)
-   - Set up MCP relay connection
-   - Test basic conversation through gateway
-2. **After containerized Claude working:**
-   - Verify logging to Dewey/Winni
-   - Test full conversation capture
-   - Consider migrating to containerized mode as default
+1. ✅ ~~Configure and test Claudette~~ - COMPLETE
+2. ✅ ~~Verify logging pipeline~~ - COMPLETE
+3. **Future:** Consider making Claudette default for logged sessions
+4. **Future:** Test conversation history import from CSV
 
 ### Future Work
 1. ✅ ~~Plan containerized Claude implementation~~ - COMPLETE

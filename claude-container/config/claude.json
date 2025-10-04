@@ -11,5 +11,7 @@
       "args": []
     }
   },
-  "hasTrustDialogAccepted": true
+  "hasTrustDialogAccepted": true,
+  "theme": "dark",
+  "hasCompletedOnboarding": true
 }
