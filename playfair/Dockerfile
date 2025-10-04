@@ -6,12 +6,18 @@ FROM node:22-bookworm-slim as builder
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package*.json ./
-# Use npm ci for reproducible builds
-RUN npm ci --only=production
+COPY package.json ./
+# Use npm install (package-lock.json not yet generated)
+RUN npm install --omit=dev
 
 # Copy application code
-COPY playfair/ ./playfair/
+COPY *.js ./playfair/
+COPY utils/ ./playfair/utils/
+COPY config/ ./playfair/config/
+COPY themes/ ./playfair/themes/
+COPY engines/ ./playfair/engines/
+COPY examples/ ./playfair/examples/
+COPY workers/ ./playfair/workers/
 
 # Phase 2: Production Environment
 # Use Ubuntu 24.04 as requested for the final image

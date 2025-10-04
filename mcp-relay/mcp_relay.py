@@ -431,6 +431,9 @@ class MCPRelay:
         success = await self.connect_backend(name)
 
         if success:
+            # Notify Claude Code that tools have changed
+            await self.notify_tools_changed()
+
             return {
                 "result": {
                     "content": [{
@@ -472,6 +475,9 @@ class MCPRelay:
 
         # Remove server
         del self.backends[name]
+
+        # Notify Claude Code that tools have changed
+        await self.notify_tools_changed()
 
         return {
             "result": {

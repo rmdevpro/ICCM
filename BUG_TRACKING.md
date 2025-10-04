@@ -8,7 +8,53 @@
 
 ## 🐛 ACTIVE BUGS
 
-**No active bugs** - All bugs resolved as of 2025-10-04 21:50 EDT
+### BUG #10: MCP Relay relay_add_server Does Not Notify Tools Changed
+
+**Status:** 🔴 ACTIVE
+**Reported:** 2025-10-04 22:00 EDT
+**Priority:** HIGH - Breaks core relay design requirement (zero restarts)
+**Component:** MCP Relay (`/mnt/projects/ICCM/mcp-relay/mcp_relay.py`)
+
+**Problem:**
+When using `relay_add_server` to dynamically add a new MCP backend, the relay successfully connects and discovers tools, but does NOT send `notifications/tools/list_changed` to Claude Code. This means the new tools don't appear until Claude Code is restarted, violating the relay's core design requirement.
+
+**Evidence:**
+- Added Playfair via `relay_add_server(name="playfair", url="ws://localhost:9040")`
+- Relay returned success: "✅ Server 'playfair' added and connected successfully, Tools discovered: 4"
+- `relay_get_status` shows Playfair healthy with 4 tools
+- Tools NOT accessible in Claude Code (mcp__iccm__playfair_* tools don't exist)
+- Would require Claude Code restart to see tools (UNACCEPTABLE)
+
+**Root Cause:**
+`handle_add_server()` at line 406-450 calls `connect_backend()` but does NOT call `notify_tools_changed()` after successful connection. Same issue in `handle_remove_server()`.
+
+**Expected Behavior:**
+- `relay_add_server` → connect → discover tools → **notify_tools_changed()** → tools immediately available
+- `relay_remove_server` → remove tools → **notify_tools_changed()** → tools immediately removed
+- Zero Claude Code restarts required
+
+**Impact:**
+- Relay's zero-restart design is broken
+- Must restart Claude Code after every `relay_add_server` call
+- Defeats the entire purpose of runtime server management
+
+**Files Affected:**
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Missing notification calls
+
+**Resolution Applied:**
+1. ✅ Added `await self.notify_tools_changed()` after successful connection in `handle_add_server` (line 435)
+2. ✅ Added `await self.notify_tools_changed()` after removal in `handle_remove_server` (line 480)
+3. ⏳ Requires Claude Code restart to load fixed relay code
+4. ⏳ Then test with Playfair deployment
+5. ⏳ Verify tools appear without future restarts
+
+**Files Modified:**
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Added notification calls
+
+**Testing Plan:**
+1. User restarts Claude Code (one-time to load fixed relay)
+2. Playfair should be auto-discovered from backends.yaml
+3. Future `relay_add_server` calls will work without restart
 
 ---
 
