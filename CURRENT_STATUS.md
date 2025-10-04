@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 14:15 EDT
-**Session:** Marco Internet Gateway - DEPLOYMENT IN PROGRESS
-**Status:** 🚧 **DEPLOYING - Version fix applied, container running**
+**Last Updated:** 2025-10-04 15:00 EDT
+**Session:** Marco Internet Gateway - BLOCKED ON RELAY RESTART
+**Status:** ⏸️ **DEPLOYMENT PAUSED - Requires Claude restart to fix broken relay**
 
 ---
 
@@ -31,10 +31,18 @@
 - ⚠️ Health check shows "degraded" (subprocess alive but unresponsive - under investigation)
 - ✅ Processes running: Node.js server + Playwright MCP subprocess
 
-**Next Steps:**
-- Test Marco MCP functionality via relay
-- Investigate health check status
-- Complete deployment cycle per PNG
+**Deployment Blocked:**
+- **Issue:** MCP Relay in broken state (from Oct 3 session)
+- **Evidence:** Relay connects to Marco then immediately disconnects, multiple tool calls fail
+- **Root Cause:** Relay error state requires restart
+- **Required Action:** Restart Claude Code to restart relay with clean state
+
+**Next Steps After Claude Restart:**
+1. Verify relay starts fresh and connects to all backends
+2. Confirm Marco tools exposed (expected: ~7 Playwright tools)
+3. Test Marco functionality via relay
+4. Complete deployment testing per Code Deployment Cycle PNG
+5. User acceptance testing
 
 ---
 

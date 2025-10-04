@@ -8,7 +8,62 @@
 
 ## 🐛 ACTIVE BUGS
 
-None - All critical bugs resolved.
+### BUG #7: Marco Tools Not Exposed Through MCP Relay
+
+**Status:** 🔧 REQUIRES CLAUDE RESTART
+**Reported:** 2025-10-04 14:45 EDT
+**Priority:** HIGH
+**Component:** MCP Relay / Marco Integration
+
+**Problem:**
+Marco WebSocket MCP server deployed and running, but tools are not exposed through MCP Relay.
+
+**Evidence:**
+- ✅ Marco container running on port 9030
+- ✅ WebSocket handshake successful (`101 Switching Protocols`)
+- ✅ Relay connected to Marco (socket fd 11 exists)
+- ❌ `tools/list` via relay shows 24 tools (Fiedler 8 + Dewey 11 + relay 5), zero Marco tools
+- ❌ Expected: ~7 Playwright tools + `marco_reset_browser`
+
+**Root Cause IDENTIFIED:**
+
+Relay connects to Marco then **immediately disconnects** before completing MCP handshake:
+
+Marco logs show:
+```
+18:41:02 - Client connected (relay)
+18:41:02 - Client disconnected (same millisecond!)
+```
+
+Compare to successful connection:
+```
+18:13:44 - Client connected
+18:13:44 - initialize completed successfully
+```
+
+**Why relay disconnects:** Unknown - relay stays connected to Fiedler/Dewey but drops Marco connection instantly. Likely relay error handling or response timeout issue.
+
+**Resolution:**
+Relay is in broken state (from Oct 3 session, still running). Multiple tool calls failing:
+- `fiedler_send` - no output
+- `relay_reconnect_server` - no output
+- Relay connects to Marco then immediately disconnects
+
+**Required Fix:** Restart Claude Code to restart relay with clean state
+
+**Steps After Restart:**
+1. Verify relay starts fresh
+2. Check Marco automatically discovered (from backends.yaml or dynamic add)
+3. Verify Marco tools exposed via relay
+4. Test Marco functionality
+5. Mark bug resolved
+
+**Files:**
+- `/mnt/projects/ICCM/marco/server.js` - Bridge implementation
+- `/mnt/projects/ICCM/marco/relay_integration_bug.md` - Detailed analysis
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Relay expecting MCP responses
+
+**Attempted Triplet Consultation:** `fiedler_send` returned no output (tool failure logged separately)
 
 ---
 
