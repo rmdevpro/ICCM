@@ -39,6 +39,28 @@ services:
       # MCP Relay connection - connects to KGB WebSocket spy
       # Both Claude and KGB are on same Docker network (iccm_network)
 
+  # Claude Code UI - Web interface for Claudette
+  claude-ui:
+    build:
+      context: ../claudecodeui
+    image: iccm/claude-code-ui:latest
+    container_name: claude-ui
+    ports:
+      # Map host port 8080 to container port 3001 (API server)
+      - "8080:3001"
+    networks:
+      - iccm-network
+    environment:
+      - PORT=3001
+      - VITE_PORT=5173
+      # Configure to use docker exec for Claudette
+      - CLAUDE_CLI_PATH=docker exec -i claude-code-container claude
+    volumes:
+      # Mount Docker socket to enable docker exec commands
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - claude-code
+
 networks:
   iccm-network:
     name: iccm_network
