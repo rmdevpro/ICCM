@@ -2,13 +2,46 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-04 22:30 EDT
+**Last Updated:** 2025-10-04 19:22 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
 
-**None** - All bugs resolved
+### BUG #12: Playfair Mermaid Engine - Complete Failure
+
+**Status:** 🔴 ACTIVE - Blocking Gates diagram embedding
+**Reported:** 2025-10-04 19:22 EDT
+**Priority:** HIGH - Mermaid diagrams fail to render
+**Component:** Playfair MCP Server - Mermaid Engine (`/mnt/projects/ICCM/playfair/`)
+
+**Problem:**
+All Mermaid diagram generation fails with "ENGINE_CRASH" error. DOT diagrams work perfectly (100% success rate).
+
+**Symptoms:**
+- Simple Mermaid diagram: `graph TD\n A[Start] --> B[End]` fails
+- Error response: `{"error": true, "code": "ENGINE_CRASH", "message": "Mermaid engine failed unexpectedly."}`
+- DOT diagrams: 100% success (6/6 in Gates UAT test)
+- Mermaid diagrams: 0% success (0/3 in Gates UAT test)
+
+**Impact:**
+- Gates document generation works but falls back to code blocks for Mermaid diagrams
+- Gates error handling works correctly (graceful degradation)
+- User experience degraded - visual diagrams missing
+
+**Investigation Status:**
+- Gates integration: ✅ Working correctly (Triplet validated)
+- DOT engine: ✅ Working perfectly
+- Mermaid engine: 🔴 Completely broken
+- Next step: Debug Playfair Mermaid engine implementation
+
+**Related Components:**
+- `/mnt/projects/ICCM/playfair/engines/mermaid.js` - Suspected root cause
+- `/mnt/projects/ICCM/gates/server.js` - Working correctly with fallback
+
+---
+
+## ✅ RESOLVED BUGS (Recent)
 
 ---
 

@@ -250,22 +250,52 @@ async function processPlayfairDiagrams(html, diagrams) {
         theme: 'professional'
       });
 
-      // Extract base64 image from result
-      const imageData = result.content[0].text;
-      const jsonData = JSON.parse(imageData);
+      // Extract base64 image from result - Option B (Triplet Consensus)
+      const imageData = result?.content?.[0]?.text;
+      let base64Data = null;
 
-      if (jsonData.image_base64) {
+      if (imageData) {
+        try {
+          const jsonData = JSON.parse(imageData);
+          // Primary correct path based on actual Playfair response
+          base64Data = jsonData?.result?.data;
+
+          if (!base64Data) {
+            // Log when parsing succeeds but the key is missing
+            logger.warn({ playfairResponse: jsonData, diagramId: diagram.id }, 'Playfair response parsed successfully but is missing "result.data" key');
+          }
+        } catch (e) {
+          logger.error({ error: e.message, rawResponse: imageData, diagramId: diagram.id }, 'Failed to parse JSON from Playfair response');
+        }
+      } else {
+        logger.warn({ playfairResponse: result, diagramId: diagram.id }, 'Invalid Playfair response structure: content[0].text is missing');
+      }
+
+      if (base64Data) {
         // Replace placeholder with actual image
-        const imgTag = `<img src="data:image/png;base64,${jsonData.image_base64}" alt="Diagram" />`;
+        const imgTag = `<img src="data:image/png;base64,${base64Data}" alt="Diagram" />`;
         processedHtml = processedHtml.replace(
           `<img id="${diagram.id}" alt="Playfair diagram" />`,
           imgTag
         );
       } else {
-        throw new Error('No image data returned from Playfair');
+        // Fallback: Render original diagram source as code block
+        logger.warn({ diagramId: diagram.id }, 'Rendering fallback diagram due to missing base64 data');
+
+        const fallback = `<pre><code><!-- WARNING: Playfair diagram generation failed -->
+<!-- Diagram specification below: -->
+
+${diagram.content}</code></pre>`;
+
+        processedHtml = processedHtml.replace(
+          `<img id="${diagram.id}" alt="Playfair diagram" />`,
+          fallback
+        );
+
+        warnings.push(`Diagram ${diagram.id} failed to generate: No base64 data`);
       }
     } catch (error) {
-      logger.warn({ error: error.message, diagram: diagram.id }, 'Playfair diagram generation failed');
+      logger.error({ error: error.message, diagram: diagram.id }, 'Playfair diagram generation failed');
 
       // Replace with fallback code block
       const fallback = `<pre><code><!-- WARNING: Playfair diagram generation failed -->
