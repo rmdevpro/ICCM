@@ -1,14 +1,70 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 03:15 EDT
-**Session:** Architecture Alignment + Claude UI Integration
-**Status:** ✅ **All systems operational - Architecture PNG requirements fully implemented**
+**Last Updated:** 2025-10-04 16:10 EDT
+**Session:** Marco Internet Gateway - Requirements & Design Complete
+**Status:** ✅ **Documentation approved - Ready for implementation**
 
 ---
 
 ## 🎯 Session Accomplishments
 
-### 1. ✅ Implemented Correct Architecture (MAJOR MILESTONE)
+### 1. ✅ Marco Internet Gateway - Complete Requirements & Design (MAJOR MILESTONE)
+
+**Achievement:** Completed comprehensive requirements specification and design for Marco, the fourth core ICCM gateway service.
+
+**Marco's Role:** Internet Gateway - Provides browser automation capabilities to all ICCM services via WebSocket MCP
+
+**Triplet-Driven Design Process:**
+1. **Initial Design Consultation** - Consulted Fiedler's default triplet (Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1)
+   - **Unanimous Consensus:** Build Marco as full WebSocket MCP server managing Playwright internally
+   - Use shared stdio-WebSocket bridge library
+   - Launch Playwright on startup (Phase 1 single instance)
+   - Environment variable configuration
+   - Official Microsoft Playwright Docker image
+
+2. **Documentation Review** - All three models reviewed REQUIREMENTS.md + README.md
+   - Identified critical improvements: concurrency model, health checks, security hardening
+   - Updated resource limits (500MB → 1GB), added 2GB Docker limit
+   - Pinned dependencies (@playwright/mcp@1.43.0)
+   - Added Phase 1 limitations documentation
+
+3. **Final Architecture Review** - Validated alignment with architecture PNG
+   - **Critical Fix:** Corrected version pinning in Section 5.3
+   - Clarified health check implementation (same port for HTTP + WebSocket)
+   - Standardized naming to "Internet Gateway"
+
+**Deliverables:**
+- `/mnt/projects/ICCM/marco/REQUIREMENTS.md` v1.2 - Final, approved for implementation
+- `/mnt/projects/ICCM/marco/README.md` v1.1 - User documentation with examples
+- Updated architecture documentation with Marco specifications
+- Triplet review package and consultation records
+
+**Key Technical Decisions:**
+- **Architecture:** Full WebSocket MCP server with internal Playwright subprocess
+- **Concurrency:** FIFO request queue to single browser instance (Phase 1)
+- **Security:** Network isolation only (no auth), NEVER expose publicly
+- **Resource Limits:** 2GB memory hard limit, headless Chromium
+- **Protocol:** WebSocket MCP on port 9030 (host) / 8030 (container)
+- **Health Check:** HTTP GET /health on same port as WebSocket
+- **Tools:** ~7 Playwright tools + `marco_reset_browser` for manual resets
+
+**Phase 1 Limitations (Documented):**
+- Single browser instance with shared contexts (potential cross-contamination)
+- No authentication (relies on Docker network isolation)
+- Request serialization may create latency under load
+- Future Phase 2 will add per-client browser instances
+
+**Files Created:**
+- `/mnt/projects/ICCM/marco/REQUIREMENTS.md` (15KB, 470 lines)
+- `/mnt/projects/ICCM/marco/README.md` (13KB, 580 lines)
+- `/mnt/projects/ICCM/marco/REVIEW_PACKAGE.md` (28KB)
+- `/mnt/projects/ICCM/marco/FINAL_REVIEW_PACKAGE.md`
+
+**Status:** ✅ All documentation approved by triplet - Ready for implementation
+
+---
+
+### 2. ✅ Previous Session: Implemented Correct Architecture
 
 **Problem:** Architecture showed Fiedler should be the central LLM gateway, but KGB was routing directly to Anthropic API
 **Required Architecture:** Claudette → KGB → Fiedler → Claude API (per architecture PNG)

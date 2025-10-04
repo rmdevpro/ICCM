@@ -1,6 +1,6 @@
 # Current Architecture Overview - ICCM System
 
-**Last Updated:** 2025-10-03 22:10 EDT
+**Last Updated:** 2025-10-04 16:05 EDT
 **Purpose:** Explain the immutable architecture (PNG) and document current protocol configuration
 
 ---
@@ -15,16 +15,18 @@ The architecture PNG shows the **component relationships and data flows** that d
 LEFT SIDE (Bare Metal Claude - Current Active):
 - Claude Code (bare metal) with MCP Relay extension
   - MCP Relay connects directly to WebSocket MCP servers:
-    - Fiedler (ws://localhost:9010) - 8 LLM models
+    - Fiedler (ws://localhost:9010) - 10 LLM models
     - Dewey (ws://localhost:9020) - Conversation storage
+    - Marco (ws://localhost:9030) - Browser automation (planned)
   - Direct connections to:
     - Claude Max (Anthropic API) - Yellow dotted line
     - Local LLMs - Blue solid line (future)
 
-RIGHT SIDE (Future - Containerized with Logging):
-- Containerized Claude Code with MCP Relay inside container
-  - MCP Relay → KGB (9000) → Fiedler (8080)
-  - MCP Relay → KGB (9000) → Dewey (9020) → Winni Database
+RIGHT SIDE (Containerized with Logging - Operational):
+- Claudette (Containerized Claude Code) with MCP Relay inside container
+  - MCP Relay → KGB (8089) → Fiedler (8081) → Cloud LLMs
+  - MCP Relay → Dewey (9020) → Winni Database
+  - MCP Relay → Marco (9030) → Playwright/Chromium (planned)
   - KGB provides automatic conversation logging
 
 LEGEND:
@@ -61,14 +63,15 @@ LEGEND:
    - Authentication: User login (primary) or API key (sparse use)
    - Purpose: AI assistant conversations
 
-2. **Claude Code → ICCM Services (Fiedler, Dewey)**
+2. **Claude Code → ICCM Services (Fiedler, Dewey, Marco)**
    - **Protocol:** stdio (MCP Relay extension)
    - **Current Config:** MCP relay at `/mnt/projects/ICCM/mcp-relay/mcp_relay.py`
-   - **Status:** ✅ Working - All 8 Fiedler tools registered
+   - **Status:** ✅ Working - All 10 Fiedler tools registered
    - **Configuration Location:** `~/.claude.json` "iccm" mcpServer entry
    - **Architecture:** Claude Code → MCP Relay (stdio subprocess) → Direct WebSocket to backends
-     - Fiedler: `ws://localhost:9010` (8 LLM models)
+     - Fiedler: `ws://localhost:9010` (10 LLM models)
      - Dewey: `ws://localhost:9020` (conversation storage)
+     - Marco: `ws://localhost:9030` (browser automation - planned)
    - **Trust Status:** ✅ Enabled (`hasTrustDialogAccepted: true`)
    - Purpose: Unified access to all ICCM MCP tools through single stdio interface
 
@@ -86,9 +89,10 @@ LEGEND:
 **Configuration Location:** `~/.claude.json` (project-specific mcpServers)
 
 **Running Infrastructure:**
-- `fiedler-mcp` - Port 8080 (container), 9010 (host) - 8 LLM models via WebSocket
+- `fiedler-mcp` - Port 8080 (container), 9010 (host WebSocket), 9011 (host HTTP proxy) - 10 LLM models
 - `dewey-mcp` - Port 9020 (host) - Conversation storage/retrieval via WebSocket
-- `kgb-proxy` - Port 9000 (container) - Automatic logging (containerized mode only)
+- `marco-mcp` - Port 8030 (container), 9030 (host) - Browser automation via WebSocket (planned)
+- `kgb-proxy` - Port 8089 (HTTP/SSE), 9000 (WebSocket) - Logging proxy and gateway
 - `winni` - PostgreSQL on Irina (192.168.1.210) - Persistent storage
 
 **Characteristics:**
@@ -193,26 +197,44 @@ LEGEND:
   - `relay_get_status()` - Detailed status report
 - **Default Backends:** Fiedler (ws://localhost:9010), Dewey (ws://localhost:9020)
 
-### Fiedler MCP Server
+### Fiedler MCP Server (LLM Orchestra Gateway)
 - **Container:** `fiedler-mcp`
-- **Internal Port:** 8080 (WebSocket)
-- **Host Port:** 9010 (mapped)
-- **Purpose:** Orchestra conductor - unified interface to 8 LLM providers
-- **Models:** Gemini 2.5 Pro, GPT-5, GPT-4o-mini, Grok 2, Llama 3.3, DeepSeek Chat, Qwen 2.5, Claude 3.7
-- **Protocol:** WebSocket MCP
-- **Tools:** 8 tools (list_models, send, set_models, get_config, set_output, keyring management)
+- **Internal Ports:** 8080 (WebSocket MCP), 8081 (HTTP streaming proxy)
+- **Host Ports:** 9010 (WebSocket), 9011 (HTTP proxy)
+- **Purpose:** Orchestra conductor - unified interface to 10 LLM providers
+- **Models:** Gemini 2.5 Pro, GPT-5, GPT-4o-mini, Grok 2, Llama 3.3, DeepSeek Chat, DeepSeek-R1, Qwen 2.5, Claude 3.7, Together
+- **Protocol:** WebSocket MCP + HTTP streaming proxy
+- **Tools:** 10 tools (list_models, send, set_models, get_config, set_output, keyring management)
+- **Dual Role:** MCP tool server + HTTP streaming proxy for KGB routing
 
-### Dewey MCP Server
+### Dewey MCP Server (Conversation Storage Gateway)
 - **Container:** `dewey-mcp`
 - **Port:** 9020 (host)
 - **Purpose:** Conversation storage, search, and startup context management
-- **Backend:** PostgreSQL on Irina (192.168.1.210)
+- **Backend:** PostgreSQL (Winni) on Irina (192.168.1.210)
 - **Tools:** 11 MCP tools for conversation management
 - **Protocol:** WebSocket MCP
 
-### KGB Proxy (Knowledge Gateway Broker)
+### Marco MCP Server (Internet Gateway) - 📋 PLANNED
+- **Container:** `marco-mcp` (to be implemented)
+- **Internal Port:** 8030 (WebSocket MCP + HTTP health check)
+- **Host Port:** 9030
+- **Purpose:** Internet/browser automation gateway via Playwright
+- **Backend:** Playwright MCP subprocess (Chromium headless)
+- **Tools:** ~7 Playwright tools + `marco_reset_browser`
+- **Protocol:** WebSocket MCP
+- **Status:** Requirements approved v1.2, implementation pending
+- **Architecture:** Marco WebSocket Server → stdio-WebSocket Bridge → Playwright MCP → Chromium
+- **Phase 1 Limitations:**
+  - Single browser instance with FIFO request queuing
+  - No authentication (network isolation only)
+  - Internal use only - NEVER expose to public internet
+- **Resource Limits:** 2GB memory, headless mode
+- **Documentation:** `/mnt/projects/ICCM/marco/REQUIREMENTS.md`
+
+### KGB Proxy (Logging Proxy Gateway)
 - **Container:** `kgb-proxy`
-- **Port:** 9000 (container)
+- **Ports:** 8089 (HTTP/SSE gateway), 9000 (WebSocket spy - deprecated)
 - **Purpose:** Transparent WebSocket proxy with automatic conversation logging
 - **Pattern:** Spy worker per connection
 - **Logs to:** Dewey via internal client
