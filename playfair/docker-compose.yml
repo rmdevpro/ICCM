@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  playfair-mcp:
+    container_name: playfair-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # Map host port 9040 to container port 8040 for MCP and health checks
+      - "9040:8040"
+    networks:
+      # Connect to the external ICCM network
+      - iccm_network
+    environment:
+      # Application Configuration
+      - NODE_ENV=production
+      - PORT=8040
+      - LOG_LEVEL=info
+      # Worker Pool Configuration
+      - WORKER_POOL_SIZE=3
+      - MAX_QUEUE_SIZE=50
+      # Resource Limits
+      - RENDER_TIMEOUT_MS=60000
+      - MAX_CONTENT_LINES=10000
+      - MAX_PNG_WIDTH=8192
+      - MAX_PNG_HEIGHT=8192
+    deploy:
+      # Enforce resource limits at the container level
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+    restart: unless-stopped
+    volumes:
+      # Persist temporary files if needed for debugging, though the app should clean up
+      - playfair-temp:/tmp/playfair
+
+networks:
+  iccm_network:
+    # This configuration assumes the 'iccm_network' is created by another compose file or manually.
+    external: true
+
+volumes:
+  playfair-temp:
+    # Define the named volume for temporary data
