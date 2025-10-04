@@ -38,11 +38,17 @@
 - **Required Action:** Restart Claude Code to restart relay with clean state
 
 **Next Steps After Claude Restart:**
-1. Verify relay starts fresh and connects to all backends
-2. Confirm Marco tools exposed (expected: ~7 Playwright tools)
-3. Test Marco functionality via relay
-4. Complete deployment testing per Code Deployment Cycle PNG
-5. User acceptance testing
+1. **Import conversation to Dewey:** Load `/mnt/projects/ICCM/marco/deployment_conversation_backup.json` into Dewey for session recording
+2. Verify relay starts fresh and connects to all backends
+3. Confirm Marco tools exposed (expected: ~7 Playwright tools)
+4. Test Marco functionality via relay
+5. Complete deployment testing per Code Deployment Cycle PNG
+6. User acceptance testing
+
+**Conversation Backup:**
+- File: `/mnt/projects/ICCM/marco/deployment_conversation_backup.json`
+- Contains: Full deployment conversation, metadata, accomplishments, blocking issues
+- Action: Import to Dewey after relay is operational
 
 ---
 

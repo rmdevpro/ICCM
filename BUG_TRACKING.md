@@ -10,9 +10,10 @@
 
 ### BUG #7: Marco Tools Not Exposed Through MCP Relay
 
-**Status:** 🔧 REQUIRES CLAUDE RESTART
+**Status:** 🔧 REQUIRES CLAUDE RESTART (blocking Marco deployment)
 **Reported:** 2025-10-04 14:45 EDT
-**Priority:** HIGH
+**Resolved:** Pending Claude restart
+**Priority:** HIGH - Blocking Marco deployment completion
 **Component:** MCP Relay / Marco Integration
 
 **Problem:**
@@ -52,11 +53,13 @@ Relay is in broken state (from Oct 3 session, still running). Multiple tool call
 **Required Fix:** Restart Claude Code to restart relay with clean state
 
 **Steps After Restart:**
-1. Verify relay starts fresh
-2. Check Marco automatically discovered (from backends.yaml or dynamic add)
-3. Verify Marco tools exposed via relay
-4. Test Marco functionality
-5. Mark bug resolved
+1. Import conversation backup to Dewey: `/mnt/projects/ICCM/marco/deployment_conversation_backup.json`
+2. Verify relay starts fresh
+3. Check Marco automatically discovered (from backends.yaml or dynamic add)
+4. Verify Marco tools exposed via relay
+5. Test Marco functionality
+6. Mark bug resolved
+7. Continue deployment cycle: requirements review → user acceptance testing
 
 **Files:**
 - `/mnt/projects/ICCM/marco/server.js` - Bridge implementation
