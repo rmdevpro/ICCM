@@ -8,12 +8,19 @@
 
 ## 🐛 ACTIVE BUGS
 
+None - All critical bugs resolved.
+
+---
+
+## ✅ RESOLVED BUGS
+
 ### BUG #6: Claudette Non-Interactive Mode Hangs Indefinitely
 
-**Status:** 🔴 CRITICAL - System Non-Functional
+**Status:** ✅ RESOLVED - 2025-10-04 02:45 EDT
 **Reported:** 2025-10-04 01:58 EDT
-**Component:** Claudette (claude-code-container)
-**Severity:** BLOCKER - Prevents all programmatic usage
+**Resolved By:** Fiedler triplet consensus (Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1)
+**Component:** KGB HTTP Gateway
+**Original Severity:** BLOCKER - Prevented all programmatic usage
 
 **Problem:**
 Claudette container cannot execute Claude commands via `docker exec` in non-interactive mode. Commands hang indefinitely and timeout after 30s.
