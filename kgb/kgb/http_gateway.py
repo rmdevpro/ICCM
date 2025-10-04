@@ -137,6 +137,9 @@ class HTTPGateway:
             if 'User-Agent' not in forward_headers and 'user-agent' not in forward_headers:
                 forward_headers['User-Agent'] = 'KGB-HTTP-Gateway/1.0'
 
+            # Force identity encoding to prevent gzip compression (critical for streaming)
+            forward_headers['Accept-Encoding'] = 'identity'
+
             # Debug logging
             logger.info(f"Gateway {request_id} forwarding to: {upstream_url}")
             logger.info(f"Gateway {request_id} forward_headers: {json.dumps(forward_headers, indent=2)}")
@@ -172,6 +175,10 @@ class HTTPGateway:
                             if key.lower() == header.lower():
                                 response_headers.pop(key, None)
 
+                    # Add SSE-specific headers to prevent downstream buffering
+                    response_headers['Cache-Control'] = 'no-cache'
+                    response_headers['X-Accel-Buffering'] = 'no'
+
                     response = web.StreamResponse(
                         status=upstream_response.status,
                         headers=response_headers
@@ -179,13 +186,15 @@ class HTTPGateway:
                     await response.prepare(request)
 
                     # Stream response chunks to client and accumulate for logging
+                    # Use iter_any() for immediate, unbuffered streaming (critical fix from triplet)
                     response_chunks = []
 
-                    async for chunk in upstream_response.content.iter_chunked(8192):
-                        # Forward chunk to client immediately
-                        await response.write(chunk)
-                        # Accumulate for logging
-                        response_chunks.append(chunk)
+                    async for chunk in upstream_response.content.iter_any():
+                        if chunk:  # iter_any() can yield empty bytes
+                            # Forward chunk to client immediately
+                            await response.write(chunk)
+                            # Accumulate for logging
+                            response_chunks.append(chunk)
 
                     # Complete the streaming response
                     await response.write_eof()
