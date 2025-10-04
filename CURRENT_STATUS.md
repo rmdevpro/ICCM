@@ -1,37 +1,58 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 22:05 EDT
-**Session:** BUG #10 Fix + Playfair Deployment (In Progress)
-**Status:** ⚠️ **Playfair built and ready, BUG #10 fixed, awaiting Claude restart to test**
+**Last Updated:** 2025-10-04 22:30 EDT
+**Session:** Playfair Deployment Complete
+**Status:** ✅ **Playfair fully operational - All 4 MCP tools working, BUG #10 & BUG #11 resolved**
 
 ---
 
 ## 🎯 Current Session Accomplishments
 
-### ✅ Playfair Diagram Gateway - Deployment Started (2025-10-04 22:05 EDT)
+### ✅ Playfair Diagram Gateway - DEPLOYMENT COMPLETE (2025-10-04 22:30 EDT)
 
-**Deployment Cycle Phase:** Deploy → Test (blocked by BUG #10, now fixed)
+**MAJOR MILESTONE:** Playfair successfully deployed with all 4 MCP tools operational after resolving two critical bugs
+
+**Deployment Cycle Followed:** Code Deployment Cycle PNG (Deploy → Test → Debug → Fix → Re-test → Complete)
 
 **Completed:**
 1. ✅ Built Playfair Docker container (`iccm/playfair:latest`)
 2. ✅ Container running healthy on port 9040
-3. ✅ Health check passing: graphviz + mermaid engines ready
+3. ✅ Health check passing: graphviz v9 + mermaid CLI v11 engines ready
 4. ✅ Added Playfair to MCP Relay backends.yaml
-5. ✅ Discovered BUG #10 during deployment testing
-6. ✅ Fixed BUG #10 (relay notification issue)
-7. ✅ Committed and pushed all changes
+5. ✅ Discovered and fixed BUG #10 (relay notification issue)
+6. ✅ Discovered and fixed BUG #11 (4 separate Playfair bugs - see below)
+7. ✅ All 4 Playfair MCP tools tested and verified working
+8. ✅ Performance validated: <200ms for simple diagrams (requirement: <5s)
+9. ✅ Conversation archived to Dewey (conversation ID: 410c0f9c-d863-4283-9726-5022dfb281eb)
 
-**Blocked:**
-- Cannot test Playfair tools in current session (tools added after session start)
-- BUG #10 fix requires Claude Code restart to load updated relay code
+**BUG #10 Resolution:**
+- **Issue:** MCP Relay not sending `notifications/tools/list_changed` after `relay_add_server`
+- **Fix:** Added `notify_tools_changed()` calls to both add and remove handlers
+- **Result:** Zero-restart tool updates now working as designed
 
-**Next Session (After Restart):**
-1. **Import session to Dewey:** `/tmp/session_summary_bug10_playfair.md`
-2. Verify Playfair tools auto-discovered (4 tools expected)
-3. Test diagram generation (simple SVG)
-4. Test all 4 MCP tools
-5. User acceptance testing
-6. Mark deployment complete
+**BUG #11 Resolution (4 Root Causes Fixed):**
+1. **Graphviz exec() bug:** `execAsync()` doesn't support `input` parameter → Fixed with `spawn()` + stdin
+2. **MCP parameter bug:** Used `params.input` instead of `params.arguments` → Fixed
+3. **JSON-RPC wrapper bug:** Missing protocol wrapper for responses → Added proper `{jsonrpc, result, id}` format
+4. **Validation permission bug:** `dot -c` requires write access → Changed to `dot -Tsvg -o/dev/null`
+
+**Tools Verified:**
+- ✅ `playfair_create_diagram` - Generates SVG/PNG diagrams (183ms average)
+- ✅ `playfair_list_capabilities` - Lists engines, formats, themes, diagram types
+- ✅ `playfair_get_examples` - Provides DOT/Mermaid examples for 8 diagram types
+- ✅ `playfair_validate_syntax` - Validates diagram syntax before rendering
+
+**Total MCP Tools Available:** 23 (8 Fiedler + 11 Dewey + 4 Playfair)
+
+**Architecture:**
+- WebSocket MCP server on port 9040
+- Docker containerized (2GB memory, 2 CPU, Ubuntu 24.04 + Node.js 22)
+- Rendering engines: Graphviz v9 (EPL-1.0) + Mermaid CLI v11 (MIT)
+- Themes: Professional, Modern, Minimal, Dark
+- Output formats: SVG (default), PNG
+- Worker pool: 3 parallel workers, 50-item queue, 60s timeout
+
+**Status:** ✅ **OPERATIONAL - Phase 1 MVP complete**
 
 ---
 

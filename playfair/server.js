@@ -53,38 +53,65 @@ wss.on('connection', (ws, request) => {
 // --- MCP Protocol Handler ---
 
 async function handleClientRequest(request, clientId) {
-    const { method, params } = request;
+    const { method, params, id } = request;
 
     switch (method) {
         case 'initialize':
             return {
+                jsonrpc: '2.0',
                 result: {
                     name: 'Playfair',
                     version: '1.0.0',
                     description: 'ICCM Diagram Generation Gateway',
                     capabilities: ['tools'],
                     protocol_version: '1.0'
-                }
+                },
+                id
             };
 
         case 'tools/list':
             return {
+                jsonrpc: '2.0',
                 result: {
                     tools: mcpTools.listTools()
-                }
+                },
+                id
             };
 
         case 'tools/call':
             if (!params || !params.name) {
-                return { error: true, code: 'INVALID_PARAMS', message: 'Missing tool name in params.' };
+                return {
+                    jsonrpc: '2.0',
+                    error: {
+                        code: -32602,
+                        message: 'Missing tool name in params.'
+                    },
+                    id
+                };
             }
-            return await mcpTools.callTool(params.name, params.input, clientId);
+
+            const toolResult = await mcpTools.callTool(params.name, params.arguments, clientId);
+
+            // Wrap tool result in MCP protocol format
+            return {
+                jsonrpc: '2.0',
+                result: {
+                    content: [{
+                        type: 'text',
+                        text: JSON.stringify(toolResult, null, 2)
+                    }]
+                },
+                id
+            };
 
         default:
             return {
-                error: true,
-                code: 'UNSUPPORTED_METHOD',
-                message: `Method '${method}' is not supported.`
+                jsonrpc: '2.0',
+                error: {
+                    code: -32601,
+                    message: `Method '${method}' is not supported.`
+                },
+                id
             };
     }
 }

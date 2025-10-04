@@ -1,3 +1,4 @@
+const { spawn } = require('child_process');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const BaseEngine = require('./base');
@@ -17,37 +18,70 @@ class GraphvizEngine extends BaseEngine {
         const theme = options.theme || 'modern';
         const themedDot = this._applyTheme(content, theme);
 
-        // Command to render SVG using the high-quality Cairo renderer
-        const command = 'dot -Tsvg -Kdot';
-
-        try {
-            const { stdout: rawSvg } = await execAsync(command, {
-                input: themedDot,
-                timeout: RENDER_TIMEOUT,
-                maxBuffer: 50 * 1024 * 1024, // 50MB
+        return new Promise((resolve, reject) => {
+            const proc = spawn('dot', ['-Tsvg', '-Kdot'], {
+                timeout: RENDER_TIMEOUT
             });
 
-            // Post-process the SVG for modern aesthetics (gradients, fonts, etc.)
-            const processedSvg = await svgProcessor.process(rawSvg, 'graphviz', theme);
-            return Buffer.from(processedSvg);
+            let stdout = '';
+            let stderr = '';
 
-        } catch (error) {
-            logger.error({ engine: this.name, error: error.stderr || error.message }, 'Graphviz rendering failed');
-            const parsedError = this._parseError(error.stderr || error.message);
-            throw parsedError;
-        }
+            proc.stdout.on('data', (data) => {
+                stdout += data.toString();
+            });
+
+            proc.stderr.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            proc.on('error', (error) => {
+                logger.error({ engine: this.name, error: error.message }, 'Graphviz spawn failed');
+                reject(new Error(`Failed to spawn dot: ${error.message}`));
+            });
+
+            proc.on('close', async (code) => {
+                if (code !== 0) {
+                    logger.error({ engine: this.name, code, stderr }, 'Graphviz rendering failed');
+                    reject(this._parseError(stderr));
+                } else {
+                    try {
+                        const processedSvg = await svgProcessor.process(stdout, 'graphviz', theme);
+                        resolve(Buffer.from(processedSvg));
+                    } catch (error) {
+                        reject(error);
+                    }
+                }
+            });
+
+            // Write input to stdin and close
+            proc.stdin.write(themedDot);
+            proc.stdin.end();
+        });
     }
 
     async validate(content) {
-        // Use the '-c' flag for syntax checking without generating output
-        const command = 'dot -c';
-        try {
-            await execAsync(command, { input: content, timeout: 10000 });
-            return { valid: true, errors: [] };
-        } catch (error) {
-            const parsedError = this._parseError(error.stderr || error.message);
-            return { valid: false, errors: [{ line: parsedError.line || null, message: parsedError.message }] };
-        }
+        return new Promise((resolve) => {
+            // Validate by attempting to render to /dev/null
+            const proc = spawn('dot', ['-Tsvg', '-o/dev/null'], { timeout: 10000 });
+
+            let stderr = '';
+
+            proc.stderr.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    resolve({ valid: true, errors: [] });
+                } else {
+                    const parsedError = this._parseError(stderr);
+                    resolve({ valid: false, errors: [{ line: parsedError.line || null, message: parsedError.message }] });
+                }
+            });
+
+            proc.stdin.write(content);
+            proc.stdin.end();
+        });
     }
 
     _applyTheme(dotContent, themeName) {
