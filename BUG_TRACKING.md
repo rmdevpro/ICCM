@@ -8,65 +8,104 @@
 
 ## 🐛 ACTIVE BUGS
 
-### BUG #7: Marco Tools Not Exposed Through MCP Relay
+### BUG #8: MCP Relay Crashes on Backend Protocol Errors (NOT RESILIENT)
 
-**Status:** 🔧 REQUIRES CLAUDE RESTART (blocking Marco deployment)
-**Reported:** 2025-10-04 14:45 EDT
-**Resolved:** Pending Claude restart
-**Priority:** HIGH - Blocking Marco deployment completion
-**Component:** MCP Relay / Marco Integration
+**Status:** 🔴 ACTIVE - Relay not resilient to backend MCP protocol violations
+**Reported:** 2025-10-04 19:30 EDT
+**Priority:** HIGH - Relay stability issue
+**Component:** MCP Relay Error Handling
 
 **Problem:**
-Marco WebSocket MCP server deployed and running, but tools are not exposed through MCP Relay.
+MCP Relay crashes when a backend server violates MCP protocol (e.g., forwarding protocol methods to subprocess). Relay should be resilient to backend errors, not crash.
 
 **Evidence:**
-- ✅ Marco container running on port 9030
-- ✅ WebSocket handshake successful (`101 Switching Protocols`)
-- ✅ Relay connected to Marco (socket fd 11 exists)
-- ❌ `tools/list` via relay shows 24 tools (Fiedler 8 + Dewey 11 + relay 5), zero Marco tools
-- ❌ Expected: ~7 Playwright tools + `marco_reset_browser`
+- When Marco forwarded `initialize`/`tools/list` to Playwright (protocol violation), relay crashed
+- Relay became unresponsive after receiving unexpected error responses from backend
+- No graceful error handling or recovery mechanism
 
-**Root Cause IDENTIFIED:**
+**Expected Behavior:**
+- Relay should handle backend protocol errors gracefully
+- Log errors and mark backend as degraded/unhealthy
+- Continue serving other backends
+- Provide clear error messages to client
 
-Relay connects to Marco then **immediately disconnects** before completing MCP handshake:
+**Root Cause:**
+Relay assumes all backends are well-behaved MCP servers. No error boundary for:
+- Unexpected error responses during handshake
+- Protocol violations from backends
+- Malformed responses
 
-Marco logs show:
-```
-18:41:02 - Client connected (relay)
-18:41:02 - Client disconnected (same millisecond!)
-```
+**Resolution Required:**
+1. Add error handling in relay's `connect_backend()` and `discover_tools()`
+2. Implement backend health states (healthy, degraded, failed)
+3. Graceful degradation - continue serving other backends
+4. Clear error reporting to client when backend misbehaves
 
-Compare to successful connection:
-```
-18:13:44 - Client connected
-18:13:44 - initialize completed successfully
-```
-
-**Why relay disconnects:** Unknown - relay stays connected to Fiedler/Dewey but drops Marco connection instantly. Likely relay error handling or response timeout issue.
-
-**Resolution:**
-Relay is in broken state (from Oct 3 session, still running). Multiple tool calls failing:
-- `fiedler_send` - no output
-- `relay_reconnect_server` - no output
-- Relay connects to Marco then immediately disconnects
-
-**Required Fix:** Restart Claude Code to restart relay with clean state
-
-**Steps After Restart:**
-1. Import conversation backup to Dewey: `/mnt/projects/ICCM/marco/deployment_conversation_backup.json`
-2. Verify relay starts fresh
-3. Check Marco automatically discovered (from backends.yaml or dynamic add)
-4. Verify Marco tools exposed via relay
-5. Test Marco functionality
-6. Mark bug resolved
-7. Continue deployment cycle: requirements review → user acceptance testing
+**Workaround:**
+Restart Claude Code to restart relay (clears error state)
 
 **Files:**
-- `/mnt/projects/ICCM/marco/server.js` - Bridge implementation
-- `/mnt/projects/ICCM/marco/relay_integration_bug.md` - Detailed analysis
-- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Relay expecting MCP responses
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py` - Needs error boundary implementation
 
-**Attempted Triplet Consultation:** `fiedler_send` returned no output (tool failure logged separately)
+---
+
+## ✅ RESOLVED BUGS
+
+### BUG #7: Marco Missing MCP Protocol Layer
+
+**Status:** ✅ RESOLVED
+**Reported:** 2025-10-04 14:45 EDT
+**Resolved:** 2025-10-04 19:30 EDT
+**Priority:** HIGH - Was blocking Marco deployment
+**Component:** Marco WebSocket MCP Server
+
+**Problem:**
+Marco forwarded ALL requests (including MCP protocol methods `initialize`, `tools/list`) to Playwright subprocess. Playwright doesn't understand MCP protocol → returned errors → caused relay to crash (BUG #8).
+
+**Root Cause:**
+Marco was missing MCP protocol layer. It acted as a transparent proxy instead of an MCP gateway.
+
+**Evidence:**
+- Marco blindly forwarded `initialize` and `tools/list` to Playwright subprocess
+- Playwright returned errors for unknown methods
+- Relay crashed when receiving unexpected error responses from Marco
+- Marco never captured Playwright's tool schema
+
+**Resolution (Triplet Consultation - Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1):**
+
+**Unanimous Consensus:** Implement MCP protocol layer at Marco level
+
+**Solution Applied:**
+1. Added `handleClientRequest()` MCP router function to intercept MCP methods
+2. Handle `initialize` → respond with Marco server info and capabilities
+3. Handle `tools/list` → respond with cached Playwright tool schema
+4. Handle `tools/call` → transform to direct JSON-RPC and enqueue for Playwright
+5. Send `tools/list` to Playwright on startup to capture 21-tool schema
+6. Only forward actual browser automation methods to Playwright subprocess
+
+**Files Modified:**
+- `/mnt/projects/ICCM/marco/server.js`:
+  - Lines 57-59: Added MCP state variables (playwrightToolSchema, isPlaywrightInitialized)
+  - Lines 88-90: Reset MCP state on subprocess restart
+  - Lines 140-153: Initialize Playwright and capture tool schema on startup
+  - Lines 203-212: Handle marco_init_tools_list response
+  - Lines 347-441: MCP protocol layer (handleClientRequest function)
+  - Line 459: Route all client messages through MCP layer
+
+**Result:**
+- ✅ Marco successfully exposes 21 Playwright tools through relay
+- ✅ MCP protocol properly implemented
+- ✅ No relay crashes when adding Marco
+- ✅ Full browser automation capabilities available
+
+**Triplet Consultation Archived:**
+- `/mnt/projects/ICCM/fiedler/fiedler_output/20251004_191613_e384852d/`
+
+**Lessons Learned:**
+- WebSocket MCP servers MUST handle MCP protocol methods at their level
+- Cannot blindly forward protocol methods to subprocesses
+- Tool schema must be captured during initialization
+- MCP protocol layer is separate from tool execution layer
 
 ---
 
