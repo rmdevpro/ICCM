@@ -33,6 +33,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # - ca-certificates: For secure connections if needed later
 # - libcairo2: Required by graphviz for high-quality rendering
 # - nodejs & npm: For running the application
+# - Chromium dependencies: For Mermaid CLI rendering via Puppeteer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
     fonts-inter \
@@ -42,6 +43,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     nodejs \
     npm \
+    libgbm1 \
+    libasound2t64 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libx11-xcb1 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgtk-3-0 \
+    libpango-1.0-0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -49,8 +63,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # This ensures it's available in the PATH for the application
 RUN npm install -g @mermaid-js/mermaid-cli@11
 
-# Create a non-root user for security (before copying files)
+# Create a non-root user for security (before installing chrome-headless-shell)
 RUN useradd --system --create-home --shell /bin/false appuser
+
+# Switch to appuser to install chrome-headless-shell in their home directory
+USER appuser
+
+# Install chrome-headless-shell for Mermaid rendering
+# License: BSD-3-Clause (Chromium) - ICCM compliant, no proprietary codecs used for diagram rendering
+# Triplet consensus: DeepSeek-R1, Gemini 2.5 Pro, GPT-4o-mini all approved this approach
+RUN npx -y @puppeteer/browsers install chrome-headless-shell@latest --path /home/appuser/.cache/puppeteer
+
+# Create symlink to stable path (version-agnostic) for PUPPETEER_EXECUTABLE_PATH
+RUN ln -s $(find /home/appuser/.cache/puppeteer -name chrome-headless-shell -type f) /home/appuser/chrome-headless-shell
+
+# Set Puppeteer to use the symlinked chrome-headless-shell
+ENV PUPPETEER_EXECUTABLE_PATH=/home/appuser/chrome-headless-shell
+
+# Configure Puppeteer to run with --no-sandbox in Docker container
+# This is safe in containerized environments where isolation is provided by Docker
+ENV PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox"
+
+# Switch back to root for remaining setup
+USER root
 
 # Create app directory and set ownership
 WORKDIR /app

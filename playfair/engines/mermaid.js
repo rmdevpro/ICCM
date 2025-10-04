@@ -32,15 +32,23 @@ class MermaidEngine extends BaseEngine {
 
             await fs.writeFile(tempInputDir, content);
 
-            // Create a config file for theming
-            const config = { "theme": mermaidTheme };
-            await fs.writeFile(tempConfigPath, JSON.stringify(config));
+            // Create Mermaid theme config file
+            const mermaidConfig = { "theme": mermaidTheme };
+            await fs.writeFile(tempConfigPath, JSON.stringify(mermaidConfig));
+
+            // Create Puppeteer config file with --no-sandbox for Docker environment
+            const puppeteerConfigPath = path.join(tempDir, `${randomName}-puppeteer.json`);
+            const puppeteerConfig = {
+                "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+            };
+            await fs.writeFile(puppeteerConfigPath, JSON.stringify(puppeteerConfig));
 
             // Use execFile (no shell) for better security
             const args = [
                 '-i', tempInputDir,
                 '-o', tempOutputDir,
                 '-c', tempConfigPath,
+                '-p', puppeteerConfigPath,  // Puppeteer config for Docker sandbox workaround
                 '-w', '1920'
             ];
 

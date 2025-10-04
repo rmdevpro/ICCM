@@ -2,46 +2,93 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-04 19:22 EDT
+**Last Updated:** 2025-10-04 19:45 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
 
-### BUG #12: Playfair Mermaid Engine - Complete Failure
-
-**Status:** 🔴 ACTIVE - Blocking Gates diagram embedding
-**Reported:** 2025-10-04 19:22 EDT
-**Priority:** HIGH - Mermaid diagrams fail to render
-**Component:** Playfair MCP Server - Mermaid Engine (`/mnt/projects/ICCM/playfair/`)
-
-**Problem:**
-All Mermaid diagram generation fails with "ENGINE_CRASH" error. DOT diagrams work perfectly (100% success rate).
-
-**Symptoms:**
-- Simple Mermaid diagram: `graph TD\n A[Start] --> B[End]` fails
-- Error response: `{"error": true, "code": "ENGINE_CRASH", "message": "Mermaid engine failed unexpectedly."}`
-- DOT diagrams: 100% success (6/6 in Gates UAT test)
-- Mermaid diagrams: 0% success (0/3 in Gates UAT test)
-
-**Impact:**
-- Gates document generation works but falls back to code blocks for Mermaid diagrams
-- Gates error handling works correctly (graceful degradation)
-- User experience degraded - visual diagrams missing
-
-**Investigation Status:**
-- Gates integration: ✅ Working correctly (Triplet validated)
-- DOT engine: ✅ Working perfectly
-- Mermaid engine: 🔴 Completely broken
-- Next step: Debug Playfair Mermaid engine implementation
-
-**Related Components:**
-- `/mnt/projects/ICCM/playfair/engines/mermaid.js` - Suspected root cause
-- `/mnt/projects/ICCM/gates/server.js` - Working correctly with fallback
+*No active bugs*
 
 ---
 
 ## ✅ RESOLVED BUGS (Recent)
+
+### BUG #12: Playfair Mermaid Engine - Complete Failure
+
+**Status:** ✅ RESOLVED
+**Reported:** 2025-10-04 19:22 EDT
+**Resolved:** 2025-10-04 19:45 EDT
+**Priority:** HIGH - Was blocking Gates diagram embedding
+**Component:** Playfair MCP Server - Mermaid Engine (`/mnt/projects/ICCM/playfair/`)
+
+**Problem:**
+All Mermaid diagram generation failed with "ENGINE_CRASH" error. Mermaid CLI requires Puppeteer + Chrome for rendering, which was not installed in the Playfair container.
+
+**Root Cause:**
+1. Mermaid CLI uses Puppeteer to launch headless browser for rendering
+2. Chrome/Chromium was not installed in Docker container
+3. No Puppeteer configuration for Docker sandbox workaround
+
+**Resolution Applied (Code Deployment Cycle):**
+
+**1. Triplet Consultation (Correlation ID: e3229972)**
+- Models: GPT-4o-mini, Gemini 2.5 Pro, DeepSeek-R1
+- Question: License compliance for chrome-headless-shell in ICCM (no copyleft, no commercial)
+- **Unanimous Verdict:** ✅ BSD-3-Clause compliant, approved for use
+- Recommendation: Option A (chrome-headless-shell) for fastest resolution
+
+**2. License Compliance Ruling:**
+- chrome-headless-shell: BSD-3-Clause (permissive, approved) ✅
+- No copyleft dependencies ✅
+- Proprietary codecs not used for diagram rendering ✅
+- ICCM requirements fully met ✅
+
+**3. Implementation (Dockerfile):**
+```dockerfile
+# Added Chromium dependencies for Mermaid rendering
+RUN apt-get install -y libgbm1 libasound2t64 libnss3 libatk1.0-0 \
+    libatk-bridge2.0-0 libx11-xcb1 libdrm2 libxkbcommon0 \
+    libxcomposite1 libxdamage1 libxrandr2 libgtk-3-0 libpango-1.0-0
+
+# Install chrome-headless-shell
+RUN npx -y @puppeteer/browsers install chrome-headless-shell@latest \
+    --path /home/appuser/.cache/puppeteer
+
+# Create version-agnostic symlink
+RUN ln -s $(find /home/appuser/.cache/puppeteer -name chrome-headless-shell -type f) \
+    /home/appuser/chrome-headless-shell
+
+ENV PUPPETEER_EXECUTABLE_PATH=/home/appuser/chrome-headless-shell
+```
+
+**4. Mermaid Engine Fix (engines/mermaid.js):**
+- Created separate Puppeteer config file with `--no-sandbox --disable-setuid-sandbox`
+- Added `-p` flag to mmdc CLI arguments for Docker compatibility
+- Docker sandbox disabled safely (container provides isolation)
+
+**Testing Results:**
+- ✅ Mermaid rendering: Working via `playfair_create_diagram` MCP tool
+- ✅ SVG output: Base64-encoded, valid format
+- ✅ DOT diagrams: Still 100% operational
+- ✅ Both engines: Fully operational
+
+**Files Modified:**
+- `/mnt/projects/ICCM/playfair/Dockerfile` - Added chrome-headless-shell installation
+- `/mnt/projects/ICCM/playfair/engines/mermaid.js` - Added Puppeteer config with Docker flags
+
+**Impact:**
+- Gates document generation now fully operational with Mermaid diagrams
+- User experience restored - visual diagrams render correctly
+- Performance: Mermaid rendering <5s (within requirements)
+
+**Triplet Consensus Archive:**
+- Consultation ID: e3229972 (2025-10-04 23:30:54)
+- Output: `/app/fiedler_output/20251004_233054_e3229972/`
+
+---
+
+## ✅ RESOLVED BUGS
 
 ---
 
