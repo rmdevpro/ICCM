@@ -103,47 +103,67 @@ LEGEND:
 
 ---
 
-### Containerized Claude (FUTURE)
+### Claudette: Containerized Claude - ✅ OPERATIONAL (2025-10-04)
 
-**Status:** Not yet built - MCP Relay code ready, containerized Claude not created yet
+**Status:** ✅ Production ready and verified
 
 **Component Connections:**
 
-1. **Claude Code (container) with MCP Relay extension**
+1. **Claudette (claude-code-container) with MCP Relay extension**
    - MCP Relay runs as stdio subprocess inside container
    - Configured to connect through KGB for automatic logging
+   - Container: `iccm/claude-code:latest`
+   - Config: `/mnt/projects/ICCM/claude-container/config/`
 
-2. **MCP Relay → KGB**
+2. **Claudette → Anthropic API (via KGB HTTP Gateway)**
+   - Protocol: HTTPS (proxied through KGB)
+   - URL: `http://kgb-proxy:8089` → `https://api.anthropic.com`
+   - Purpose: All Anthropic API conversations with automatic logging
+   - Status: ✅ Verified working (200 OK responses)
+
+3. **MCP Relay → KGB WebSocket Spy**
    - Protocol: WebSocket
    - URL: `ws://kgb-proxy:9000?upstream=<target>`
-   - Purpose: Route to upstream with automatic conversation logging
+   - Purpose: Route MCP tool calls with automatic conversation logging
 
-3. **KGB → Fiedler**
+4. **KGB → Fiedler**
    - Protocol: WebSocket
    - URL: `ws://fiedler-mcp:8080`
    - Purpose: LLM orchestration tools
 
-4. **KGB → Dewey**
+5. **KGB → Dewey**
    - Protocol: WebSocket
    - URL: `ws://dewey-mcp:9020`
    - Purpose: Conversation storage/retrieval tools
 
-5. **KGB Internal → Dewey** (for logging)
+6. **KGB Internal → Dewey** (for logging)
    - Protocol: Direct MCP client calls
    - Purpose: Automatic conversation logging
    - Note: Separate code path from user's Dewey MCP tools
+   - Status: ✅ Verified (conversations logged successfully)
 
-6. **Dewey → Winni**
+7. **Dewey → Winni**
    - Protocol: PostgreSQL (asyncpg)
    - Host: 192.168.1.210 (Irina)
    - Database: winni
    - Purpose: Persistent conversation storage
+   - Status: ✅ Verified (messages stored in database)
 
 **Characteristics:**
 - **Same MCP Relay code** - Just different backends.yaml configuration
 - **All conversations automatically logged** - Via KGB interception
 - **Backend restart resilience** - MCP Relay auto-reconnects to KGB
-- **More complex, but logged** - Trade-off for automatic conversation capture
+- **Complete audit trail** - Both API calls and MCP tool usage logged
+- **Cloudflare 403 resolved** - SSL/TLS connector fix applied to KGB gateway
+
+**Verification (2025-10-04):**
+- ✅ Claudette → KGB Gateway: 200 OK responses
+- ✅ KGB → Anthropic: SSL/TLS handshake successful
+- ✅ Conversations logged: `b02ea596-74fe-4919-b2a5-d8630751fd6d`, etc.
+- ✅ Messages stored: Turn 1 (request), Turn 2 (response)
+- ✅ Complete pipeline operational
+
+**Documentation:** `/mnt/projects/ICCM/claude-container/README.md`
 
 ---
 
@@ -383,15 +403,27 @@ No circular dependency because the internal client bypasses the MCP layer.
 
 ## 🚧 Current Deployment Status
 
-**Active:** Bare Metal Claude
-**Configuration:** stdio adapter to Fiedler (WORKING)
-**Logging:** None (by design)
-**Status:** Both MCP servers connected, awaiting restart for tool access
+**Active Deployments:**
 
-**Future:** Containerized Claude
-**Components:** Relay, KGB, Fiedler, Dewey containers exist
-**Containerized Claude:** Not yet built
-**Status:** Infrastructure ready, container not created yet
+1. **Bare Metal Claude** (Development/Emergency)
+   - **Configuration:** Direct WebSocket to MCP servers
+   - **Logging:** None (by design)
+   - **Status:** ✅ Operational
+   - **Use Case:** Development, debugging, emergency fallback
+
+2. **Claudette** (Production/Logged) - ✅ OPERATIONAL
+   - **Configuration:** KGB HTTP Gateway + WebSocket Spy
+   - **Logging:** Complete (Anthropic API + MCP tools)
+   - **Status:** ✅ Verified and operational (2025-10-04)
+   - **Use Case:** Production sessions requiring audit trail
+   - **Container:** `claude-code-container` on `iccm_network`
+
+**Infrastructure Status:**
+- ✅ KGB Proxy (dual-protocol: HTTP 8089 + WebSocket 9000)
+- ✅ Fiedler MCP (10 LLM models)
+- ✅ Dewey MCP (conversation storage)
+- ✅ Winni Database (PostgreSQL on Irina)
+- ✅ MCP Relay (stdio-to-WebSocket bridge)
 
 ---
 
