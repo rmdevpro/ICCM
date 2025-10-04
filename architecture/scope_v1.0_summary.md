@@ -157,7 +157,7 @@
 1. Mark scope.md v1.0 as approved
 2. Proceed to Phase 1: Requirements Extraction
 3. Send requirements extraction request to triplets
-4. Continue triplet performance tracking (monitor Grok 4)
+4. Continue triplet performance tracking (monitor underperforming models)
 
 **If Grok 4 continues underperforming:**
 - After Phase 1 and 2, if Grok 4 avg remains <15/25

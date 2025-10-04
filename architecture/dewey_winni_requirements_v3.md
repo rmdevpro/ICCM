@@ -178,7 +178,7 @@ class DeweyLoggingHook:
 
 ### 3.3 Selected Approach: Option B (MCP Proxy/Middleware)
 
-**DECISION:** Unanimous recommendation from triplet review (Gemini 2.5 Pro, GPT-5, Grok-4/DeepSeek-R1)
+**DECISION:** Unanimous recommendation from triplet review (Fiedler's default models DeepSeek-R1)
 
 **Why Option B:**
 - **Most Reliable:** Captures structured MCP protocol (JSON-RPC), not text parsing

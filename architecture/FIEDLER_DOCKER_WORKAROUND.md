@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the workaround method for consulting the triplet (Gemini 2.5 Pro, GPT-5, DeepSeek-R1) when Fiedler MCP tools are not available in Claude Code.
+This document describes the workaround method for consulting the Fiedler's default triplet when Fiedler MCP tools are not available in Claude Code.
 
 **When to Use:** If Fiedler MCP integration is broken and you need to consult multiple LLMs for architecture/bug guidance.
 

@@ -5,7 +5,7 @@
 
 ## Context
 
-Attempting to send requirements extraction task (768KB, 18 files) to triplet (Gemini, GPT-5, Grok-4) for review. Previous attempt had three failures:
+Attempting to send requirements extraction task (768KB, 18 files) to Fiedler's default triplet for review. Previous attempt had three failures:
 - ✗ Gemini: Failed with "__main__ module error"
 - ✗ GPT-5: Returned 0 bytes (empty output)
 - ✓ Grok 4: Succeeded (23KB output, 45 requirements)

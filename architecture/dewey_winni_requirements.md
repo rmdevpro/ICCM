@@ -818,7 +818,7 @@ integration_test_scenarios = [
 
 **Requirements Author:** Claude (Sonnet 4.5)
 **Date:** 2025-10-02
-**Status:** Awaiting triplet review (Gemini 2.5 Pro, GPT-5, Grok-4)
+**Status:** Awaiting triplet review (Fiedler's default models 
 
 **Next Steps:**
 1. Send to triplet for detailed technical review

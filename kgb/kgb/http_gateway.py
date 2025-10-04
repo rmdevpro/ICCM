@@ -161,8 +161,37 @@ class HTTPGateway:
                     ssl=ssl_context  # Explicit SSL context
                 ) as upstream_response:
 
-                    # Read response body
-                    response_body = await upstream_response.read()
+                    # Create streaming response to client
+                    # Filter out headers that shouldn't be forwarded when re-streaming
+                    response_headers = dict(upstream_response.headers)
+                    headers_to_remove = ['Content-Length', 'Content-Encoding', 'Transfer-Encoding']
+                    for header in headers_to_remove:
+                        response_headers.pop(header, None)
+                        # Case-insensitive removal
+                        for key in list(response_headers.keys()):
+                            if key.lower() == header.lower():
+                                response_headers.pop(key, None)
+
+                    response = web.StreamResponse(
+                        status=upstream_response.status,
+                        headers=response_headers
+                    )
+                    await response.prepare(request)
+
+                    # Stream response chunks to client and accumulate for logging
+                    response_chunks = []
+
+                    async for chunk in upstream_response.content.iter_chunked(8192):
+                        # Forward chunk to client immediately
+                        await response.write(chunk)
+                        # Accumulate for logging
+                        response_chunks.append(chunk)
+
+                    # Complete the streaming response
+                    await response.write_eof()
+
+                    # Reconstruct full response body for logging
+                    response_body = b''.join(response_chunks)
                     response_body_str = response_body.decode('utf-8') if response_body else ""
 
                     # Log response to Dewey
@@ -185,12 +214,7 @@ class HTTPGateway:
 
                     logger.info(f"Gateway {request_id} <- {upstream_response.status}")
 
-                    # Return response to client
-                    return web.Response(
-                        body=response_body,
-                        status=upstream_response.status,
-                        headers=upstream_response.headers
-                    )
+                    return response
 
         except Exception as e:
             logger.error(f"Gateway {request_id} error: {e}", exc_info=True)

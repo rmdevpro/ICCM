@@ -187,4 +187,4 @@ fiedler_send(prompt="test", models=["gemini"])
 **Completion Status:** ✅ All 9 security issues addressed
 **Ready for:** Production deployment
 **Time to fix:** ~15 minutes
-**Review basis:** Triplet consensus (Gemini 2.5 Pro, GPT-5, Grok 4)
+**Review basis:** Triplet consensus (Fiedler's default models 

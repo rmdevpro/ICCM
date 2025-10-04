@@ -6,7 +6,7 @@
 
 ## Overview
 
-Applied critical security fixes to Fiedler's keyring integration based on triplet review feedback from Gemini 2.5 Pro, GPT-5, and Grok 4.
+Applied critical security fixes to Fiedler's keyring integration based on Fiedler triplet review feedback.
 
 ## Issues Addressed
 

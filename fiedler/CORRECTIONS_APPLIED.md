@@ -1,7 +1,7 @@
 # Fiedler Implementation Corrections Applied
 
 **Date:** 2025-10-02
-**Triplet Reviews:** Gemini 2.5 Pro, GPT-5, Grok 4
+**Triplet Reviews:** Fiedler's default models 
 
 ## Critical Bugs Fixed (8 total)
 

@@ -1,6 +1,6 @@
 # Triplet Verification Tool
 
-Send document packages to all three AI models (Gemini 2.5 Pro, GPT-5, Grok 4) simultaneously.
+Send document packages to all three AI models (Fiedler's default models simultaneously.
 
 ## Usage
 

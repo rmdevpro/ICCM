@@ -2,7 +2,7 @@
 
 **Date:** 2025-10-02
 **Correlation ID:** FIEDLER-IMPL-R1
-**Reviewers:** Gemini 2.5 Pro, GPT-5, Grok 4
+**Reviewers:** Fiedler's default models 
 
 ## Review Scope
 

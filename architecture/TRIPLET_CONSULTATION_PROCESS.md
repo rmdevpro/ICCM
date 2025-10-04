@@ -1,7 +1,7 @@
 # Triplet Consultation Process
 
 **Last Updated:** 2025-10-03
-**Purpose:** Standard process for consulting the LLM triplet (Gemini 2.5 Pro, GPT-5, DeepSeek-R1) on complex bugs and architecture decisions
+**Purpose:** Standard process for consulting Fiedler's default LLM triplet on complex bugs and architecture decisions
 
 ---
 
@@ -164,7 +164,7 @@ If Fiedler MCP tools are available:
 
 ```bash
 # Use mcp__fiedler__fiedler_send tool
-# Models: ["gemini-2.5-pro", "gpt-5", "deepseek-ai/DeepSeek-R1"]
+# Omit models parameter to use Fiedler's default triplet
 ```
 
 **Method 2: Via Docker Workaround (Fallback)**
@@ -213,14 +213,10 @@ PYTHON_EOF
 
 2. **Save each response:**
    ```bash
-   # Gemini response
-   /tmp/triplet_[topic]_responses/Gemini_2.5_Pro_Response.md
-
-   # GPT-5 response
-   /tmp/triplet_[topic]_responses/GPT5_Response.md
-
-   # DeepSeek response
-   /tmp/triplet_[topic]_responses/DeepSeek_R1_Response.md
+   # Save responses with model names from Fiedler output
+   /tmp/triplet_[topic]_responses/[model1]_Response.md
+   /tmp/triplet_[topic]_responses/[model2]_Response.md
+   /tmp/triplet_[topic]_responses/[model3]_Response.md
    ```
 
 3. **Create summary:**
@@ -317,7 +313,7 @@ A successful consultation provides:
 - 7 specific questions
 
 **Results:**
-- All 3 LLMs responded successfully (76 seconds total)
+- All 3 default LLMs responded successfully (76 seconds total)
 - Unanimous diagnosis: Silent MCP initialization failure
 - Top recommendation: Enable debug logging, check for stale state
 - Led to process tree analysis discovering ZERO MCP child processes
@@ -339,7 +335,7 @@ A successful consultation provides:
 
 ## Consultation Details
 - **Date:** [YYYY-MM-DD]
-- **Models:** Gemini 2.5 Pro, GPT-5, DeepSeek-R1
+- **Models:** [Fiedler's default triplet - check config for current models]
 - **Duration:** [Total time in seconds]
 - **Success Rate:** [X/3 models responded]
 
@@ -361,9 +357,9 @@ Based on triplet analysis:
 3. [Action 3]
 
 ## Response Files
-- Gemini: [path]
-- GPT-5: [path]
-- DeepSeek: [path]
+- [Model 1]: [path]
+- [Model 2]: [path]
+- [Model 3]: [path]
 ```
 
 ---

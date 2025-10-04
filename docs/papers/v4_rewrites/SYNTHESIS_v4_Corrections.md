@@ -5,7 +5,7 @@
 
 ## CONSENSUS CORRECTIONS ACROSS ALL MODELS
 
-All three models (Gemini 2.5 Pro, GPT-5, Grok 4) plus my analysis agree on these fundamental corrections:
+All three models (Fiedler's default models plus my analysis agree on these fundamental corrections:
 
 ### 1. Core Architecture Must Be:
 ```

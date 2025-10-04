@@ -8,7 +8,61 @@
 
 ## 🐛 ACTIVE BUGS
 
-**No active bugs**
+### BUG #6: Claudette Non-Interactive Mode Hangs Indefinitely
+
+**Status:** 🔴 CRITICAL - System Non-Functional
+**Reported:** 2025-10-04 01:58 EDT
+**Component:** Claudette (claude-code-container)
+**Severity:** BLOCKER - Prevents all programmatic usage
+
+**Problem:**
+Claudette container cannot execute Claude commands via `docker exec` in non-interactive mode. Commands hang indefinitely and timeout after 30s.
+
+**Reproduction:**
+```bash
+docker exec claude-code-container claude "What is 2+2?"
+# Hangs indefinitely, times out after 30s
+```
+
+**Root Cause Analysis:**
+1. Claude Code CLI is designed for interactive TTY use
+2. When run via `docker exec -i`, it waits for interactive input (theme selection)
+3. Even after init completion, stdin/stdout handling fails for non-interactive use
+4. KGB logs show API calls succeed (200 OK) but responses never reach stdout
+
+**Impact:**
+- ❌ Cannot use Claudette programmatically
+- ❌ Claude Code UI cannot integrate with Claudette
+- ❌ Documented "verified" status was incorrect (only tested API connectivity, not command execution)
+
+**False Documentation:**
+- `/mnt/projects/ICCM/claude-container/README.md` claims "✅ Operational and verified"
+- Verification only confirmed KGB received requests, NOT that commands returned responses
+- git commit 33f2707 claimed "Complete Claudette" but never tested `docker exec` usage
+
+**Attempted Solutions (Failed):**
+1. ❌ Completing init with `echo "1" | claude --version` - still hangs on actual prompts
+2. ❌ Using `--output-format stream-json --verbose` - times out
+3. ❌ Different stdin variations - all hang
+
+**Resolution:**
+After extensive debugging, determined that Claude Code CLI **cannot run non-interactively via `docker exec`**. This is a fundamental architectural limitation:
+
+1. Claude CLI is designed for interactive TTY use only
+2. Even with `--print` flag (designed for pipes), it hangs in containerized non-TTY environment
+3. Config flags (`hasCompletedOnboarding`, `hasSeenWelcome`) do not prevent init screen
+4. No environment variables or flags exist to force true non-interactive mode
+5. This is NOT a configuration issue - it's an architectural limitation of Claude CLI
+
+**Correct Architecture for Claude Code UI:**
+Instead of wrapping Claudette (containerized Claude CLI), use **bare-metal Claude Code** that's already installed and working on the host system at `/home/aristotle9/.nvm/versions/node/v22.19.0/bin/claude`.
+
+**Trade-offs:**
+- ✅ Works immediately (verified: bare-metal Claude responds in <1s)
+- ❌ Loses automatic KGB/Dewey logging (bare-metal Claude → direct to api.anthropic.com)
+- ⚠️  For logging: Either configure bare-metal Claude to use KGB, OR accept UI usage is unlogged
+
+**Alternative:** Build custom API wrapper that routes through KGB (future enhancement)
 
 ---
 

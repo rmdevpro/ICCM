@@ -818,7 +818,7 @@ assert get_production_model().version == original_version
 
 **Immediate:**
 1. Review this document with team
-2. Send to AI reviewers (Gemini 2.5 Pro, GPT-5, Grok 4)
+2. Send to AI reviewers (Fiedler's default models 
 3. Incorporate feedback
 4. Begin Week 21 execution
 

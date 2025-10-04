@@ -871,7 +871,7 @@ metrics = fiedler_get_metrics("gemini-2.5-pro")
 ### First Requirements Extraction Attempt (2025-10-02 ~09:55 EDT)
 
 **What happened:**
-- Sent 768KB package (18 files) to triplet (Gemini 2.5 Pro, GPT-5, Grok 4)
+- Sent 768KB package (18 files) to Fiedler's default triplet
 - Job failed silently - no output files, no logs, no error messages
 - Waited 10+ minutes, checked multiple times
 - Output directory `/mnt/projects/ICCM/architecture/phase1_requirements_extraction` was created but remained empty

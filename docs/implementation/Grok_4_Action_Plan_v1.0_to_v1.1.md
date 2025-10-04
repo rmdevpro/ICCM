@@ -1,6 +1,6 @@
 # Action Plan for Updating ICCM Implementation Documents from v1.0 to v1.1
 
-This action plan synthesizes feedback from all three AI reviews (Gemini 2.5 Pro, GPT-5, Grok 4) and the Claude Sonnet 4.5 synthesis. It prioritizes fixes to address critical blockers (e.g., hardware feasibility, timeline realism, model inconsistencies) while maintaining the core PoC focus on CET-D validation. The plan assumes a 5-person team and aims for v1.1 to be "build-ready" with 85-90% success confidence, per reviewer estimates. Changes emphasize simplification, de-risking, and adding operational details without expanding scope.
+This action plan synthesizes feedback from all three AI reviews (Fiedler's default models and the Claude Sonnet 4.5 synthesis. It prioritizes fixes to address critical blockers (e.g., hardware feasibility, timeline realism, model inconsistencies) while maintaining the core PoC focus on CET-D validation. The plan assumes a 5-person team and aims for v1.1 to be "build-ready" with 85-90% success confidence, per reviewer estimates. Changes emphasize simplification, de-risking, and adding operational details without expanding scope.
 
 ## 1. Critical Path Fixes (Top 5 Must-Fix Items)
 

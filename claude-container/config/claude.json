@@ -13,5 +13,6 @@
   },
   "hasTrustDialogAccepted": true,
   "theme": "dark",
-  "hasCompletedOnboarding": true
+  "hasCompletedOnboarding": true,
+  "hasSeenWelcome": true
 }

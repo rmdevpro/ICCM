@@ -1,7 +1,7 @@
 # ICCM Papers Consistency Check - Synthesis of All Three AI Model Reviews
 
 **Date:** October 1, 2025
-**Reviewers:** Gemini 2.5 Pro, GPT-5, Grok 4
+**Reviewers:** Fiedler's default models 
 **Purpose:** Identify architectural drift across all ICCM papers based on CET Architecture Clarification
 
 ---

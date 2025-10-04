@@ -84,7 +84,7 @@ Five-phase methodology:
 
 ## 2025-10-02 14:45 - Triplet-Accelerated Process Adopted
 
-**Decision:** Use triplet AI review (Gemini 2.5 Pro, GPT-5, Grok 4) to accelerate architecture work.
+**Decision:** Use triplet AI review (Fiedler's default models to accelerate architecture work.
 
 **Process:**
 1. Define clear question/task for each phase
@@ -574,7 +574,7 @@ MVP conversation storage/retrieval system before proceeding to full ICCM archite
 - Foundation for Paper 12 (Conversation Storage & Retrieval) implementation
 
 **Requirements Development Process:**
-1. Created requirements v1 - sent to original triplet (Gemini, GPT-5, Grok-4)
+1. Created requirements v1 - sent to original Fiedler's default triplet
 2. Received unanimous feedback: Schema issues, transport confusion, missing tools
 3. User clarification: "PostgreSQL from day 1, Docker MCP, no over-engineering"
 4. Created requirements v2 - sent to triplet again
@@ -604,8 +604,8 @@ MVP conversation storage/retrieval system before proceeding to full ICCM archite
    - Startup context management with active enforcement
 
 **Triplet Composition Change:**
-- **OLD**: Gemini 2.5 Pro, GPT-5, Grok-4
-- **NEW**: Gemini 2.5 Pro, GPT-5, DeepSeek-R1
+- **OLD**: Fiedler's default models 
+- **NEW**: Fiedler's default models R1
 - **Reason**: User requested "swap Grok out permanently and replace with Deepseek's best model"
 
 **Implementation Request Issues:**
@@ -660,7 +660,7 @@ Dewey + Winni provides essential infrastructure for conversation management befo
 **What Was Completed:**
 
 1. **Sent Implementation Request to New Triplet**
-   - Sent requirements v3 to: Gemini 2.5 Pro, GPT-5, DeepSeek-R1
+   - Sent requirements v3 to: Fiedler's default models R1
    - All 3 models completed successfully
    - Outputs: Gemini (41KB, 110s), GPT-5 (60KB, 1131s), DeepSeek (61KB, 258s)
    - Location: `/mnt/projects/ICCM/architecture/dewey_implementations/`
@@ -722,14 +722,14 @@ Dewey + Winni provides essential infrastructure for conversation management befo
 After Claude Code restart:
 1. Verify MCP connection and new defaults
 2. Review all 3 implementations
-3. Send to NEW triplet (Gemini/GPT-4o-mini/DeepSeek) for synthesis
+3. Send to NEW Fiedler's default triplet for synthesis
 4. Select best implementation or create hybrid
 5. Build and deploy
 
 **Rationale:**
 - GPT-4o-mini provides much faster iteration for code generation tasks
 - Maintaining GPT-5 availability for tasks requiring deep reasoning
-- New triplet balances speed (GPT-4o-mini), context (Gemini), and reasoning (DeepSeek)
+- Updated default triplet balances speed, context, and reasoning
 - All implementations complete - ready for comparative analysis
 
 **Traceability:**

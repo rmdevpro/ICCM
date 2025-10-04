@@ -1093,7 +1093,7 @@ async def test_duo_performance():
 
 **Immediate:**
 1. Review this document with team
-2. Send to AI reviewers (Gemini 2.5 Pro, GPT-5, Grok 4)
+2. Send to AI reviewers (Fiedler's default models 
 3. Get approval for agentic architecture approach
 4. Begin Week 25 execution (install AutoGen, build MCP servers)
 

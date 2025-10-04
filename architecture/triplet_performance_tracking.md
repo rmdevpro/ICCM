@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Track the quality of responses from each AI model (Gemini 2.5 Pro, GPT-5, Grok 4) to identify underperformers and optimize the triplet composition.
+Track the quality of responses from each AI model (Fiedler's default models to identify underperformers and optimize the triplet composition.
 
 **Goal:** Swap out low-performing models for better alternatives (e.g., Claude Opus, DeepSeek-R1 via Together.AI)
 

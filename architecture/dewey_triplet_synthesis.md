@@ -1,7 +1,7 @@
 # Dewey + Winni Requirements: Triplet Review Synthesis
 
 **Date:** 2025-10-02
-**Reviewers:** Gemini 2.5 Pro, GPT-5, Grok-4
+**Reviewers:** Fiedler's default models 
 **Verdict:** All 3 approved WITH CHANGES
 
 ---

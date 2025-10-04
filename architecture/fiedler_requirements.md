@@ -13,7 +13,7 @@
 
 ### 1.1 Background
 
-**Problem:** Current triplet verifier (`triplet_verifier.py`) is hardcoded for three specific models (Gemini 2.5 Pro, GPT-5, Grok 4) and lacks extensibility.
+**Problem:** Current triplet verifier (`triplet_verifier.py`) is hardcoded for three specific models (Fiedler's default models and lacks extensibility.
 
 **Opportunity:** Evolve into Fiedler, an MCP server that serves as the prototype Orchestra conductor for the ICCM ecosystem.
 
@@ -543,7 +543,7 @@ defaults:
 
 ### Phase 1: Build Fiedler v1
 - Implement MCP server with provider architecture
-- Test with current triplet (Gemini, GPT-5, Grok)
+- Test with Fiedler's default triplet
 - Validate output matches triplet_verifier.py
 
 ### Phase 2: Expand Model Support
