@@ -233,7 +233,7 @@ Marco must expose all Playwright MCP tools, including:
 | **Base Image** | mcr.microsoft.com/playwright | v1.43.0-jammy |
 | **Runtime** | Node.js | 22.x (included in image) |
 | **Browser** | Chromium (default) | v123.x (in Playwright image) |
-| **MCP Implementation** | @playwright/mcp | **1.43.0** (pinned, not latest) |
+| **MCP Implementation** | @playwright/mcp | **0.0.41** (pinned stable, compatible with Playwright 1.43.0) |
 | **WebSocket Server** | ws (Node.js library) | ^8.0.0 |
 | **Bridge Library** | @iccm/mcp-bridge (custom) | 1.0.0 (to be developed) |
 

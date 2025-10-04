@@ -1,12 +1,44 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 16:50 EDT
-**Session:** Marco Internet Gateway - UNANIMOUS CONSENSUS ACHIEVED
-**Status:** ✅ **PRODUCTION READY - Triplet unanimous approval**
+**Last Updated:** 2025-10-04 14:15 EDT
+**Session:** Marco Internet Gateway - DEPLOYMENT IN PROGRESS
+**Status:** 🚧 **DEPLOYING - Version fix applied, container running**
 
 ---
 
 ## 🎯 Session Accomplishments
+
+### ✅ Marco Deployment - Phase 1 (2025-10-04 14:15 EDT)
+
+**Deployment Cycle Started:** Following Code Deployment Cycle PNG
+
+**Bug Found During Build:**
+- **Issue:** `@playwright/mcp@1.43.0` specified in requirements doesn't exist
+- **Available:** `0.0.41` (stable) or `0.0.41-alpha-2025-10-04` (alpha)
+- **Triplet Consultation:** All three models (Gemini 2.5 Pro, GPT-4o-mini, DeepSeek-R1) unanimously recommended `0.0.41`
+- **Consensus:** Use exact pin `0.0.41` (no caret), stable version, compatible with Playwright 1.43.0 Docker image
+
+**Fixes Applied:**
+- `/mnt/projects/ICCM/marco/package.json` - Updated to `"@playwright/mcp": "0.0.41"`
+- `/mnt/projects/ICCM/marco/server.js` line 99 & 94 - Updated spawn command to `@playwright/mcp@0.0.41`
+- `/mnt/projects/ICCM/marco/REQUIREMENTS.md` line 236 - Updated version with compatibility note
+- Generated `package-lock.json` with correct dependencies
+
+**Container Status:**
+- ✅ Built successfully with corrected version
+- ✅ Running on port 9030 (host) / 8030 (container)
+- ✅ Added to MCP Relay as "marco" backend
+- ⚠️ Health check shows "degraded" (subprocess alive but unresponsive - under investigation)
+- ✅ Processes running: Node.js server + Playwright MCP subprocess
+
+**Next Steps:**
+- Test Marco MCP functionality via relay
+- Investigate health check status
+- Complete deployment cycle per PNG
+
+---
+
+## 🎯 Previous Session Accomplishments
 
 ### 1. ✅ Marco Internet Gateway - Complete Requirements & Design (MAJOR MILESTONE)
 

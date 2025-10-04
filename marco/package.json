@@ -8,7 +8,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@playwright/mcp": "1.43.0",
+    "@playwright/mcp": "0.0.41",
     "ws": "^8.17.0"
   },
   "engines": {

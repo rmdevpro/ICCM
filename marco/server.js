@@ -91,12 +91,12 @@ function startPlaywrightSubprocess() {
 
   log('info', 'Starting Playwright MCP subprocess', {
     command: 'npx',
-    args: ['@playwright/mcp@1.43.0'],
+    args: ['@playwright/mcp@0.0.41'],
     attempt: restartAttempts + 1,
     maxAttempts: CONFIG.maxRestarts,
   });
 
-  playwrightProcess = spawn('npx', ['@playwright/mcp@1.43.0'], {
+  playwrightProcess = spawn('npx', ['@playwright/mcp@0.0.41'], {
     stdio: ['pipe', 'pipe', 'pipe'],
     env: {
       ...process.env,
