@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 00:00 EDT
+**Last Updated:** 2025-10-04 00:10 EDT
 **Session:** Containerized Claude Code + Anthropic API Gateway implementation
-**Status:** ⏸️ **INFRASTRUCTURE COMPLETE - Cloudflare 403 issue blocking containerized testing**
+**Status:** ✅ **CLOUDFLARE 403 RESOLVED - Gateway operational, containerized Claude needs config**
 
 ---
 
@@ -310,24 +310,24 @@ cd /mnt/projects/ICCM/fiedler && docker compose restart
 5. ✅ **Health checks working** - KGB gateway responding correctly
 6. ✅ **Direct aiohttp testing** - Confirmed KGB container can reach Anthropic API
 
-### Known Issues
-1. ⚠️ **Cloudflare 403 Forbidden** - Claude Code → KGB Gateway → Anthropic API blocked
-   - Status: Under investigation
-   - Working: Bare metal Claude Code (direct to Anthropic)
-   - Working: Direct aiohttp from KGB to Anthropic
-   - Failing: Proxied requests through KGB gateway
-   - Likely cause: aiohttp SSL/TLS connector or SNI issue
-   - See: `/mnt/projects/ICCM/ANTHROPIC_GATEWAY_IMPLEMENTATION.md` Known Issues section
+### Completed This Session (2025-10-04)
+1. ✅ **Cloudflare 403 RESOLVED** - SSL/TLS connector fix applied
+   - Root cause: aiohttp default ClientSession missing explicit SSL context
+   - Solution: Added TCPConnector with ssl.create_default_context()
+   - Verification: 403 → 401 (expected with invalid API key)
+   - File: `/mnt/projects/ICCM/kgb/kgb/http_gateway.py`
+   - Container recreated with fix (down + up, not just restart)
+2. ✅ **Gateway operational** - Health checks passing, requests forwarding correctly
+3. ✅ **Documentation updated** - ANTHROPIC_GATEWAY_IMPLEMENTATION.md reflects resolution
 
 ### Next Steps
-1. **Investigate Cloudflare 403 issue:**
-   - Add SSL/TLS connector with explicit configuration
-   - Test with explicit SNI hostname
-   - Compare working vs non-working request headers
-   - Consider alternative HTTP client libraries
-2. **After Cloudflare issue resolved:**
+1. **Configure containerized Claude Code:**
+   - Pre-configure theme selection (non-interactive)
+   - Set up MCP relay connection
    - Test basic conversation through gateway
+2. **After containerized Claude working:**
    - Verify logging to Dewey/Winni
+   - Test full conversation capture
    - Consider migrating to containerized mode as default
 
 ### Future Work

@@ -6,6 +6,7 @@ Runs alongside WebSocket spy to provide complete coverage.
 import asyncio
 import json
 import logging
+import ssl
 import uuid
 from typing import Optional
 from urllib.parse import urljoin
@@ -137,16 +138,27 @@ class HTTPGateway:
                 forward_headers['User-Agent'] = 'KGB-HTTP-Gateway/1.0'
 
             # Debug logging
-            logger.debug(f"Gateway {request_id} forwarding to: {upstream_url}")
-            logger.debug(f"Gateway {request_id} headers: {list(forward_headers.keys())}")
+            logger.info(f"Gateway {request_id} forwarding to: {upstream_url}")
+            logger.info(f"Gateway {request_id} forward_headers: {json.dumps(forward_headers, indent=2)}")
 
-            async with aiohttp.ClientSession() as session:
+            # Create SSL context with proper SNI configuration
+            ssl_context = ssl.create_default_context()
+
+            # Create TCPConnector with proper SSL/TLS settings
+            connector = aiohttp.TCPConnector(
+                ssl=ssl_context,
+                force_close=False,
+                enable_cleanup_closed=True
+            )
+
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.request(
                     method=request.method,
                     url=upstream_url,
                     headers=forward_headers,
                     data=request_body,
-                    allow_redirects=True
+                    allow_redirects=True,
+                    ssl=ssl_context  # Explicit SSL context
                 ) as upstream_response:
 
                     # Read response body
