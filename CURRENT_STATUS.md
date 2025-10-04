@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 15:00 EDT
-**Session:** Marco Internet Gateway - BLOCKED ON RELAY RESTART
-**Status:** ⏸️ **DEPLOYMENT PAUSED - Requires Claude restart to fix broken relay**
+**Last Updated:** 2025-10-04 17:30 EDT
+**Session:** Marco Internet Gateway - RELAY CRASHED TWICE
+**Status:** 🔴 **CRITICAL: Relay crashed again after restart - DO NOT ADD MARCO UNTIL DEWEY IMPORT COMPLETE**
 
 ---
 
@@ -37,13 +37,27 @@
 - **Root Cause:** Relay error state requires restart
 - **Required Action:** Restart Claude Code to restart relay with clean state
 
-**Next Steps After Claude Restart:**
-1. **Import conversation to Dewey:** Load `/mnt/projects/ICCM/marco/deployment_conversation_backup.json` into Dewey for session recording
-2. Verify relay starts fresh and connects to all backends
-3. Confirm Marco tools exposed (expected: ~7 Playwright tools)
-4. Test Marco functionality via relay
-5. Complete deployment testing per Code Deployment Cycle PNG
-6. User acceptance testing
+**⚠️ CRITICAL BUG DISCOVERED:**
+- **FIRST RESTART (2025-10-04 15:00):** Relay from Oct 3 session was broken, restarted Claude
+- **SECOND CRASH (2025-10-04 17:15):** Called `relay_add_server("marco", "ws://localhost:9030")` → relay crashed immediately
+- **ROOT CAUSE IDENTIFIED:** `relay_add_server` is crashing the relay - this is a BUG in relay code
+- **Evidence:** Tool call succeeded (no error), but relay stopped responding to all subsequent calls
+- **Hypothesis:** Adding Marco causes crash, possibly due to Marco's WebSocket handshake or response format
+
+**Next Steps After Claude Restart (FOLLOW IN STRICT ORDER):**
+1. ⚠️ **FIRST:** Test Dewey works - verify `dewey_list_conversations` returns output
+2. Import conversation to Dewey using `/mnt/projects/ICCM/marco/deployment_conversation_backup.json`
+3. **DO NOT USE `relay_add_server` - IT CRASHES THE RELAY**
+4. **Instead:** Investigate WHY relay crashes when adding Marco:
+   - Check relay logs for error during add_server
+   - Test Marco WebSocket directly (not through relay)
+   - Compare Marco's MCP handshake to Fiedler/Dewey
+   - Consult triplets about relay crash bug
+5. Fix relay crash bug before proceeding
+6. Once relay_add_server is fixed, add Marco to relay
+7. Test Marco functionality
+8. Complete deployment testing
+9. User acceptance testing
 
 **Conversation Backup:**
 - File: `/mnt/projects/ICCM/marco/deployment_conversation_backup.json`

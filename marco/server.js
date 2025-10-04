@@ -54,6 +54,10 @@ const pendingRequests = new Map();
 // Connected clients: clientId -> { ws, contexts: Set<contextId> }
 const clients = new Map();
 
+// MCP Protocol Layer State
+let playwrightToolSchema = [];
+let isPlaywrightInitialized = false;
+
 // ============================================================================
 // Structured JSON Logger
 // ============================================================================
@@ -80,6 +84,10 @@ function startPlaywrightSubprocess() {
   if (isShuttingDown) {
     return;
   }
+
+  // Reset MCP state on restart
+  isPlaywrightInitialized = false;
+  playwrightToolSchema = [];
 
   if (restartAttempts >= CONFIG.maxRestarts) {
     log('error', 'Max restart attempts reached, Playwright subprocess will not restart', {
@@ -129,6 +137,21 @@ function startPlaywrightSubprocess() {
     log('warn', 'Playwright subprocess stderr', { data: data.toString().trim() });
   });
 
+  // Initialize Playwright MCP and capture tool schema
+  setTimeout(() => {
+    if (playwrightProcess && !playwrightProcess.killed) {
+      // Send tools/list to capture available tools
+      const toolsListRequest = {
+        jsonrpc: '2.0',
+        id: 'marco_init_tools_list',
+        method: 'tools/list',
+        params: {},
+      };
+      playwrightProcess.stdin.write(JSON.stringify(toolsListRequest) + '\n');
+      log('debug', 'Sent tools/list to Playwright subprocess for initialization');
+    }
+  }, 1000); // Wait 1s for subprocess to be ready
+
   // Handle process exit
   playwrightProcess.on('exit', (code, signal) => {
     log('warn', 'Playwright subprocess exited', { code, signal, restartAttempts });
@@ -176,6 +199,18 @@ function handlePlaywrightMessage(messageLine) {
   }
 
   log('debug', 'Received message from Playwright subprocess', { message });
+
+  // Handle initialization tools/list response
+  if (message.id === 'marco_init_tools_list') {
+    if (message.result && message.result.tools) {
+      playwrightToolSchema = message.result.tools;
+      isPlaywrightInitialized = true;
+      log('info', 'Playwright MCP initialized and tools schema captured', { toolCount: playwrightToolSchema.length });
+    } else if (message.error) {
+      log('error', 'Failed to get tools from Playwright', { error: message.error });
+    }
+    return;
+  }
 
   // Handle responses (have an id)
   if (message.id !== undefined && message.id !== null) {
@@ -229,8 +264,17 @@ function handlePlaywrightMessage(messageLine) {
       playwrightProcess.stdin.write(JSON.stringify(errorResponse) + '\n');
     }
   }
-  // Handle notifications (no id) - broadcast to all clients
+  // Handle notifications (no id)
   else {
+    // Intercept initialization notification from Playwright to capture tool schema
+    if (message.method === 'notifications/initialized' && message.params && message.params.tools) {
+      playwrightToolSchema = message.params.tools;
+      isPlaywrightInitialized = true;
+      log('info', 'Playwright MCP initialized and tools schema captured', { toolCount: playwrightToolSchema.length });
+      // Do not broadcast this internal notification to clients
+      return;
+    }
+
     log('debug', 'Broadcasting notification to all clients', { notification: message });
     wss.clients.forEach((ws) => {
       if (ws.readyState === WebSocket.OPEN) {
@@ -328,6 +372,102 @@ function enqueueRequest(clientId, request) {
 }
 
 // ============================================================================
+// MCP Protocol Layer
+// ============================================================================
+
+function handleClientRequest(clientId, ws, request) {
+  const { method, params, id } = request;
+
+  log('debug', 'Processing client request via MCP layer', { clientId, method });
+
+  // 1. Handle MCP 'initialize'
+  if (method === 'initialize') {
+    const response = {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        protocolVersion: '2024-11-05',
+        serverInfo: { name: 'marco', version: '1.0.0' },
+        capabilities: { tools: {} },
+      },
+    };
+    ws.send(JSON.stringify(response));
+
+    // Per MCP spec, server sends `notifications/initialized` after client initializes
+    const notification = {
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+      params: {},
+    };
+    ws.send(JSON.stringify(notification));
+    return;
+  }
+
+  // 2. Handle MCP 'tools/list'
+  if (method === 'tools/list') {
+    if (!isPlaywrightInitialized) {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32000, message: 'Server not ready: Playwright tools not yet available.' },
+      }));
+      return;
+    }
+    const response = {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        tools: playwrightToolSchema,
+      },
+    };
+    ws.send(JSON.stringify(response));
+    return;
+  }
+
+  // 3. Handle MCP 'tools/call'
+  if (method === 'tools/call') {
+    const { name, arguments: args } = params || {};
+    if (!name) {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32602, message: "Invalid params for 'tools/call': missing 'name'." },
+      }));
+      return;
+    }
+
+    // Transform the MCP request into a direct JSON-RPC request for Playwright
+    const playwrightRequest = {
+      jsonrpc: '2.0',
+      id, // Pass through the original ID for response correlation
+      method: name,
+      params: args || {},
+    };
+
+    // Enqueue the transformed request for the Playwright subprocess
+    enqueueRequest(clientId, playwrightRequest);
+    return;
+  }
+
+  // 4. Handle client's `notifications/initialized` (just log and ignore)
+  if (method === 'notifications/initialized') {
+    log('debug', 'Client acknowledged initialization', { clientId });
+    return;
+  }
+
+  // 5. Reject any other methods
+  log('warn', 'Unsupported method received', { clientId, method });
+  ws.send(JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    error: {
+      code: -32601,
+      message: `Method not found: '${method}'. Use 'tools/call' to invoke browser methods.`,
+    },
+  }));
+}
+
+// ============================================================================
 // WebSocket Connection Handling
 // ============================================================================
 
@@ -342,8 +482,8 @@ function handleClientConnection(ws) {
       const message = JSON.parse(data.toString());
       log('debug', 'Received message from client', { clientId, message });
 
-      // Enqueue request
-      enqueueRequest(clientId, message);
+      // Route request through the MCP protocol layer
+      handleClientRequest(clientId, ws, message);
     } catch (err) {
       log('error', 'Failed to parse client message', { clientId, error: err.message });
       ws.send(JSON.stringify({
