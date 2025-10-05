@@ -16,10 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY src/ ./src/
+COPY test_iccm_network.py .
 
 # Expose the MCP port
 EXPOSE 8070
 
-# Run the server (v2 uses iccm-network library)
-# Install iccm-network from mounted volume, then start server
-CMD ["sh", "-c", "pip install -e /app/iccm-network && python -m src.mcp_server_v2"]
+# Run test server (tests iccm-network library without database)
+# Copy iccm-network to writable location and run test
+CMD ["sh", "-c", "cp -r /app/iccm-network/iccm_network /app/ && python test_iccm_network.py"]

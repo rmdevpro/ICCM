@@ -11,12 +11,8 @@ services:
     ports:
       - "9070:8070"
     volumes:
-      - type: volume
-        source: irina_storage
-        target: /mnt/irina_storage
-        volume:
-          nocopy: true
-      - ../iccm-network:/app/iccm-network:ro  # Mount iccm-network library
+      - /tmp/horace_test_storage:/mnt/irina_storage
+      - ../iccm-network:/app/iccm-network:ro
     networks:
       - iccm_network
     healthcheck:
@@ -25,13 +21,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-
-volumes:
-  irina_storage:
-    driver_opts:
-      type: "nfs"
-      o: "addr=192.168.1.210,rw,nfsvers=4"
-      device: ":/mnt/storage/iccm"
 
 networks:
   iccm_network:
