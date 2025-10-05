@@ -55,23 +55,30 @@ Identified root cause of BUG #16 (Playfair token limit). Playfair's base64 respo
    - TRACE-level logging for tool routing and backend communication
    - Activated after Claude Code restart
 
-**⏸️ Pending Integrations (6 components):**
+3. **Playfair Blue** - MCP-based logging deployed (port 9041) ✅ NEW
+   - TRACE-level logging for all MCP requests and tool calls
+   - Verified: Logs successfully sent to Godot and stored in Dewey
+   - Cutover complete: Original playfair-mcp container stopped
+
+**⏸️ Pending Integrations (5 components):**
 
 **MCP Servers (Priority - Use MCP-based logging):**
-1. **Playfair** (JavaScript) - Diagram generation gateway
-2. **Marco** (JavaScript) - Internet/browser automation gateway
+1. **Marco** (JavaScript) - Internet/browser automation gateway
 
 **Non-MCP Components (Use Redis client libraries):**
-3. **Fiedler** (Python) - Non-MCP operational logging
-4. **Dewey** (Python) - Non-MCP operational logging
-5. **KGB** (Python) - HTTP gateway logging
-6. **Claudette** (Python) - Container wrapper logging
+2. **Fiedler** (Python) - Non-MCP operational logging
+3. **Dewey** (Python) - Non-MCP operational logging
+4. **KGB** (Python) - HTTP gateway logging
+5. **Claudette** (Python) - Container wrapper logging
 
 **Client Libraries Available:**
 - Python: `/mnt/projects/ICCM/godot/client_libs/python/godot/`
 - JavaScript: `/mnt/projects/ICCM/godot/client_libs/javascript/loglib.js`
 
-**Next Steps:** Integrate Playfair and Marco (MCP-based) first, then remaining components with Redis clients
+**Next Steps:**
+1. ✅ Playfair Blue deployed and operational (2025-10-05 14:40 EDT)
+2. ⏸️ Marco MCP-based logging (pending)
+3. ⏸️ Remaining non-MCP components with Redis clients
 
 ---
 
