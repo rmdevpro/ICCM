@@ -121,10 +121,15 @@ Identified root cause of BUG #16 (Playfair token limit). Playfair's base64 respo
    - TRACE-level logging for tool routing and backend communication
    - Activated after Claude Code restart
 
-3. **Playfair Blue** - MCP-based logging deployed (port 9041) ✅ NEW
+3. **Playfair Blue** - MCP-based logging deployed (port 9041)
    - TRACE-level logging for all MCP requests and tool calls
    - Verified: Logs successfully sent to Godot and stored in Dewey
    - Cutover complete: Original playfair-mcp container stopped
+
+4. **Marco Blue** - MCP-based logging deployed (port 9031) ✅ NEW
+   - TRACE-level logging for all MCP requests and tool calls
+   - Verified: Logs successfully sent to Godot and stored in Dewey
+   - Cutover complete: Original marco-mcp container stopped
 
 **⏸️ Pending Integrations (4 components):**
 
@@ -143,8 +148,8 @@ Identified root cause of BUG #16 (Playfair token limit). Playfair's base64 respo
 
 **Next Steps:**
 1. ✅ Playfair Blue deployed and operational (2025-10-05 14:40 EDT)
-2. ⏸️ Marco MCP-based logging (pending)
-3. ⏸️ Remaining non-MCP components with Redis clients
+2. ✅ Marco Blue deployed and operational (2025-10-05 15:00 EDT)
+3. ⏸️ Remaining non-MCP components with Redis clients (Fiedler, Dewey, KGB, Claudette)
 
 ---
 
