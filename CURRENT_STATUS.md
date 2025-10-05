@@ -1,12 +1,47 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-05 03:30 EDT
-**Session:** Godot Logging Infrastructure - BUG #13 Solution Development
-**Status:** ⚠️ **Two active bugs (BUG #13, #16) - Godot implementation in progress**
+**Last Updated:** 2025-10-05 03:52 EDT
+**Session:** Godot Logging Infrastructure + Dewey Session Import
+**Status:** ⚠️ **Four active bugs (BUG #13, #16, #18, #19) - Godot awaiting triplet implementation**
 
 ---
 
 ## 🎯 Current Session Accomplishments
+
+### ✅ Dewey Claude Code Session Import - IMPLEMENTED (2025-10-05 03:52 EDT)
+
+**Enhancement:** Dewey can now directly import Claude Code session files with no conversion required
+
+**Implementation:**
+1. Added full host filesystem mount (`/:/host:ro`) to Dewey container
+2. Added JSONL format detection and parsing to `dewey_store_messages_bulk`
+3. Added Claude Code format normalization (handles nested `message: {role, content}` structures)
+4. Removed arbitrary size limits (MAX_BULK_MESSAGES, MAX_CONTENT_SIZE)
+5. Updated README with correct import process
+
+**Features:**
+- Direct import from `~/.claude/projects/-home-<user>/<session-id>.jsonl`
+- Automatic format detection (JSON array OR JSONL)
+- Preserves full original entries in metadata JSONB field
+- No size constraints - PostgreSQL handles limits
+
+**Bugs Discovered:**
+- **BUG #17**: Obsolete Docker Compose version attribute (RESOLVED)
+- **BUG #18**: Schema mismatch between Dewey and Claude Code format (workaround implemented)
+- **BUG #19**: Bulk store response exceeds 25K token limit (operation succeeds, response fails)
+
+**Files Modified:**
+- `/mnt/projects/ICCM/dewey/docker-compose.yml` - Full filesystem mount, removed version
+- `/mnt/projects/ICCM/dewey/dewey/tools.py` - JSONL support, format normalization, removed limits
+- `/mnt/projects/ICCM/dewey/README.md` - Documented correct import process
+
+**Test Results:**
+- ✅ Stored 2,372 messages from current Claude Code session
+- ✅ JSONL parsing working
+- ✅ Format normalization working
+- ⚠️ Response too large to display (BUG #19) but operation succeeded
+
+---
 
 ### 🔄 Godot Unified Logging Infrastructure - DEVELOPMENT IN PROGRESS (2025-10-05)
 

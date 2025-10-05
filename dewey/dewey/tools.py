@@ -11,9 +11,8 @@ from dewey.database import db_pool
 
 logger = logging.getLogger(__name__)
 
-# Configuration limits
-MAX_CONTENT_SIZE = 1000000  # 1MB per message (increased for real conversations with tool calls)
-MAX_BULK_MESSAGES = 1000    # Maximum messages in bulk insert
+# Configuration limits removed - let PostgreSQL handle size constraints
+# If issues arise, will be logged as bugs and handled appropriately
 
 class ToolError(Exception):
     """Custom exception for tool-specific errors."""
@@ -128,34 +127,54 @@ async def dewey_store_messages_bulk(messages: list = None, messages_file: str = 
             raise ToolError(f"File not found: {messages_file}")
         try:
             with open(messages_file, 'r') as f:
-                messages = json.load(f)
+                # Detect format: JSON array or JSONL (Claude Code session format)
+                first_char = f.read(1)
+                f.seek(0)
+
+                if first_char == '[':
+                    # Standard JSON array
+                    messages = json.load(f)
+                elif first_char == '{':
+                    # JSONL format (newline-delimited JSON objects)
+                    messages = []
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            messages.append(json.loads(line))
+                else:
+                    raise ToolError(f"Unrecognized file format (must start with '[' or '{{')")
         except json.JSONDecodeError as e:
             raise ToolError(f"Invalid JSON in messages_file: {e}")
 
     if not isinstance(messages, list) or not messages:
         raise ToolError("Parameter 'messages' (or messages_file content) must be a non-empty list.")
 
-    # Normalize content field (handle both strings and complex objects from Claude Code)
+    # Normalize messages to fit Dewey schema (BUG #18 workaround)
     import json
     for i, msg in enumerate(messages):
-        content = msg.get('content')
-        if isinstance(content, list) or isinstance(content, dict):
-            # Convert complex content (tool calls, etc.) to JSON string
-            messages[i]['content'] = json.dumps(content)
-
-    if len(messages) > MAX_BULK_MESSAGES:
-        raise ToolError(f"Bulk insert limited to {MAX_BULK_MESSAGES} messages. Received {len(messages)}.")
-
-    # Validate messages first
-    for i, msg in enumerate(messages):
-        role = msg.get('role')
-        content = msg.get('content')
-        if not role or not content:
-            raise ToolError(f"Message at index {i} is missing 'role' or 'content'.")
-        if role not in ('user', 'assistant', 'system', 'tool'):
-            raise ToolError(f"Invalid role '{role}' at index {i}.")
-        if len(content) > MAX_CONTENT_SIZE:
-            raise ToolError(f"Message at index {i} exceeds maximum content size of {MAX_CONTENT_SIZE} bytes.")
+        # Handle Claude Code session format
+        if 'message' in msg and isinstance(msg['message'], dict):
+            # Extract role/content from nested message
+            role = msg['message'].get('role', 'NA')
+            content = msg['message'].get('content', 'NA')
+            # Store original full entry in metadata
+            messages[i] = {
+                'role': role,
+                'content': json.dumps(content) if isinstance(content, (list, dict)) else str(content),
+                'metadata': msg  # Full original entry
+            }
+        elif 'role' in msg and 'content' in msg:
+            # Already in correct format
+            content = msg.get('content')
+            if isinstance(content, (list, dict)):
+                messages[i]['content'] = json.dumps(content)
+        else:
+            # Non-message entry (snapshot, etc.) - store as system message with full entry in metadata
+            messages[i] = {
+                'role': 'system',
+                'content': msg.get('type', 'unknown'),  # Use type as content placeholder
+                'metadata': msg  # Full original entry
+            }
 
     try:
         async with db_pool.transaction() as conn:

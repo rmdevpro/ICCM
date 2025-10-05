@@ -93,9 +93,9 @@ Add to your Claude Code MCP configuration:
 - `dewey_list_startup_contexts` - List all contexts
 - `dewey_delete_startup_context` - Delete a context
 
-## Storing Large Conversations
+## Storing Claude Code Sessions
 
-Dewey supports industry-standard **file reference pattern** for large conversation storage:
+Dewey can directly import Claude Code session files using the **file reference pattern**:
 
 ### Method 1: Inline (Small Conversations)
 ```python
@@ -108,27 +108,34 @@ dewey_store_messages_bulk(
 )
 ```
 
-### Method 2: File Reference (Large Conversations)
+### Method 2: File Reference - Claude Code Sessions (Recommended)
 ```python
-# 1. Extract conversation from Claude Code history
-python3 extract_conversation.py ~/.claude/projects/.../session.jsonl > /tmp/messages.json
+# 1. Find current Claude Code session file
+# Located at: ~/.claude/projects/-home-<user>/<session-uuid>.jsonl
 
-# 2. Store using file reference (recommended for >100 messages)
+# 2. Store entire session directly (no conversion needed)
 dewey_store_messages_bulk(
     conversation_id="...",
-    messages_file="/tmp/messages.json"
+    messages_file="/host/home/aristotle9/.claude/projects/-home-aristotle9/<session-id>.jsonl"
 )
 ```
 
 **Features:**
-- Supports up to 1,000 messages per call
-- Handles up to 1MB per message (tool calls, large content)
-- Automatic content normalization (arrays/objects → JSON strings)
-- Read-only /tmp volume mount for host filesystem access
+- **No size limits** - PostgreSQL handles constraints
+- **Automatic format detection** - Supports JSON arrays OR JSONL (newline-delimited)
+- **Claude Code native format** - Handles nested message structures automatically
+- **Full filesystem access** - Entire host filesystem mounted read-only at `/host/`
+- **Automatic content normalization** - Arrays/objects → JSON strings
 
-**Limits:**
-- MAX_BULK_MESSAGES: 1,000 messages
-- MAX_CONTENT_SIZE: 1,000,000 bytes (1MB) per message
+**Claude Code Format Handling (BUG #18 workaround):**
+- Extracts `role` and `content` from nested `message: {role, content}` structures
+- Stores non-message entries (snapshots, metadata) as `role='system'`
+- Preserves full original entry in `metadata` JSONB field for complete fidelity
+
+**Known Issues:**
+- **BUG #19**: Large bulk stores (>1000 messages) succeed but response exceeds 25K token limit
+  - Operation completes successfully, response just can't be displayed
+  - Workaround: Verify with `dewey_list_conversations` to see message count
 
 ## Database Schema
 

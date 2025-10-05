@@ -2,11 +2,111 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-04 22:15 EDT
+**Last Updated:** 2025-10-05 03:52 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
+
+### BUG #19: Dewey Bulk Store Response Exceeds Token Limit
+
+**Status:** 🔴 ACTIVE
+**Reported:** 2025-10-05 03:51 EDT
+**Priority:** LOW - Operation succeeds, just can't see response
+**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
+
+**Problem:**
+When storing large numbers of messages via `dewey_store_messages_bulk`, the response containing all message IDs exceeds Claude Code's 25,000 token limit, causing the response to be rejected even though the operation succeeded.
+
+**Error Message:**
+```
+MCP tool "dewey_store_messages_bulk" response (68808 tokens) exceeds maximum allowed tokens (25000)
+```
+
+**Scenario:**
+- Stored 2,372 messages from Claude Code session successfully
+- Response includes all 2,372 message IDs in array
+- Response is 68,808 tokens (2.75x over limit)
+
+**Impact:**
+- Messages ARE stored successfully in database
+- Cannot see confirmation response or message IDs
+- Similar to BUG #16 (Playfair token limit)
+
+**Workaround:**
+- Query database directly to confirm storage
+- Use `dewey_list_conversations` to verify message count
+
+**Solution Needed:**
+- Return summary instead of full array: `{stored: 2372, first_id: "...", last_id: "..."}`
+- OR: Paginated response
+- OR: Write response to file instead of returning inline
+
+**Files Affected:**
+- `/mnt/projects/ICCM/dewey/dewey/tools.py` - `dewey_store_messages_bulk` return value
+
+---
+
+### BUG #18: Dewey Schema Mismatch with Claude Code Session Format
+
+**Status:** 🔴 ACTIVE
+**Reported:** 2025-10-05 03:45 EDT
+**Priority:** MEDIUM - Workaround available
+**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
+
+**Problem:**
+Dewey's relational schema expects flat `{role, content, metadata}` messages, but Claude Code's session JSONL files contain complex nested structures with various entry types (file-history-snapshot, user, assistant, tool, etc.) that don't map cleanly to required fields.
+
+**Schema Constraint:**
+- Database requires `role` (text, NOT NULL) and `content` (text, NOT NULL)
+- Claude Code format has `type` and nested `message: {role, content}` structure
+- Not all JSONL entries are messages (snapshots, metadata, etc.)
+
+**Impact:**
+- Cannot directly import Claude Code session files to Dewey
+- Must transform/flatten complex structures to fit schema
+- Loses fidelity of original session data
+
+**Temporary Workaround:**
+Store entries without proper role/content as role='NA', content='NA', put full entry in metadata JSONB field
+
+**Long-term Solution Needed:**
+- Redesign Dewey schema to handle arbitrary JSON structures
+- OR: Separate table for raw Claude Code sessions
+- OR: Use JSONB for entire message structure instead of relational
+
+**Files Affected:**
+- `/mnt/projects/ICCM/dewey/schema.sql` - Messages table schema
+- `/mnt/projects/ICCM/dewey/dewey/tools.py` - Message validation and storage
+
+---
+
+### BUG #17: Dewey Docker Compose Obsolete Version Attribute
+
+**Status:** ✅ RESOLVED
+**Reported:** 2025-10-05 03:38 EDT
+**Resolved:** 2025-10-05 03:39 EDT
+**Priority:** LOW - Cosmetic warning
+**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
+
+**Problem:**
+Dewey's `docker-compose.yml` contains obsolete `version: '3.8'` attribute on line 1, causing deprecation warning on every docker compose command.
+
+**Warning Message:**
+```
+time="2025-10-04T23:37:48-04:00" level=warning msg="/mnt/projects/ICCM/dewey/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+```
+
+**Root Cause:**
+Docker Compose no longer requires or uses the `version` attribute. It's deprecated and should be removed.
+
+**Resolution:**
+Removed `version: '3.8'` from docker-compose.yml
+
+**Files Modified:**
+- `/mnt/projects/ICCM/dewey/docker-compose.yml` - Removed obsolete version attribute
+
+---
 
 ### BUG #16: Playfair Response Token Limit Exceeded
 
