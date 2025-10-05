@@ -1,50 +1,83 @@
 # Current Architecture Overview - ICCM System
 
-**Last Updated:** 2025-10-05 15:00 EDT
-**Purpose:** Explain the immutable architecture (PNG) and document current protocol configuration
+**Last Updated:** 2025-10-05 16:30 EDT
+**Purpose:** Explain the immutable architecture (PNGs) and document current protocol configuration
 
 ---
 
-## 🎯 Immutable Architecture (from PNG)
+## 🎯 Immutable Architecture (from PNGs)
 
-The architecture PNG shows the **component relationships and data flows** that define the ICCM system. These relationships are immutable and can only be changed in an architecture planning session.
+The architecture PNGs show the **component relationships and data flows** that define the ICCM system. These relationships are immutable and can only be changed in an architecture planning session.
+
+### Architecture Diagrams
+
+**Three complementary views of ICCM architecture:**
+
+1. **Diagram_1_MCP_Traffic.png** - MCP connections and LLM access
+2. **Diagram_2_Data_Writes.png** - Write-only logging and conversation storage flow
+3. **Diagram_3_Data_Reads.png** - Read-only query and retrieval flow
 
 ### Component Diagram Overview
 
-```
-LEFT SIDE (Bare Metal Claude - Current Active):
-- Claude Code (bare metal) with MCP Relay extension
-  - MCP Relay connects directly to WebSocket MCP servers:
-    - Fiedler (ws://localhost:9010) - 10 LLM models
-    - Dewey (ws://localhost:9020) - Conversation storage
-    - Marco (ws://localhost:9030) - Browser automation (planned)
-  - Direct connections to:
-    - Claude Max (Anthropic API) - Yellow dotted line
-    - Local LLMs - Blue solid line (future)
+**OUTSIDE ECOSYSTEM:**
+- **Claude Code (Bare Metal)** - Yellow box, outside ecosystem
+  - Can bypass to Claude API directly (emergency access - red dashed line)
+  - Connects to MCP Relay via MCP protocol (bidirectional)
+  - Logs directly to Godot (cannot fail if ecosystem broken)
 
-RIGHT SIDE (Containerized with Logging - Operational):
-- Claudette (Containerized Claude Code) with MCP Relay inside container
-  - MCP Relay → KGB (8089) → Fiedler (8081) → Cloud LLMs
-  - MCP Relay → Dewey (9020) → Winni Database
-  - MCP Relay → Marco (9030) → Playwright/Chromium (planned)
-  - KGB provides automatic conversation logging
+**INSIDE ECOSYSTEM:**
+- **Claudette (Containerized Claude)** - Blue box, inside ecosystem
+  - Must follow all architectural rules
+  - Connects to MCP Relay via MCP protocol (bidirectional)
+  - Routes through Fiedler for ALL LLM access (no direct API access)
+  - Logs to Godot via MCP tools
 
-LEGEND:
-- Yellow dotted lines: Direct Claude Max connections
-- Yellow solid lines: Claude Max Official connections
-- Blue solid lines: LLM API / WebSocket connections
-- Red lines: Logging data flow
-- Black lines: Database queries
-- Gray lines: Generic connections
-```
+- **MCP Relay (9000)** - Central hub
+  - Bidirectional MCP connections to all servers (9022, 9030, 9041, 9050, 9060, 9031)
+  - Logs to Godot
+
+- **Fiedler (9030)** - LLM Gateway
+  - Routes ALL LLM calls to Cloud LLMs (OpenAI, Google, xAI, Anthropic)
+  - Logs conversations AND operational logs to Godot
+
+- **Godot (9060)** - WRITE Specialist
+  - Receives logs from ALL components (blue arrows)
+  - Receives conversation logs from Fiedler
+  - Single source of truth for ALL writes to Winni
+  - Writes to PostgreSQL Winni (44TB RAID 5)
+
+- **Dewey (9022)** - READ Specialist
+  - Query-only access to Winni (bidirectional request/reply - green arrows)
+  - NO write capabilities
+  - Logs operational activity to Godot
+
+- **Support Services:**
+  - Playfair (9041) - Diagram generation
+  - Gates (9050) - Document generation
+  - Marco (9031) - Browser automation
+
+- **Cloud LLMs** - Right side, gray box
+  - Claude API (pink oval) - Anthropic
+  - Other LLMs (yellow oval) - OpenAI, Google, xAI, etc.
 
 **Key Architecture Principles:**
-1. **MCP Relay as Claude extension**: Acts as stdio-to-WebSocket bridge, runs as subprocess of Claude Code
-2. **Two deployment modes**: Bare metal (direct, no logging) and containerized (logged through KGB)
-3. **Bare metal connects directly**: MCP Relay → WebSocket MCP servers (no intermediary relay)
-4. **Containerized routes through KGB**: MCP Relay → KGB → backends (automatic logging)
-5. **Runtime server management**: Switch modes via MCP tools (no file editing or restarts)
-6. **Architecture changes** require formal architecture planning session
+1. **Option 4: Write/Read Separation**
+   - **Godot = WRITE specialist**: ALL database writes flow through Godot
+   - **Dewey = READ specialist**: Query-only, no write capabilities
+
+2. **Two-tier access control:**
+   - **Claude Code (Bare Metal)**: Outside ecosystem, can bypass for emergency repairs
+   - **Claudette (Containerized)**: Inside ecosystem, must follow all rules
+
+3. **Centralized logging**: ALL components log to Godot via MCP tools
+
+4. **LLM Gateway**: Fiedler is the ONLY path to Cloud LLMs for ecosystem components
+
+5. **Conversation logging**: Fiedler logs ALL LLM conversations to Godot
+
+6. **KGB elimination**: No HTTP proxy needed - Claudette uses MCP Relay directly
+
+7. **Architecture changes** require formal architecture planning session
 
 ---
 

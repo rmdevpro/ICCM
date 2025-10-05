@@ -2,11 +2,113 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-05 12:45 EDT
+**Last Updated:** 2025-10-05 16:30 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
+
+---
+
+### ARCHITECTURAL VIOLATION #1: Dewey Has Write Tools
+
+**Status:** 🔴 ACTIVE - Architectural Violation
+**Discovered:** 2025-10-05 16:00 EDT during architecture diagram review
+**Priority:** HIGH - Violates Option 4 architecture
+**Component:** Dewey (`/mnt/projects/ICCM/dewey-blue/`)
+
+**Problem:**
+Dewey currently has write tools (`dewey_store_message`, `dewey_store_messages_bulk`) that directly write to PostgreSQL Winni. This violates the Option 4: Write/Read Separation architecture where:
+- **Godot = WRITE specialist** (all database writes)
+- **Dewey = READ specialist** (query-only, no writes)
+
+**Impact:**
+- Violates architectural separation of concerns
+- Bypasses centralized logging through Godot
+- Creates multiple write paths to database (not single source of truth)
+- KGB currently writes conversations through Dewey (should be eliminated)
+
+**Correct Architecture:**
+- Dewey should ONLY have read/query tools
+- All conversation writes should go through Fiedler → Godot → Winni
+- All log writes should go through components → Godot → Winni
+
+**Required Changes:**
+1. Remove `dewey_store_message` and `dewey_store_messages_bulk` tools from Dewey
+2. Add conversation logging to Fiedler (log all LLM requests/responses to Godot)
+3. Eliminate KGB (Claudette connects directly to Relay)
+4. Update all components to log via Godot MCP tools
+
+**Files Affected:**
+- `/mnt/projects/ICCM/dewey-blue/dewey/tools.py` - Remove write tools
+- `/mnt/projects/ICCM/fiedler-blue/` - Add conversation logging to Godot
+- `/mnt/projects/ICCM/kgb/` - Eliminate (no longer needed)
+
+---
+
+### ARCHITECTURAL VIOLATION #2: Fiedler Not Logging Conversations
+
+**Status:** 🔴 ACTIVE - Architectural Violation
+**Discovered:** 2025-10-05 16:00 EDT during architecture diagram review
+**Priority:** HIGH - Violates conversation logging architecture
+**Component:** Fiedler (`/mnt/projects/ICCM/fiedler-blue/`)
+
+**Problem:**
+Fiedler currently does NOT log LLM conversations to Godot. All LLM traffic flows through Fiedler, but conversations are not being captured for storage in Winni.
+
+**Impact:**
+- LLM conversations are not being logged
+- Cannot track/audit LLM usage
+- Cannot retrieve historical conversations
+- Violates "single gateway for all LLM access" principle
+
+**Correct Architecture:**
+Fiedler should log ALL LLM requests and responses to Godot via MCP tools:
+```
+User → Fiedler → Cloud LLM
+             ↓
+          Godot (log conversation)
+             ↓
+          Winni (store)
+```
+
+**Required Changes:**
+1. Add Godot MCP client to Fiedler
+2. Log every LLM request/response pair to Godot
+3. Include model, tokens, timing, and full conversation content
+
+**Files Affected:**
+- `/mnt/projects/ICCM/fiedler-blue/` - Add conversation logging
+
+---
+
+### ARCHITECTURAL VIOLATION #3: KGB Still Exists
+
+**Status:** 🔴 ACTIVE - Architectural Violation
+**Discovered:** 2025-10-05 16:00 EDT during architecture diagram review
+**Priority:** MEDIUM - Should be eliminated
+**Component:** KGB (`/mnt/projects/ICCM/kgb/`)
+
+**Problem:**
+KGB HTTP proxy still exists and routes Claudette traffic, but it's no longer needed in the correct architecture. Claudette should connect directly to MCP Relay like Claude Code does.
+
+**Impact:**
+- Unnecessary complexity
+- Violates "Claudette uses MCP Relay directly" principle
+- Creates alternative conversation logging path through Dewey (architectural violation)
+
+**Correct Architecture:**
+- Claudette → MCP Relay → Fiedler → Cloud LLMs
+- No KGB needed
+
+**Required Changes:**
+1. Remove KGB container/service
+2. Configure Claudette to connect to MCP Relay directly
+3. All conversation logging happens through Fiedler → Godot path
+
+**Files Affected:**
+- `/mnt/projects/ICCM/kgb/` - Remove entirely
+- Claudette configuration - Connect to MCP Relay
 
 ---
 

@@ -1,8 +1,41 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-05 15:30 EDT
-**Session:** Playfair BUG #16 Resolution + PostgreSQL Storage Migration
-**Status:** ✅ **ALL SYSTEMS OPERATIONAL** - 51 tools available, BUG #16 resolved, 44TB storage active
+**Last Updated:** 2025-10-05 16:30 EDT
+**Session:** Architecture Diagram Review + Architectural Violations Identified
+**Status:** ⚠️ **OPERATIONAL WITH VIOLATIONS** - 51 tools available, 3 architectural violations documented
+
+---
+
+## 🚨 ARCHITECTURAL VIOLATIONS IDENTIFIED (2025-10-05 16:30 EDT)
+
+**During architecture diagram review, discovered 3 major architectural violations:**
+
+1. **VIOLATION #1: Dewey Has Write Tools**
+   - Dewey has `dewey_store_message` and `dewey_store_messages_bulk` tools
+   - Violates Option 4: Write/Read Separation (Dewey should be READ-only)
+   - Creates multiple write paths to database (not single source of truth)
+
+2. **VIOLATION #2: Fiedler Not Logging Conversations**
+   - Fiedler does NOT log LLM conversations to Godot
+   - All LLM traffic flows through Fiedler but conversations not captured
+   - Violates "single gateway for all LLM access" principle
+
+3. **VIOLATION #3: KGB Still Exists**
+   - KGB HTTP proxy no longer needed in correct architecture
+   - Claudette should connect directly to MCP Relay
+   - Creates unnecessary complexity and alternative logging path
+
+**Next Steps:**
+- Plan architectural realignment through full development cycle
+- Remove write tools from Dewey
+- Add conversation logging to Fiedler
+- Eliminate KGB
+- Update all components to follow Option 4 architecture
+
+**Documentation:**
+- ✅ Created 3 new architecture diagrams (Diagram_1_MCP_Traffic.png, Diagram_2_Data_Writes.png, Diagram_3_Data_Reads.png)
+- ✅ Updated CURRENT_ARCHITECTURE_OVERVIEW.md with new architecture
+- ✅ Documented violations in BUG_TRACKING.md
 
 ---
 
