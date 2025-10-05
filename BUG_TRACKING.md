@@ -1,16 +1,56 @@
-# Bug Tracking Log
+# Bug Tracking
 
-**Purpose:** Track active bugs with high-level summaries and resolution status
+**⚠️ DEPRECATED:** This file is no longer maintained. All bug tracking has been migrated to **GitHub Issues**.
 
-**Last Updated:** 2025-10-05 16:30 EDT
+**View active bugs:** https://github.com/rmdevpro/ICCM/issues
+
+## Why GitHub Issues?
+
+- ✅ Built-in issue tracking with labels (bug, enhancement, technical-debt, architectural-violation)
+- ✅ Link issues directly to commits/PRs (`fixes #123`, `relates to #45`)
+- ✅ Better search/filtering capabilities
+- ✅ Automatic closing when commits pushed
+- ✅ Query open issues anytime: `gh issue list --label bug --state open`
+- ✅ Mobile access via GitHub app
+- ✅ Single source of truth - no separate file to maintain
+
+## Quick Reference
+
+**View all issues:**
+```bash
+gh issue list
+```
+
+**View active bugs:**
+```bash
+gh issue list --label bug --state open
+```
+
+**View architectural violations:**
+```bash
+gh issue list --label architectural-violation --state open
+```
+
+**Create new issue:**
+```bash
+gh issue create --title "Issue title" --label bug --body "Description"
+```
+
+**Close issue from commit:**
+```bash
+git commit -m "Fix authentication bug
+
+fixes #123"
+```
 
 ---
 
-## 🐛 ACTIVE BUGS
+# Archived Content (Historical Reference Only)
 
----
+## 🐛 ACTIVE BUGS (Migrated to GitHub Issues)
 
 ### ARCHITECTURAL VIOLATION #1: Dewey Has Write Tools
+**GitHub Issue:** https://github.com/rmdevpro/ICCM/issues/1
 
 **Status:** 🔴 ACTIVE - Architectural Violation
 **Discovered:** 2025-10-05 16:00 EDT during architecture diagram review
@@ -47,6 +87,7 @@ Dewey currently has write tools (`dewey_store_message`, `dewey_store_messages_bu
 ---
 
 ### ARCHITECTURAL VIOLATION #2: Fiedler Not Logging Conversations
+**GitHub Issue:** https://github.com/rmdevpro/ICCM/issues/2
 
 **Status:** 🔴 ACTIVE - Architectural Violation
 **Discovered:** 2025-10-05 16:00 EDT during architecture diagram review
@@ -83,6 +124,7 @@ User → Fiedler → Cloud LLM
 ---
 
 ### ARCHITECTURAL VIOLATION #3: KGB Still Exists
+**GitHub Issue:** https://github.com/rmdevpro/ICCM/issues/3
 
 **Status:** 🔴 ACTIVE - Architectural Violation
 **Discovered:** 2025-10-05 16:00 EDT during architecture diagram review
