@@ -55,24 +55,28 @@
 - `dewey_query_logs(filters)` - Query logs with full-text search
 - `dewey_clear_logs(criteria)` - Clear old logs (with retention policy)
 
-#### 3.3 Logging Client Libraries (New)
-**Responsibilities:**
-- Provide simple API for components to log messages
-- Push logs to Godot's Redis queue (non-blocking)
-- Support multiple log levels (ERROR, WARN, INFO, DEBUG, TRACE)
-- Implement field redaction for sensitive data
-- Propagate trace IDs for request correlation
+#### 3.3 Logging Integration (MCP-Based)
+**ARCHITECTURAL REQUIREMENT:** ALL MCP servers MUST use MCP-based logging via WebSocket to Godot's `logger_log` tool. Direct Redis connections are FORBIDDEN.
 
-**Implementations:**
-- `loglib.py` (Python) - For relay, Dewey, Fiedler
-- `loglib.js` (JavaScript) - For Gates
+**Integration Methods:**
+1. **MCP Servers (REQUIRED):** Call `logger_log` MCP tool via WebSocket (ws://godot-mcp:9060)
+   - Gates, Playfair, Marco, Fiedler, Dewey, KGB, Claudette, MCP Relay
+   - Uses WebSocket client library (built-in to most platforms)
+   - Redis (port 6379) is internal to Godot only - NOT accessible on network
+
+2. **Legacy Redis Client (DEPRECATED - Architectural Violation):**
+   - Direct Redis connections (loglib.py/loglib.js) - FORBIDDEN for MCP servers
+   - Only preserved for historical reference
+   - Violates MCP protocol layer architecture
 
 ### Data Flow
 
 ```
-Components (relay, gates, fiedler, dewey)
-    ↓ (loglib pushes to Redis)
-Godot Redis Queue
+MCP Components (gates, fiedler, dewey, relay, etc.)
+    ↓ (WebSocket MCP: logger_log tool call to ws://godot-mcp:9060)
+Godot MCP Server receives log
+    ↓ (pushes to internal Redis queue - port 6379 NOT exposed)
+Godot Redis Queue (internal only)
     ↓ (worker pulls and batches)
 Godot Worker → dewey_store_logs_batch()
     ↓ (MCP call)
@@ -80,6 +84,8 @@ Dewey validates & stores
     ↓
 PostgreSQL (Winni on Irina)
 ```
+
+**CRITICAL:** Redis (port 6379) is internal to Godot container (bind: 127.0.0.1). Components MUST NOT attempt direct Redis connections.
 
 ## 4. Functional Requirements
 
@@ -124,48 +130,54 @@ PostgreSQL (Winni on Irina)
 - Oldest/newest log timestamps
 - Database size estimate
 
-### 4.5 Client Library (loglib.py / loglib.js)
+### 4.5 MCP-Based Logging Integration (REQUIRED for ALL MCP Servers)
 
-**REQ-LIB-001:** Client MUST provide methods: `error()`, `warn()`, `info()`, `debug()`, `trace()`
-**REQ-LIB-002:** Each log method MUST accept `message` (string) and optional `data` (object)
-**REQ-LIB-003:** Client MUST push to Redis non-blocking (fire-and-forget with local fallback)
-**REQ-LIB-004:** Client MUST fallback to local console/file logging if Redis unreachable or if log push fails (queue full, connection error)
-**REQ-LIB-005:** Client MUST support dynamic log level changes via `set_level(level)`
-**REQ-LIB-006:** Client MUST filter logs below current level (don't send to Redis)
-**REQ-LIB-007:** When falling back to local logging, client MUST log warning indicating central log may be incomplete with reason
+**REQ-MCP-001:** ALL MCP servers MUST use WebSocket MCP to call `logger_log` tool on Godot (ws://godot-mcp:9060)
+**REQ-MCP-002:** Log calls MUST be non-blocking and fail silently (never break application)
+**REQ-MCP-003:** Log levels MUST be one of: ERROR, WARN, INFO, DEBUG, TRACE
+**REQ-MCP-004:** Components MUST propagate `trace_id` when available for request correlation
+**REQ-MCP-005:** Components MUST include structured `data` (JSONB) for context
+**REQ-MCP-006:** Logging MUST be controlled via environment variable `LOGGING_ENABLED` (default: true)
+**REQ-MCP-007:** Components MUST use connection timeout ≤1 second for Godot WebSocket calls
 
-### 4.6 Request Correlation
+### 4.6 Legacy Redis Client (DEPRECATED - DO NOT USE)
+
+**DEPRECATED:** Direct Redis client libraries (loglib.py/loglib.js) violate ICCM architecture. Preserved for historical reference only. See Godot README for correct MCP-based implementation.
+
+### 4.7 Request Correlation
 
 **REQ-COR-001:** Relay MUST generate `trace_id` (UUID v4) for each incoming request from Claude Code
 **REQ-COR-002:** Relay MUST include `trace_id` in all forwarded messages to backends via `X-Trace-ID` header (or MCP metadata field if supported)
 **REQ-COR-003:** All components MUST extract `trace_id` from incoming messages and include in logs
-**REQ-COR-004:** Client library MUST accept optional `trace_id` parameter in log methods
-**REQ-COR-005:** If no `trace_id` provided, client MUST use `null` (not generate new ID)
+**REQ-COR-004:** MCP logging calls MUST include optional `trace_id` parameter when available
+**REQ-COR-005:** If no `trace_id` provided, components MUST use `null` (not generate new ID)
 
-### 4.7 Security & Privacy
+### 4.8 Security & Privacy
 
-**REQ-SEC-001:** Client library MUST support field redaction before sending to Redis
-**REQ-SEC-002:** Default redacted fields: `password`, `token`, `api_key`, `authorization`, `secret`
-**REQ-SEC-003:** Redaction MUST replace sensitive values with `"[REDACTED]"`
-**REQ-SEC-004:** Components MUST be able to configure additional redacted fields
-**REQ-SEC-005:** Godot and Dewey internal communication MUST use MCP over localhost only
+**REQ-SEC-001:** Components SHOULD redact sensitive fields before logging (client-side responsibility)
+**REQ-SEC-002:** Recommended redacted fields: `password`, `token`, `api_key`, `authorization`, `secret`
+**REQ-SEC-003:** Redaction SHOULD replace sensitive values with `"[REDACTED]"`
+**REQ-SEC-004:** Components SHOULD support configurable redaction patterns
+**REQ-SEC-005:** Godot Redis MUST bind to 127.0.0.1 only (not exposed on network)
+**REQ-SEC-006:** Godot and Dewey internal communication MUST use MCP over localhost/docker network only
 
 ## 5. Non-Functional Requirements
 
 ### 5.1 Performance
 
-**REQ-PERF-001:** Client library log call MUST complete in <1ms (async, non-blocking)
+**REQ-PERF-001:** MCP logging call (logger_log) MUST be non-blocking and fail silently on timeout
 **REQ-PERF-002:** Godot worker MUST process 1,000 logs/second sustained
 **REQ-PERF-003:** Redis queue depth MUST NOT exceed 100,000 entries (drop oldest if full)
 **REQ-PERF-004:** Dewey batch insert MUST complete in <100ms for 100 log entries
 **REQ-PERF-005:** Log query with filters MUST return in <500ms for result sets up to 1,000 entries
+**REQ-PERF-006:** MCP logging calls MUST use timeout ≤1 second to prevent blocking
 
 ### 5.2 Reliability
 
 **REQ-REL-001:** Godot Redis MUST persist queue to disk (AOF enabled)
 **REQ-REL-002:** Godot worker MUST retry Dewey calls with exponential backoff (max 3 retries)
-**REQ-REL-003:** Client library MUST handle Redis connection loss gracefully (local fallback)
-**REQ-REL-004:** System MUST survive simultaneous failure of Godot and Dewey (local logs preserved)
+**REQ-REL-003:** MCP logging MUST fail silently - never break application on Godot unavailability
+**REQ-REL-004:** System MUST survive simultaneous failure of Godot and Dewey (components continue operating)
 
 ### 5.3 Scalability
 
@@ -177,9 +189,10 @@ PostgreSQL (Winni on Irina)
 ### 5.4 Maintainability
 
 **REQ-MAINT-001:** All components MUST log to `stdout/stderr` for Docker container logging
-**REQ-MAINT-002:** Godot MUST NOT use loglib internally (prevent infinite loops)
+**REQ-MAINT-002:** Godot MUST NOT call its own logger_log tool (prevent infinite loops)
 **REQ-MAINT-003:** Each component MUST expose health check endpoint
 **REQ-MAINT-004:** Configuration MUST be via environment variables (12-factor app)
+**REQ-MAINT-005:** Components MUST document MCP-based logging integration in README
 
 ## 6. Database Schema
 
@@ -305,50 +318,43 @@ CREATE TABLE logger_config (
 }
 ```
 
-### 7.3 Client Library API
+### 7.3 MCP-Based Logging Integration (REQUIRED)
 
-**Python (loglib.py):**
+**ARCHITECTURAL REQUIREMENT:** ALL MCP servers MUST use MCP-based logging. See Godot README for complete implementation examples.
+
+**Python Implementation:**
 ```python
-from godot.loglib import ICCMLogger
+from .godot import log_to_godot
 
-logger = ICCMLogger(
-    component='relay',
-    redis_url='redis://localhost:6379',
-    default_level='INFO',
-    redact_fields=['password', 'token']
+# Non-blocking async logging
+await log_to_godot(
+    level='INFO',
+    message='Server starting',
+    component='your-component',
+    data={'port': 8080},
+    trace_id=trace_id,  # Optional
+    godot_url='ws://godot-mcp:9060'
 )
-
-# Log methods
-logger.error(message, data=None, trace_id=None)
-logger.warn(message, data=None, trace_id=None)
-logger.info(message, data=None, trace_id=None)
-logger.debug(message, data=None, trace_id=None)
-logger.trace(message, data=None, trace_id=None)
-
-# Configuration
-logger.set_level('TRACE')
-logger.close()
 ```
 
-**JavaScript (loglib.js):**
+**Node.js Implementation:**
 ```javascript
-const { ICCMLogger } = require('godot/loglib');
+const WebSocket = require('ws');
 
-const logger = new ICCMLogger({
-    component: 'gates',
-    redisUrl: 'redis://localhost:6379',
-    defaultLevel: 'INFO',
-    redactFields: ['password', 'token']
-});
-
-// Log methods (same as Python)
-logger.error(message, data, traceId);
-logger.trace(message, data, traceId);
-
-// Configuration
-logger.setLevel('TRACE');
-logger.close();
+async function logToGodot(level, message, data = null, traceId = null) {
+    // See Godot README for complete implementation
+    // Calls logger_log tool via WebSocket MCP
+}
 ```
+
+**Environment Variables:**
+```yaml
+environment:
+  - GODOT_URL=ws://godot-mcp:9060
+  - LOGGING_ENABLED=true
+```
+
+**DEPRECATED:** Legacy Redis client libraries (loglib.py/loglib.js) are FORBIDDEN. They violate the ICCM architecture by bypassing the MCP protocol layer.
 
 ## 8. Deployment Architecture
 
@@ -389,9 +395,10 @@ services:
 ### 8.2 Network Configuration
 
 - All containers on `iccm_network` bridge network
-- Godot exposes port 9060 for MCP tools
-- Godot connects to Dewey via `ws://dewey-mcp:8080` (internal)
-- Components connect to Godot Redis via `redis://godot-mcp:6379` (internal)
+- Godot exposes port 9060 for MCP tools (WebSocket)
+- Godot connects to Dewey via `ws://dewey-mcp:9020` (internal)
+- **Godot Redis port 6379 is INTERNAL ONLY** - bound to 127.0.0.1, NOT exposed on network
+- **Components MUST connect via WebSocket MCP** (ws://godot-mcp:9060), NOT Redis directly
 
 ## 9. Testing Requirements
 

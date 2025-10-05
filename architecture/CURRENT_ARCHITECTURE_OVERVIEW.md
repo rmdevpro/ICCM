@@ -242,6 +242,17 @@ LEGEND:
   - Direct mode: `ws://localhost:9010` (no logging)
   - Logged mode: `ws://localhost:9000?upstream=fiedler` (automatic logging)
 
+### Godot Centralized Logging (Blue Deployments)
+- **Container:** `godot-mcp`
+- **Port:** 9060 (WebSocket MCP)
+- **Purpose:** Centralized logging infrastructure for all ICCM components
+- **Architecture:** MCP Server + Redis Queue (internal) + Batch Worker
+- **Redis:** Port 6379 internal only (bind: 127.0.0.1) - NOT exposed on network
+- **Integration:** ALL MCP servers MUST use MCP-based logging via `logger_log` tool
+- **Data Flow:** Component → logger_log (WS MCP) → Redis (internal) → Batch Worker → Dewey
+- **FORBIDDEN:** Direct Redis connections - violates MCP protocol architecture
+- **Documentation:** `/mnt/projects/ICCM/godot/godot/README.md`
+
 ### Winni Database
 - **Type:** PostgreSQL
 - **Host:** Irina (192.168.1.210)

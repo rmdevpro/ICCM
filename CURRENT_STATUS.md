@@ -1,8 +1,32 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-05 16:00 EDT
-**Session:** Godot Logging Integration - Fiedler Blue Deployment
-**Status:** ✅ **ALL SYSTEMS OPERATIONAL** - 51 tools available, Fiedler Blue deployed
+**Last Updated:** 2025-10-05 17:30 EDT
+**Session:** Godot Logging Integration - Documentation Updates
+**Status:** ✅ **ALL SYSTEMS OPERATIONAL** - 51 tools available, architecture documentation updated
+
+---
+
+## 🚨 CRITICAL ARCHITECTURAL CLARIFICATION (2025-10-05 17:30 EDT)
+
+**ALL MCP servers MUST use MCP-based logging - Direct Redis connections are FORBIDDEN**
+
+**Architecture Requirement:**
+- Redis (port 6379) is **internal to Godot container only** (bind: 127.0.0.1)
+- Redis is **NOT exposed** on iccm_network
+- Direct Redis connections **violate the MCP protocol layer**
+- ALL MCP servers MUST call `logger_log` tool via WebSocket (ws://godot-mcp:9060)
+
+**Documentation Updated:**
+- ✅ Godot README - Changed "recommended" → **REQUIRED/FORBIDDEN** language
+- ✅ Godot REQUIREMENTS.md - Updated functional requirements and data flow
+- ✅ CURRENT_ARCHITECTURE_OVERVIEW.md - Added Godot section with architectural constraints
+- ✅ All docs now explicitly forbid direct Redis access for MCP servers
+
+**Why This Matters:**
+- Fiedler Blue initial deployment attempted Redis client library (loglib.py)
+- Failed because Redis not exposed on network (by design)
+- Corrected to MCP-based logging - now working perfectly
+- This prevents future architectural violations
 
 ---
 
