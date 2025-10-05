@@ -235,10 +235,12 @@ async def dewey_store_messages_bulk(messages: list = None, messages_file: str = 
             await conn.execute("UPDATE conversations SET id = id WHERE id = $1;", conv_id)
 
         logger.info(f"Bulk stored {len(messages)} messages in conversation {conv_id}.")
+        # BUG #19 fix: Return summary instead of all message IDs to avoid token limit
         return {
             "conversation_id": str(conv_id),
             "stored": len(message_ids),
-            "message_ids": message_ids
+            "first_message_id": message_ids[0] if message_ids else None,
+            "last_message_id": message_ids[-1] if message_ids else None
         }
     except Exception as e:
         logger.error(f"Error in dewey_store_messages_bulk: {e}")

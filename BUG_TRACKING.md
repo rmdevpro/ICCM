@@ -198,51 +198,40 @@ Triplets may assume existence of convenience libraries. Always verify dependenci
 
 ### BUG #25: Claudette Missing Godot Logging Integration
 
-**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Status:** ❌ CANCELLED - Not needed per user request
 **Reported:** 2025-10-05 04:35 EDT
-**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Cancelled:** 2025-10-05 16:55 EDT
+**Priority:** N/A
 **Component:** Claudette (`/mnt/projects/ICCM/claude-container/`)
 
 **Problem:**
 Claudette (containerized Claude CLI) does not integrate with Godot logging infrastructure. All operational logs from Claudette container are lost to stdout with no structured storage or query capability.
 
-**Impact:**
-- Cannot trace Claudette operations across ICCM architecture
-- No correlation between Claudette requests and downstream KGB/Fiedler/Dewey operations
-- Missing logs for debugging Claudette-specific issues
-
-**Solution:**
-Integrate ICCMLogger Python client library into Claudette's wrapper scripts to log all container operations to Godot.
-
-**Blocked By:** Godot deployment (ready, not yet deployed)
+**Resolution:**
+User confirmed Claudette logging integration is not needed. Bug cancelled. Claudette will remain without Godot logging integration.
 
 ---
 
 ### BUG #24: KGB Missing Godot Logging Integration
 
-**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Status:** ❌ CANCELLED - KGB will be eliminated (ARCHITECTURAL VIOLATION #3)
 **Reported:** 2025-10-05 04:35 EDT
-**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Cancelled:** 2025-10-05 16:55 EDT
+**Priority:** N/A
 **Component:** KGB HTTP Gateway (`/mnt/projects/ICCM/kgb/`)
 
 **Problem:**
 KGB (Claudette's HTTP gateway) does not integrate with Godot logging infrastructure. Currently logs to stdout only with no structured storage, correlation, or query capability.
 
-**Impact:**
-- Cannot trace HTTP requests through KGB → Fiedler → Anthropic API chain
-- No correlation between Claudette commands and KGB processing
-- Missing X-Trace-ID propagation for distributed tracing
-
-**Solution:**
-Integrate ICCMLogger Python client library into KGB's `http_gateway.py` to log all requests, responses, and errors to Godot with trace ID propagation.
-
-**Blocked By:** Godot deployment (ready, not yet deployed)
+**Resolution:**
+KGB will be eliminated as part of architectural realignment (see ARCHITECTURAL VIOLATION #3). Claudette will connect directly to MCP Relay, eliminating the need for KGB. No logging integration needed for component that will be removed.
 
 ---
 
 ### BUG #23: Fiedler Missing Godot Logging Integration
 
-**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Status:** ✅ RESOLVED - Already implemented in Fiedler Blue
+**Verified:** 2025-10-05 16:55 EDT
 **Reported:** 2025-10-05 04:35 EDT
 **Priority:** MEDIUM - Post-Gates debugging enhancement
 **Component:** Fiedler LLM Orchestration (`/mnt/projects/ICCM/fiedler/`)
@@ -264,7 +253,8 @@ Integrate ICCMLogger Python client library into Fiedler's `server.py`, `proxy_se
 
 ### BUG #22: Dewey Missing Godot Logging Integration
 
-**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Status:** ✅ RESOLVED - Already implemented in Dewey Blue
+**Verified:** 2025-10-05 16:55 EDT
 **Reported:** 2025-10-05 04:35 EDT
 **Priority:** MEDIUM - Post-Gates debugging enhancement
 **Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
@@ -288,7 +278,8 @@ Integrate ICCMLogger Python client library into Dewey's `mcp_server.py` and `too
 
 ### BUG #21: Playfair Missing Godot Logging Integration
 
-**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Status:** ✅ RESOLVED - Already implemented in Playfair Blue
+**Verified:** 2025-10-05 16:55 EDT
 **Reported:** 2025-10-05 04:35 EDT
 **Priority:** MEDIUM - Post-Gates debugging enhancement
 **Component:** Playfair Diagram Gateway (`/mnt/projects/ICCM/playfair/`)
@@ -310,10 +301,11 @@ Integrate ICCMLogger JavaScript client library into Playfair's `server.js` and e
 
 ### BUG #20: Marco Missing Godot Logging Integration
 
-**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Status:** ✅ RESOLVED - Already implemented in Marco Blue
 **Reported:** 2025-10-05 04:35 EDT
+**Resolved:** 2025-10-05 16:57 EDT
 **Priority:** MEDIUM - Post-Gates debugging enhancement
-**Component:** Marco Internet Gateway (`/mnt/projects/ICCM/marco/`)
+**Component:** Marco Internet Gateway (`/mnt/projects/ICCM/marco-blue/`)
 
 **Problem:**
 Marco MCP server does not integrate with Godot logging infrastructure. All operational logs (browser automation, Playwright subprocess communication) go to stdout only with no structured storage or query capability.
@@ -323,7 +315,13 @@ Marco MCP server does not integrate with Godot logging infrastructure. All opera
 - No correlation between MCP tool calls and Playwright operations
 - Missing logs for debugging Marco browser automation issues
 
-**Solution:**
+**Resolution:**
+Verified that Marco Blue already has full Godot logging integration implemented at `/mnt/projects/ICCM/marco-blue/server.js` line 43. Uses `logToGodot()` function with WebSocketClient connecting to ws://godot-mcp:9060 for structured logging via `logger_log` MCP tool.
+
+**Files Verified:**
+- `/mnt/projects/ICCM/marco-blue/server.js` - Contains logToGodot function (line 43)
+
+**Original Proposed Solution:**
 Integrate ICCMLogger JavaScript client library into Marco's `server.js` to log all MCP operations and Playwright subprocess communication to Godot.
 
 **Blocked By:** Godot deployment (ready, not yet deployed)
@@ -332,10 +330,10 @@ Integrate ICCMLogger JavaScript client library into Marco's `server.js` to log a
 
 ### BUG #19: Dewey Bulk Store Response Exceeds Token Limit
 
-**Status:** 🔴 ACTIVE
+**Status:** ✅ RESOLVED (2025-10-05 16:50 EDT)
 **Reported:** 2025-10-05 03:51 EDT
 **Priority:** LOW - Operation succeeds, just can't see response
-**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
+**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey-blue/`)
 
 **Problem:**
 When storing large numbers of messages via `dewey_store_messages_bulk`, the response containing all message IDs exceeds Claude Code's 25,000 token limit, causing the response to be rejected even though the operation succeeded.
@@ -355,26 +353,28 @@ MCP tool "dewey_store_messages_bulk" response (68808 tokens) exceeds maximum all
 - Cannot see confirmation response or message IDs
 - Similar to BUG #16 (Playfair token limit)
 
-**Workaround:**
-- Query database directly to confirm storage
-- Use `dewey_list_conversations` to verify message count
+**Resolution:**
+Modified `dewey_store_messages_bulk` return value (lines 238-244) to return summary instead of full message ID array:
+- Returns: `{conversation_id, stored, first_message_id, last_message_id}`
+- No longer returns full `message_ids` array
+- Response stays under token limit regardless of bulk size
 
-**Solution Needed:**
-- Return summary instead of full array: `{stored: 2372, first_id: "...", last_id: "..."}`
-- OR: Paginated response
-- OR: Write response to file instead of returning inline
+**Result:**
+- ✅ Can now store thousands of messages without token limit error
+- ✅ Response includes count and boundary IDs for verification
+- ✅ Can query full conversation with `dewey_get_conversation` if needed
 
 **Files Affected:**
-- `/mnt/projects/ICCM/dewey/dewey/tools.py` - `dewey_store_messages_bulk` return value
+- `/mnt/projects/ICCM/dewey-blue/dewey/tools.py` - Lines 238-244 (return value)
 
 ---
 
 ### BUG #18: Dewey Schema Mismatch with Claude Code Session Format
 
-**Status:** 🔴 ACTIVE
+**Status:** ✅ RESOLVED (2025-10-05 16:45 EDT)
 **Reported:** 2025-10-05 03:45 EDT
-**Priority:** MEDIUM - Workaround available
-**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
+**Priority:** MEDIUM
+**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey-blue/`)
 
 **Problem:**
 Dewey's relational schema expects flat `{role, content, metadata}` messages, but Claude Code's session JSONL files contain complex nested structures with various entry types (file-history-snapshot, user, assistant, tool, etc.) that don't map cleanly to required fields.
@@ -384,22 +384,21 @@ Dewey's relational schema expects flat `{role, content, metadata}` messages, but
 - Claude Code format has `type` and nested `message: {role, content}` structure
 - Not all JSONL entries are messages (snapshots, metadata, etc.)
 
-**Impact:**
-- Cannot directly import Claude Code session files to Dewey
-- Must transform/flatten complex structures to fit schema
-- Loses fidelity of original session data
+**Resolution:**
+The `dewey_store_messages_bulk` function (lines 156-181 in tools.py) properly handles Claude Code session format:
+1. Extracts role/content from nested `message: {role, content}` structure
+2. Stores full original entry in metadata JSONB field (preserves complete fidelity)
+3. Handles non-message entries (snapshots, etc.) as role='system' with full entry in metadata
+4. Supports both JSON array and JSONL formats automatically
 
-**Temporary Workaround:**
-Store entries without proper role/content as role='NA', content='NA', put full entry in metadata JSONB field
-
-**Long-term Solution Needed:**
-- Redesign Dewey schema to handle arbitrary JSON structures
-- OR: Separate table for raw Claude Code sessions
-- OR: Use JSONB for entire message structure instead of relational
+**Result:**
+- ✅ Claude Code sessions can be imported directly via `messages_file` parameter
+- ✅ Original data preserved with 100% fidelity in metadata field
+- ✅ Relational schema maintained for efficient querying
+- ✅ No data loss
 
 **Files Affected:**
-- `/mnt/projects/ICCM/dewey/schema.sql` - Messages table schema
-- `/mnt/projects/ICCM/dewey/dewey/tools.py` - Message validation and storage
+- `/mnt/projects/ICCM/dewey-blue/dewey/tools.py` - Lines 156-181 (normalization logic)
 
 ---
 
