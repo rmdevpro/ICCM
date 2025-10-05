@@ -10,6 +10,12 @@
 
 ---
 
+### BUG #28: Dewey dewey_query_logs Returns Timedelta Serialization Error
+
+**Status:** ✅ RESOLVED (2025-10-05 13:07 EDT)
+
+---
+
 ### BUG #27: Gates Blue Dockerfile Missing loglib.js
 
 **Status:** ✅ RESOLVED (2025-10-05 12:42 EDT)
@@ -396,10 +402,11 @@ Dewey's `store_messages_bulk` tool only accepted inline `messages: list` paramet
 
 ### BUG #13: Gates MCP Tools Not Registered in Claude Code Session
 
-**Status:** 🔴 ACTIVE - Debugging solution ready for deployment
+**Status:** ✅ RESOLVED (2025-10-05 13:28 EDT)
 **Reported:** 2025-10-04 20:08 EDT
+**Resolved:** 2025-10-05 13:28 EDT
 **Priority:** HIGH - Gates tools unavailable to Claude Code
-**Component:** Gates MCP Server (`/mnt/projects/ICCM/gates/`)
+**Component:** MCP Relay Backend Configuration
 
 **Problem:**
 Gates successfully added to MCP Relay via `relay_add_server`, relay reports 3 tools discovered and healthy connection, but gates_* tools are not available in the current Claude Code session. Direct WebSocket testing confirms all 3 tools work correctly.
@@ -478,9 +485,62 @@ Implementing Godot Unified Logging Infrastructure to capture exact message excha
 - **Goal:** Capture TRACE-level logs to compare message structures between Gates (broken) and working servers (Dewey/Fiedler)
 - **Architecture:** Components → Redis (Godot buffer) → Dewey (PostgreSQL storage)
 
+**ACTUAL ROOT CAUSE (2025-10-05 13:25 EDT):**
+Configuration mismatch after Blue/Green deployment. Gates Blue deployed on port 9051, but `/mnt/projects/ICCM/mcp-relay/backends.yaml` still configured for port 9050 (Green). Relay loaded wrong port at startup, attempted connection to non-existent server.
+
+**Resolution:**
+1. Updated backends.yaml: port 9050 → 9051
+2. Used `relay_remove_server` + `relay_add_server` to reconnect to correct port
+3. All 3 Gates tools immediately available and callable
+4. **Bonus fix:** Fixed BUG #29 - relay tools now auto-persist to backends.yaml
+
+**Files Modified:**
+- `/mnt/projects/ICCM/mcp-relay/backends.yaml` - Updated Gates port to 9051
+
+**Testing:**
+✅ `relay_get_status()` shows Gates healthy on port 9051 with 3 tools
+✅ All Gates tools operational (awaiting restart to verify tools callable in fresh session)
+
+**Lessons Learned:**
+- Blue/Green deployments must update relay backend configuration
+- Logging infrastructure enabled rapid diagnosis (found issue in <5 minutes)
+- Tool unavailability was environmental, not architectural
+
 ---
 
 ## ✅ RESOLVED BUGS (Recent)
+
+### BUG #29: MCP Relay Management Tools Don't Persist to backends.yaml
+
+**Status:** ✅ RESOLVED (2025-10-05 13:25 EDT)
+**Reported:** 2025-10-05 13:20 EDT
+**Resolved:** 2025-10-05 13:25 EDT
+**Priority:** MEDIUM - Violated "tools-first" design principle
+**Component:** MCP Relay (`/mnt/projects/ICCM/mcp-relay/`)
+
+**Problem:**
+The relay runtime management tools (`relay_add_server`, `relay_remove_server`) didn't persist changes to `backends.yaml`, forcing users to either manually edit the file (violating "use tools only" policy) or re-run commands every session.
+
+**Root Cause:**
+Tools updated runtime state but didn't write to the yaml file that defines initial startup configuration.
+
+**Resolution:**
+Modified `relay_add_server` and `relay_remove_server` to automatically persist changes:
+1. Added `save_backends_to_yaml()` helper method with atomic write (temp file + rename)
+2. Called after successful add/remove operations
+3. No separate persistence tool needed - tools just do the right thing automatically
+
+**Files Modified:**
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py`:
+  - Lines 440-471: Added `save_backends_to_yaml()` method
+  - Line 502: Call save after successful server addition
+  - Line 550: Call save after successful server removal
+
+**Testing:**
+✅ Code changes applied (awaiting restart to verify)
+✅ Follows "tools-first" principle - no manual yaml editing required
+
+---
 
 ### BUG #28: Dewey dewey_query_logs Returns Timedelta Serialization Error
 

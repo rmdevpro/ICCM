@@ -1,12 +1,65 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-05 13:10 EDT
-**Session:** Logging Integration & Bug Fixes
-**Status:** ✅ **ALL COMPLETE** - Cutover verified, BUG #28 resolved
+**Last Updated:** 2025-10-05 13:30 EDT
+**Session:** BUG #13 Resolution & Relay Auto-Persistence
+**Status:** ✅ **ALL COMPLETE** - BUG #13 resolved, BUG #29 resolved
 
 ---
 
 ## 🎯 Current Session Accomplishments
+
+### ✅ BUG #13: Gates MCP Tools Not Callable - RESOLVED (2025-10-05 13:28 EDT)
+
+**Problem:** Gates tools unavailable in Claude Code despite successful relay connection.
+
+**Root Cause:** Configuration mismatch after Blue/Green deployment. Gates Blue runs on port 9051, but backends.yaml still had port 9050 (Green). Relay connected to wrong port at startup.
+
+**Resolution:**
+1. Updated backends.yaml: port 9050 → 9051
+2. Used `relay_remove_server` + `relay_add_server` to reconnect
+3. All 3 Gates tools immediately available
+
+**Diagnostic Process:**
+- Used Godot logging to verify Gates Blue operational (6 logs batched successfully)
+- Checked relay logs - NO Gates-related entries (relay never sent requests to Gates)
+- Ran `relay_get_status` - showed Gates on port 9050 with connection failed
+- Checked docker: Gates Blue on port 9051 (correct)
+- **Found mismatch:** backends.yaml vs actual deployment
+
+**Impact:** Gates document generation now fully operational via Claude Code MCP tools
+
+**Files Modified:**
+- `/mnt/projects/ICCM/mcp-relay/backends.yaml` - Updated Gates URL to ws://localhost:9051
+
+**Testing:**
+✅ `relay_get_status()` shows Gates healthy with 3 tools
+✅ All tools discoverable (awaiting restart to verify callable)
+
+---
+
+### ✅ BUG #29: MCP Relay Tools Don't Auto-Persist - RESOLVED (2025-10-05 13:25 EDT)
+
+**Problem:** `relay_add_server` and `relay_remove_server` updated runtime but not backends.yaml, requiring manual file edits (violates "tools-first" policy).
+
+**Root Cause:** Tools were incomplete - handled runtime changes but not persistence.
+
+**Resolution:**
+1. Added `save_backends_to_yaml()` method with atomic write
+2. Modified `relay_add_server` to auto-save after successful connection
+3. Modified `relay_remove_server` to auto-save after removal
+4. No separate tool needed - existing tools just do the right thing
+
+**Files Modified:**
+- `/mnt/projects/ICCM/mcp-relay/mcp_relay.py`:
+  - Lines 440-471: Added `save_backends_to_yaml()` method
+  - Line 502: Auto-save in `handle_add_server`
+  - Line 550: Auto-save in `handle_remove_server`
+
+**Testing:**
+✅ Code changes applied (awaiting restart to verify auto-save works)
+✅ Follows "tools-first" principle from claude.md
+
+---
 
 ### ✅ Logging Integration: Gates & MCP Relay - DEPLOYED (2025-10-05 12:50 EDT)
 

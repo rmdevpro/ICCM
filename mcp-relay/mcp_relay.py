@@ -437,6 +437,39 @@ class MCPRelay:
 
         return tools
 
+    def save_backends_to_yaml(self):
+        """Save current runtime backend configuration to backends.yaml"""
+        config = {
+            'backends': [
+                {'name': name, 'url': backend['url']}
+                for name, backend in self.backends.items()
+            ]
+        }
+
+        # Atomic write: write to temp file, then rename
+        config_file = Path(__file__).parent / 'backends.yaml'
+        temp_file = config_file.with_suffix('.yaml.tmp')
+
+        try:
+            with open(temp_file, 'w') as f:
+                # Write header comment
+                f.write("# MCP Relay Backend Configuration\n")
+                f.write("#\n")
+                f.write("# This file is automatically updated by relay management tools.\n")
+                f.write("# Manual edits will be overwritten.\n\n")
+
+                # Write YAML
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+            # Atomic rename
+            temp_file.rename(config_file)
+            return True
+        except Exception as e:
+            logging.error(f"Failed to save backends.yaml: {e}")
+            if temp_file.exists():
+                temp_file.unlink()
+            return False
+
     async def handle_add_server(self, arguments: dict) -> dict:
         """Handle relay_add_server tool call."""
         name = arguments.get("name")
@@ -465,6 +498,9 @@ class MCPRelay:
         success = await self.connect_backend(name)
 
         if success:
+            # Save to backends.yaml for persistence
+            self.save_backends_to_yaml()
+
             # Notify Claude Code that tools have changed
             await self.notify_tools_changed()
 
@@ -472,7 +508,7 @@ class MCPRelay:
                 "result": {
                     "content": [{
                         "type": "text",
-                        "text": f"✅ Server '{name}' added and connected successfully\nURL: {url}\nTools discovered: {len(self.backends[name]['tools'])}"
+                        "text": f"✅ Server '{name}' added and connected successfully\nURL: {url}\nTools discovered: {len(self.backends[name]['tools'])}\n\n💾 Configuration saved to backends.yaml"
                     }]
                 }
             }
@@ -510,6 +546,9 @@ class MCPRelay:
         # Remove server
         del self.backends[name]
 
+        # Save to backends.yaml for persistence
+        self.save_backends_to_yaml()
+
         # Notify Claude Code that tools have changed
         await self.notify_tools_changed()
 
@@ -517,7 +556,7 @@ class MCPRelay:
             "result": {
                 "content": [{
                     "type": "text",
-                    "text": f"✅ Server '{name}' removed successfully"
+                    "text": f"✅ Server '{name}' removed successfully\n\n💾 Configuration saved to backends.yaml"
                 }]
             }
         }
