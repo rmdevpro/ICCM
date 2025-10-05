@@ -304,7 +304,171 @@ Set log level for a component.
 
 ## Client Integration
 
-### Python Components (Relay, Dewey, Fiedler)
+**ARCHITECTURAL REQUIREMENT:** ALL MCP servers MUST use MCP-based logging (Approach 1). Direct Redis connections are **FORBIDDEN** and violate the ICCM architecture.
+
+### Approach 1: MCP-Based Logging (**REQUIRED** for ALL MCP Servers)
+
+**MANDATORY for:** Gates, Playfair, Marco, Fiedler, Dewey, KGB, Claudette, MCP Relay, and **ALL future MCP servers**
+
+**Architecture:** ALL MCP servers MUST use Godot's MCP interface (`logger_log` tool) via WebSocket on port 9060.
+
+**Why Redis is forbidden:**
+- Redis (port 6379) is **internal to Godot container only** (bind: 127.0.0.1)
+- Redis is **NOT exposed** on iccm_network
+- Direct Redis access **violates the MCP protocol layer**
+- Only Godot's internal batch worker accesses Redis
+
+#### Node.js/JavaScript Implementation
+
+```javascript
+const WebSocket = require('ws');
+
+const GODOT_URL = process.env.GODOT_URL || 'ws://godot-mcp:9060';
+const LOGGING_ENABLED = true;
+
+/**
+ * Send log to Godot via MCP logger_log tool
+ */
+async function logToGodot(level, message, data = null, traceId = null) {
+  if (!LOGGING_ENABLED) return;
+
+  try {
+    const ws = new WebSocket(GODOT_URL, { handshakeTimeout: 1000 });
+
+    await new Promise((resolve, reject) => {
+      ws.on('open', () => resolve());
+      ws.on('error', reject);
+      setTimeout(() => reject(new Error('Connection timeout')), 1000);
+    });
+
+    const request = {
+      jsonrpc: '2.0',
+      method: 'tools/call',
+      params: {
+        name: 'logger_log',
+        arguments: {
+          level,            // ERROR, WARN, INFO, DEBUG, TRACE
+          message,
+          component: 'your-component-name',
+          data,
+          trace_id: traceId
+        }
+      },
+      id: 1
+    };
+
+    ws.send(JSON.stringify(request));
+
+    // Wait for response or timeout
+    await Promise.race([
+      new Promise(resolve => ws.on('message', resolve)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Response timeout')), 1000))
+    ]);
+
+    ws.close();
+  } catch (err) {
+    // Silently fail - logging should never break the application
+  }
+}
+
+// Usage
+await logToGodot('INFO', 'Server starting', { port: 8080 });
+await logToGodot('TRACE', 'MCP request received', { method: 'tools/call' }, traceId);
+await logToGodot('ERROR', 'Request failed', { error: err.message }, traceId);
+```
+
+**Environment Variables:**
+```yaml
+environment:
+  - GODOT_URL=ws://godot-mcp:9060
+  - LOGGING_ENABLED=true
+```
+
+#### Python Implementation
+
+```python
+import json
+import asyncio
+from typing import Optional, Dict, Any
+import websockets
+
+async def log_to_godot(
+    level: str,
+    message: str,
+    component: str = 'your-component',
+    data: Optional[Dict[str, Any]] = None,
+    trace_id: Optional[str] = None,
+    godot_url: str = 'ws://godot-mcp:9060',
+    timeout: float = 1.0
+) -> None:
+    """Send log to Godot via MCP logger_log tool."""
+    try:
+        async with websockets.connect(godot_url, open_timeout=timeout) as ws:
+            request = {
+                'jsonrpc': '2.0',
+                'method': 'tools/call',
+                'params': {
+                    'name': 'logger_log',
+                    'arguments': {
+                        'level': level,        # ERROR, WARN, INFO, DEBUG, TRACE
+                        'message': message,
+                        'component': component,
+                        'data': data,
+                        'trace_id': trace_id
+                    }
+                },
+                'id': 1
+            }
+
+            await ws.send(json.dumps(request))
+
+            try:
+                response = await asyncio.wait_for(ws.recv(), timeout=timeout)
+            except asyncio.TimeoutError:
+                pass  # Response timeout - continue silently
+
+    except Exception:
+        # Silently fail - logging should never break the application
+        pass
+
+# Usage
+GODOT_URL = os.getenv('GODOT_URL', 'ws://godot-mcp:9060')
+LOGGING_ENABLED = os.getenv('LOGGING_ENABLED', 'true').lower() == 'true'
+
+if LOGGING_ENABLED:
+    await log_to_godot('INFO', 'Server starting', data={'port': 8080})
+    await log_to_godot('TRACE', 'MCP request received', data={'method': 'tools/call'}, trace_id=trace_id)
+    await log_to_godot('ERROR', 'Request failed', data={'error': str(err)}, trace_id=trace_id)
+```
+
+**Environment Variables:**
+```yaml
+environment:
+  - GODOT_URL=ws://godot-mcp:9060
+  - LOGGING_ENABLED=true
+```
+
+**Key Points:**
+- ✅ Non-blocking: Fails silently on error
+- ✅ Works when Godot is down (no exceptions thrown)
+- ✅ No external dependencies (uses built-in websockets library)
+- ✅ Consistent with all Blue deployments (Gates, Playfair, Marco, Fiedler)
+
+---
+
+### Approach 2: Redis Client Library (DEPRECATED - ARCHITECTURAL VIOLATION)
+
+**🚫 FORBIDDEN FOR ALL MCP SERVERS 🚫**
+
+**This approach VIOLATES the ICCM architecture:**
+- Redis (port 6379) is **internal to Godot container only**
+- Redis is **NOT exposed** on the network (bind address 127.0.0.1)
+- Direct Redis connections **bypass the MCP protocol layer**
+- **ALL MCP servers MUST use Approach 1** (MCP-based logging)
+
+**Preserved for historical reference only. DO NOT USE.**
+
+#### Python Components
 
 #### 1. Install Dependencies
 
@@ -322,8 +486,8 @@ Copy `client_libs/python/godot/loglib.py` to your component.
 from godot.loglib import ICCMLogger
 
 logger = ICCMLogger(
-    component='relay',
-    redis_url='redis://godot-mcp:6379',
+    component='your-component',
+    redis_url='redis://localhost:6379',  # Only works if Redis exposed
     default_level='INFO',
     redact_fields=['custom_sensitive_field']  # Optional
 )
@@ -350,7 +514,7 @@ headers = {'X-Trace-ID': trace_id}
 response = requests.post(backend_url, headers=headers)
 ```
 
-### JavaScript Components (Gates)
+#### JavaScript Components
 
 #### 1. Install Dependencies
 
@@ -368,8 +532,8 @@ Copy `client_libs/javascript/loglib.js` to your component.
 const { ICCMLogger } = require('./loglib');
 
 const logger = new ICCMLogger({
-    component: 'gates',
-    redisUrl: 'redis://godot-mcp:6379',
+    component: 'your-component',
+    redisUrl: 'redis://localhost:6379',  // Only works if Redis exposed
     defaultLevel: 'INFO',
     redactFields: ['customSensitiveField']  // Optional
 });
@@ -407,6 +571,8 @@ process.on('SIGTERM', async () => {
     await logger.close();
 });
 ```
+
+---
 
 ### Log Levels
 

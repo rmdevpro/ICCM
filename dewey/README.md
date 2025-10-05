@@ -204,6 +204,51 @@ docker logs --tail 100 dewey-mcp
 - Verify environment variables are set
 - Ensure iccm_network exists: `docker network ls`
 
+## Logging Integration
+
+Dewey receives logs from all ICCM components via the **Godot centralized logging infrastructure**.
+
+### For Component Developers
+
+If you're implementing a new MCP server or component, see the **Godot README** for complete logging integration instructions:
+
+📖 **[/mnt/projects/ICCM/godot/godot/README.md](../godot/godot/README.md#client-integration)**
+
+**Quick Summary:**
+- **MCP Servers** (Gates, Playfair, Marco, Fiedler, etc.): Use MCP-based logging via `ws://godot-mcp:9060`
+- **Non-MCP Components**: Use Redis client library (if Redis is exposed)
+
+### Godot → Dewey Flow
+
+```
+Components → logger_log (MCP) → Godot (9060) → Redis Queue → Batch Worker → dewey_store_logs_batch → PostgreSQL (Winni)
+```
+
+### Querying Logs
+
+Use Dewey's MCP tools to query the centralized log database:
+
+```python
+# Query logs by component
+mcp__iccm__dewey_query_logs(component='fiedler', limit=100)
+
+# Query logs by trace ID (request correlation)
+mcp__iccm__dewey_query_logs(trace_id='abc-123', limit=1000)
+
+# Full-text search
+mcp__iccm__dewey_query_logs(search='error', level='ERROR')
+
+# Time range query
+mcp__iccm__dewey_query_logs(
+    start_time='2025-10-05T10:00:00Z',
+    end_time='2025-10-05T11:00:00Z'
+)
+```
+
+See `dewey_query_logs`, `dewey_store_logs_batch`, `dewey_clear_logs`, and `dewey_get_log_stats` tools.
+
+---
+
 ## Phase 2 Roadmap
 
 - Fiedler integration tools
