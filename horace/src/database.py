@@ -63,14 +63,24 @@ class Database:
         )
     
     async def update_file(self, file_id: UUID, update_data: Dict[str, Any]) -> Optional[asyncpg.Record]:
+        # Whitelist allowed fields to prevent SQL injection
+        ALLOWED_FIELDS = {'tags', 'purpose', 'status', 'collection_id', 'checksum', 'size', 'current_version', 'metadata', 'correlation_id'}
+
         fields, values = [], []
         for i, (key, value) in enumerate(update_data.items(), 1):
-            fields.append(f"{key} = ${i}")
+            if key not in ALLOWED_FIELDS:
+                raise ValueError(f"Invalid field for update: {key}")
+
+            # Use JSONB merge operator for metadata field
+            if key == 'metadata':
+                fields.append(f"metadata = metadata || ${i}")
+            else:
+                fields.append(f"{key} = ${i}")
             values.append(value)
-        
+
         fields.append(f"updated_at = NOW()")
         set_clause = ", ".join(fields)
-        
+
         query = f"UPDATE horace_files SET {set_clause} WHERE id = ${len(values) + 1} RETURNING *"
         return await self.fetchrow(query, *values, file_id)
 
@@ -177,14 +187,25 @@ class Database:
         total = (await self.fetchrow(count_query, *args))['count']
         
         # Fetch paginated results
+        # Whitelist allowed columns for sorting to prevent SQL injection
+        allowed_sort_columns = [
+            'created_at', 'updated_at', 'size', 'owner', 'mime_type', 'file_path', 'status'
+        ]
         sort_by = params.get('sort_by', 'created_at')
+        if sort_by not in allowed_sort_columns:
+            sort_by = 'created_at'  # Default to safe column
+
+        # Whitelist allowed order directions
         order = params.get('order', 'desc').upper()
+        if order not in ['ASC', 'DESC']:
+            order = 'DESC'  # Default to safe direction
+
         limit = params.get('limit', 50)
         offset = params.get('offset', 0)
-        
+
         results_query = f"""
             SELECT * {query_base} {where_clause}
-            ORDER BY {sort_by} {order}
+            ORDER BY "{sort_by}" {order}
             LIMIT ${len(args) + 1} OFFSET ${len(args) + 2}
         """
         results = await self.fetch(results_query, *args, limit, offset)
