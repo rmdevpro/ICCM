@@ -2,11 +2,145 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-05 03:52 EDT
+**Last Updated:** 2025-10-05 04:36 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
+
+### BUG #25: Claudette Missing Godot Logging Integration
+
+**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Reported:** 2025-10-05 04:35 EDT
+**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Component:** Claudette (`/mnt/projects/ICCM/claude-container/`)
+
+**Problem:**
+Claudette (containerized Claude CLI) does not integrate with Godot logging infrastructure. All operational logs from Claudette container are lost to stdout with no structured storage or query capability.
+
+**Impact:**
+- Cannot trace Claudette operations across ICCM architecture
+- No correlation between Claudette requests and downstream KGB/Fiedler/Dewey operations
+- Missing logs for debugging Claudette-specific issues
+
+**Solution:**
+Integrate ICCMLogger Python client library into Claudette's wrapper scripts to log all container operations to Godot.
+
+**Blocked By:** Godot deployment (ready, not yet deployed)
+
+---
+
+### BUG #24: KGB Missing Godot Logging Integration
+
+**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Reported:** 2025-10-05 04:35 EDT
+**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Component:** KGB HTTP Gateway (`/mnt/projects/ICCM/kgb/`)
+
+**Problem:**
+KGB (Claudette's HTTP gateway) does not integrate with Godot logging infrastructure. Currently logs to stdout only with no structured storage, correlation, or query capability.
+
+**Impact:**
+- Cannot trace HTTP requests through KGB → Fiedler → Anthropic API chain
+- No correlation between Claudette commands and KGB processing
+- Missing X-Trace-ID propagation for distributed tracing
+
+**Solution:**
+Integrate ICCMLogger Python client library into KGB's `http_gateway.py` to log all requests, responses, and errors to Godot with trace ID propagation.
+
+**Blocked By:** Godot deployment (ready, not yet deployed)
+
+---
+
+### BUG #23: Fiedler Missing Godot Logging Integration
+
+**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Reported:** 2025-10-05 04:35 EDT
+**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Component:** Fiedler LLM Orchestration (`/mnt/projects/ICCM/fiedler/`)
+
+**Problem:**
+Fiedler MCP server does not integrate with Godot logging infrastructure. Operational logs go to stdout only with no structured storage or correlation across triplet consultations.
+
+**Impact:**
+- Cannot trace triplet consultation flows across multiple LLM requests
+- No correlation between MCP tool calls and internal Fiedler operations
+- Missing logs for debugging triplet consensus issues
+
+**Solution:**
+Integrate ICCMLogger Python client library into Fiedler's `server.py`, `proxy_server.py`, and triplet orchestration code to log all operations to Godot.
+
+**Blocked By:** Godot deployment (ready, not yet deployed)
+
+---
+
+### BUG #22: Dewey Missing Godot Logging Integration
+
+**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Reported:** 2025-10-05 04:35 EDT
+**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
+
+**Problem:**
+Dewey MCP server does not integrate with Godot logging infrastructure for its own operational logs. While Dewey stores logs FROM Godot, it doesn't log its own operations TO Godot, creating a gap in observability.
+
+**Impact:**
+- Cannot trace Dewey's own MCP operations (conversation storage, searches, etc.)
+- No correlation between MCP tool calls and internal Dewey database operations
+- Missing logs for debugging Dewey-specific issues
+
+**Solution:**
+Integrate ICCMLogger Python client library into Dewey's `mcp_server.py` and `tools.py` to log all MCP operations to Godot (Dewey will log to itself via Godot's Redis queue).
+
+**Blocked By:** Godot deployment (ready, not yet deployed)
+
+**Note:** Dewey will store logs FROM all components (including itself) but needs client library to SEND its own operational logs.
+
+---
+
+### BUG #21: Playfair Missing Godot Logging Integration
+
+**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Reported:** 2025-10-05 04:35 EDT
+**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Component:** Playfair Diagram Gateway (`/mnt/projects/ICCM/playfair/`)
+
+**Problem:**
+Playfair MCP server does not integrate with Godot logging infrastructure. All operational logs (diagram rendering, engine selection, errors) go to stdout only with no structured storage or query capability.
+
+**Impact:**
+- Cannot trace diagram generation requests through Playfair
+- No correlation between diagram requests and rendering engine operations
+- Missing logs for debugging Playfair diagram rendering issues
+
+**Solution:**
+Integrate ICCMLogger JavaScript client library into Playfair's `server.js` and engine files to log all operations to Godot.
+
+**Blocked By:** Godot deployment (ready, not yet deployed)
+
+---
+
+### BUG #20: Marco Missing Godot Logging Integration
+
+**Status:** 🔴 ACTIVE - Awaiting Godot deployment
+**Reported:** 2025-10-05 04:35 EDT
+**Priority:** MEDIUM - Post-Gates debugging enhancement
+**Component:** Marco Internet Gateway (`/mnt/projects/ICCM/marco/`)
+
+**Problem:**
+Marco MCP server does not integrate with Godot logging infrastructure. All operational logs (browser automation, Playwright subprocess communication) go to stdout only with no structured storage or query capability.
+
+**Impact:**
+- Cannot trace browser automation requests through Marco
+- No correlation between MCP tool calls and Playwright operations
+- Missing logs for debugging Marco browser automation issues
+
+**Solution:**
+Integrate ICCMLogger JavaScript client library into Marco's `server.js` to log all MCP operations and Playwright subprocess communication to Godot.
+
+**Blocked By:** Godot deployment (ready, not yet deployed)
+
+---
 
 ### BUG #19: Dewey Bulk Store Response Exceeds Token Limit
 
