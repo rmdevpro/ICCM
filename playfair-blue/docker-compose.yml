@@ -32,9 +32,12 @@ services:
           memory: 2G
           cpus: '2.0'
     restart: unless-stopped
+    user: "1000:1000"  # Run as host user (aristotle9) for file write permissions
     volumes:
       # Persist temporary files if needed for debugging, though the app should clean up
       - playfair-temp-blue:/tmp/playfair
+      # Read-write access to host filesystem for saving diagrams
+      - /mnt/projects:/host/mnt/projects
 
 networks:
   iccm_network:

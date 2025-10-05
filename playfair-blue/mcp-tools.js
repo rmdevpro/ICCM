@@ -24,6 +24,7 @@ class McpTools {
                         theme: { type: 'string', enum: ['professional', 'modern', 'minimal', 'dark'], default: 'modern', description: 'Visual theme.' },
                         width: { type: 'integer', default: 1920, description: 'Output width in pixels for PNG.' },
                         height: { type: 'integer', description: 'Output height in pixels (auto if not specified).' },
+                        output_path: { type: 'string', description: 'Optional: file path for output. If not specified, returns base64 data.' },
                     },
                     required: ['content'],
                 },
@@ -89,7 +90,7 @@ class McpTools {
     }
 
     async createDiagram(input) {
-        const { content, format: specifiedFormat = 'auto', width, height, ...options } = input;
+        const { content, format: specifiedFormat = 'auto', width, height, output_path, ...options } = input;
 
         if (!content) {
             return { error: true, code: 'MISSING_CONTENT', message: 'Input "content" is required.' };
@@ -119,12 +120,31 @@ class McpTools {
 
         const job = { format, content, options: { ...options, width, height } };
         const result = await this.workerPool.submit(job);
-        
+
         // Result contains { data: Buffer, error: null } or { data: null, error: {...} }
         if (result.error) {
             return result.error;
         }
 
+        // If output_path is specified, save to file instead of returning base64
+        if (output_path) {
+            try {
+                await fs.writeFile(output_path, result.data);
+                logger.info({ output_path, size: result.data.length }, 'Diagram saved to file');
+                return {
+                    result: {
+                        format: options.output_format || 'svg',
+                        output_path: output_path,
+                        size: result.data.length,
+                    },
+                };
+            } catch (error) {
+                logger.error({ output_path, error: error.message }, 'Failed to write diagram to file');
+                return { error: true, code: 'FILE_WRITE_ERROR', message: `Failed to write file: ${error.message}` };
+            }
+        }
+
+        // Default: return base64 data
         return {
             result: {
                 format: options.output_format || 'svg',

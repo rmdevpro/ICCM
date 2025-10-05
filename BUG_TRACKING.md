@@ -330,10 +330,10 @@ Removed `version: '3.8'` from docker-compose.yml
 
 ### BUG #16: Playfair Response Token Limit Exceeded
 
-**Status:** 🔴 ACTIVE
+**Status:** ✅ RESOLVED (2025-10-05 15:22 EDT)
 **Reported:** 2025-10-04 22:15 EDT
 **Priority:** LOW - Workaround available
-**Component:** Playfair MCP Server (`/mnt/projects/ICCM/playfair/`)
+**Component:** Playfair MCP Server (`/mnt/projects/ICCM/playfair-blue/`)
 
 **Problem:**
 Playfair returns excessively large responses that exceed Claude Code's token limit (25,000 tokens). When creating Godot architecture diagram, response was 86,515 tokens.
@@ -355,18 +355,26 @@ Use simpler diagram syntax with fewer nodes/clusters. Reduced Godot diagram comp
 - Limits usefulness of Playfair for system documentation
 - **BLOCKS Gates diagram embedding** - Gates needs file paths, not base64 data
 
-**Proper Solution:**
-Add optional `output_path` parameter to `playfair_create_diagram` tool:
-- If provided: Save image to file path, return `{success: true, file_path: "..."}`
-- If omitted: Return base64 (current behavior for backward compatibility)
-- Benefits: Solves BUG #16 AND enables Gates integration
+**Resolution:**
+Implemented optional `output_path` parameter for `playfair_create_diagram` tool:
+1. Added `output_path` parameter to tool schema (line 27 of mcp-tools.js)
+2. Modified `createDiagram()` function to write file when path provided (lines 129-145)
+3. Added volume mount `/mnt/projects:/host/mnt/projects` to docker-compose.yml
+4. Added `user: "1000:1000"` to docker-compose.yml for file write permissions
+5. Tested successfully - created 24KB PNG diagram file
 
-**Related Issues:**
-- Gates document generation expects Playfair to save diagrams to temp files
-- Gates Playfair integration not functional due to this mismatch
+**Behavior:**
+- If `output_path` provided: Saves to file, returns `{format, output_path, size}`
+- If omitted: Returns base64 data (backward compatible)
 
-**Files Affected:**
-- None yet (workaround sufficient for current needs)
+**Benefits:**
+- ✅ Solves token limit issue for complex diagrams
+- ✅ Enables Gates integration (Gates can now receive file paths)
+- ✅ Backward compatible with existing usage
+
+**Files Modified:**
+- `/mnt/projects/ICCM/playfair-blue/mcp-tools.js` - Added output_path parameter and file write logic
+- `/mnt/projects/ICCM/playfair-blue/docker-compose.yml` - Added volume mount and user directive
 
 ---
 

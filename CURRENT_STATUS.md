@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-05 17:30 EDT
-**Session:** Godot Logging Integration - Documentation Updates
-**Status:** ✅ **ALL SYSTEMS OPERATIONAL** - 51 tools available, architecture documentation updated
+**Last Updated:** 2025-10-05 15:30 EDT
+**Session:** Playfair BUG #16 Resolution + PostgreSQL Storage Migration
+**Status:** ✅ **ALL SYSTEMS OPERATIONAL** - 51 tools available, BUG #16 resolved, 44TB storage active
 
 ---
 
@@ -31,6 +31,113 @@
 ---
 
 ## 🎯 Current Session Accomplishments
+
+### ✅ BUG #16: Playfair Output Path Support - RESOLVED (2025-10-05 15:30 EDT)
+
+**Status:** ✅ **FULLY RESOLVED** - Playfair can now save diagrams to files, eliminating token limit issues
+
+**Problem:**
+Playfair returned base64-encoded diagram data inline in MCP responses, causing token limit exceeded errors for complex diagrams (86,515 tokens vs 25,000 limit). This also blocked Gates integration, which needed file paths not data streams.
+
+**Resolution:**
+1. Added `output_path` parameter to `playfair_create_diagram` tool schema
+2. Implemented file write logic in `createDiagram()` function (lines 129-145)
+3. Added volume mount `/mnt/projects:/host/mnt/projects` to docker-compose.yml
+4. Added `user: "1000:1000"` directive for file write permissions
+5. Rebuilt and redeployed Playfair Blue container
+
+**Testing:**
+- ✅ Created test diagram successfully (24KB PNG)
+- ✅ File saved to `/mnt/projects/ICCM/architecture/General_Architecture_v2.png`
+- ✅ Response format: `{format, output_path, size}` instead of base64 data
+- ✅ Backward compatible - omitting output_path returns base64 as before
+
+**Benefits:**
+- ✅ No more token limit errors for complex diagrams
+- ✅ Gates integration unblocked - can now receive file paths from Playfair
+- ✅ Backward compatible with existing usage patterns
+- ✅ Cleaner MCP responses (metadata instead of huge base64 strings)
+
+**Files Modified:**
+- `/mnt/projects/ICCM/playfair-blue/mcp-tools.js` - Added output_path parameter and file write logic
+- `/mnt/projects/ICCM/playfair-blue/docker-compose.yml` - Added volume mount and user directive
+- `/mnt/projects/ICCM/BUG_TRACKING.md` - Marked BUG #16 as resolved
+
+**Impact:** Playfair now production-ready for Gates document generation integration
+
+---
+
+### ✅ PostgreSQL Storage Migration to 44TB RAID 5 - COMPLETED (2025-10-05 14:00 EDT)
+
+**Status:** ✅ **MIGRATION COMPLETE** - PostgreSQL (Winni) now using 44TB RAID 5 array
+
+**Problem:**
+PostgreSQL was storing data on 914GB system drive instead of intended 44TB RAID 5 array. Log retention policy was artificially limited due to assumed disk constraints.
+
+**Resolution:**
+1. Created 44TB RAID 5 array from 4x 14.6TB drives using mdadm
+2. Formatted array with ext4 filesystem
+3. Backed up PostgreSQL data (113MB)
+4. Migrated PostgreSQL data directory to `/mnt/storage/postgresql/16/main`
+5. Updated postgresql.conf `data_directory` parameter
+6. Configured auto-mount via fstab
+7. Saved RAID configuration to mdadm.conf
+
+**Storage Details:**
+- **RAID Level:** RAID 5 (3 data + 1 parity)
+- **Drives:** 4x 14.6TB = ~44TB usable capacity
+- **Mount Point:** `/mnt/storage`
+- **Filesystem:** ext4
+- **Auto-Mount:** Configured in /etc/fstab
+
+**Testing:**
+- ✅ RAID array healthy: `[4/4] [UUUU]` all drives active
+- ✅ PostgreSQL accessible from new location
+- ✅ Dewey Blue successfully connected to database
+- ✅ Auto-mount verified after server restart
+
+**Documentation Updated:**
+- `/mnt/projects/ICCM/godot/REQUIREMENTS.md` - Updated CONST-004 and ASSUM-001 with 44TB capacity
+- `/mnt/projects/ICCM/architecture/CURRENT_ARCHITECTURE_OVERVIEW.md` - Updated Dewey and Godot sections
+
+**Impact:**
+- Log retention no longer limited by disk space (years of retention possible)
+- PostgreSQL properly positioned for long-term ICCM data growth
+- Backup strategy simplified with dedicated storage array
+
+---
+
+### ✅ Dewey Blue Deployment with Option 4 Architecture - COMPLETED (2025-10-05 13:45 EDT)
+
+**Deployment Type:** Blue/Green
+**Status:** ✅ **CUTOVER COMPLETE** - Dewey Blue operational on port 9022
+
+**Architecture:** Option 4 - Write/Read Separation
+- **Dewey:** READ specialist (query logs, search, analytics)
+- **Godot:** WRITE specialist (receive logs, batch to PostgreSQL)
+- **Logging Integration:** Dewey uses Godot's logger_log tool for operational logging
+
+**Verification:**
+- ✅ Container built and deployed successfully
+- ✅ Connected to PostgreSQL on 44TB RAID 5 array
+- ✅ Connected via MCP Relay on ws://localhost:9022
+- ✅ 13 tools registered (conversation management + log READ tools)
+- ✅ Logs flowing to Godot → PostgreSQL
+- ✅ Original dewey-mcp container stopped
+- ✅ Configuration persisted in relay backends.yaml
+
+**Tools Available:**
+- Conversation: begin, store_message, store_messages_bulk, get, list, delete
+- Search: dewey_search (full-text with ranking)
+- Startup Contexts: get, set, list, delete
+- Logging (READ-only): dewey_query_logs, dewey_get_log_stats
+
+**Logging Pipeline:**
+```
+Dewey → logger_log (MCP) → Godot (9060) → Worker → Batch → PostgreSQL (Winni)
+```
+
+---
 
 ### ✅ Fiedler Blue Deployment with Godot Logging - COMPLETED (2025-10-05 16:00 EDT)
 
