@@ -1,15 +1,10 @@
-"""
-Godot Worker - Consumes logs from Redis and sends to Dewey
-Based on Gemini-2.5-Pro recommendation (correlation_id: b5afd3b0)
-"""
 import asyncio
 import json
 import logging
 import time
 import redis.asyncio as redis
-
-import config
-from mcp_client import MCPClient
+from mcp_tools.mcp_client import MCPClient
+import src.config as config
 
 # Godot uses standard logging to stdout (REQ-MAINT-002)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [WORKER] %(message)s')

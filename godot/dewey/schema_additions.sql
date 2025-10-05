@@ -6,14 +6,16 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- REQ-DEW-002: Log entry schema
 -- REQ-DEW-005: Partitioning by range on created_at
+-- Note: Primary key must include partition key (created_at) for partitioned tables
 CREATE TABLE logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID DEFAULT uuid_generate_v4(),
     trace_id UUID,
     component TEXT NOT NULL,
     level TEXT NOT NULL CHECK (level IN ('ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE')),
     message TEXT NOT NULL,
     data JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
 -- Create default partition for safety

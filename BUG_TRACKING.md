@@ -2,11 +2,54 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-05 04:36 EDT
+**Last Updated:** 2025-10-05 05:02 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
+
+### BUG #26: Godot Triplet Code Used Non-Existent mcp-tools-py Library
+
+**Status:** ✅ RESOLVED (2025-10-05 05:00 EDT)
+**Reported:** 2025-10-05 04:42 EDT
+**Priority:** CRITICAL - Blocked Godot deployment
+**Component:** Godot MCP Server (`/mnt/projects/ICCM/godot/`)
+
+**Problem:**
+The triplet-synthesized Godot implementation (unanimous approval, correlation_id: 1c281d80) used a fictional Python library `mcp-tools-py>=0.4.0` that doesn't exist on PyPI. Docker build failed with:
+```
+ERROR: Could not find a version that satisfies the requirement mcp-tools-py>=0.4.0 (from versions: none)
+```
+
+**Root Cause:**
+Triplets (Gemini-2.5-Pro, GPT-4o-mini, DeepSeek-R1) assumed existence of convenience wrapper library for MCP protocol. All working ICCM servers implement MCP directly using `websockets` library.
+
+**Resolution:**
+- Consulted triplets for fix guidance (correlation_id: b5afd3b0)
+- All three models recommended Option A: Implement MCP client using `websockets` directly, following Dewey's pattern
+- Created `/mnt/projects/ICCM/godot/godot/src/mcp_client.py` - Reusable WebSocket-based MCP client
+- Rewrote `mcp_server.py` - WebSocket MCP server implementing facade tools
+- Rewrote `worker.py` - Uses new MCP client to connect to Dewey
+- Replaced fictional library dependency with `websockets>=14.0`
+
+**Result:**
+- ✅ Docker build successful
+- ✅ Container deployed (godot-mcp)
+- ✅ Redis operational
+- ✅ MCP Server listening on port 9060
+- Worker failing (expected - Dewey tools not deployed yet)
+
+**Files Modified:**
+- `/mnt/projects/ICCM/godot/godot/Dockerfile` - Removed mcp-tools-py, added websockets
+- `/mnt/projects/ICCM/godot/godot/src/mcp_client.py` - NEW (WebSocket MCP client)
+- `/mnt/projects/ICCM/godot/godot/src/mcp_server.py` - Rewritten using websockets
+- `/mnt/projects/ICCM/godot/godot/src/worker.py` - Rewritten using new MCP client
+- `/mnt/projects/ICCM/godot/godot/src/__init__.py` - NEW (Python module marker)
+
+**Lesson Learned:**
+Triplets may assume existence of convenience libraries. Always verify dependencies exist before deployment.
+
+---
 
 ### BUG #25: Claudette Missing Godot Logging Integration
 
