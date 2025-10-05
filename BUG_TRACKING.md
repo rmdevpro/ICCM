@@ -343,8 +343,8 @@ Playfair returns excessively large responses that exceed Claude Code's token lim
 MCP tool "playfair_create_diagram" response (86515 tokens) exceeds maximum allowed tokens (25000)
 ```
 
-**Root Cause:**
-Unknown - Playfair may be returning entire rendered diagram data or excessive metadata instead of just the base64 encoded image.
+**Root Cause (IDENTIFIED 2025-10-05 14:30 EDT):**
+Playfair returns base64-encoded PNG/SVG data inline in MCP response. For complex diagrams (e.g., 1920px PNG with many nodes), base64 data can exceed 25,000 token limit.
 
 **Workaround:**
 Use simpler diagram syntax with fewer nodes/clusters. Reduced Godot diagram complexity and successfully generated 1920px PNG with professional theme.
@@ -353,12 +353,17 @@ Use simpler diagram syntax with fewer nodes/clusters. Reduced Godot diagram comp
 - Cannot create complex diagrams with many components
 - Must manually simplify architecture diagrams
 - Limits usefulness of Playfair for system documentation
+- **BLOCKS Gates diagram embedding** - Gates needs file paths, not base64 data
 
-**Next Steps:**
-- Investigate Playfair response format
-- Check if response includes unnecessary data
-- Consider pagination or streaming for large diagrams
-- May need to contact Playfair maintainer
+**Proper Solution:**
+Add optional `output_path` parameter to `playfair_create_diagram` tool:
+- If provided: Save image to file path, return `{success: true, file_path: "..."}`
+- If omitted: Return base64 (current behavior for backward compatibility)
+- Benefits: Solves BUG #16 AND enables Gates integration
+
+**Related Issues:**
+- Gates document generation expects Playfair to save diagrams to temp files
+- Gates Playfair integration not functional due to this mismatch
 
 **Files Affected:**
 - None yet (workaround sufficient for current needs)
