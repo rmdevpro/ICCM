@@ -1,4 +1,5 @@
 import os
+import sys
 
 # --- Godot General Config ---
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
@@ -17,3 +18,13 @@ RETRY_MAX_DELAY = int(os.environ.get("RETRY_MAX_DELAY", 30))
 
 # --- MCP Server Config ---
 MCP_PORT = int(os.environ.get("MCP_PORT", 9060))
+
+# --- Database Config (for conversation storage) ---
+DB_HOST = os.getenv("GODOT_DB_HOST", "192.168.1.210")
+DB_PORT = int(os.getenv("GODOT_DB_PORT", "5432"))
+DB_NAME = os.getenv("GODOT_DB_NAME", "winni")
+DB_USER = os.getenv("GODOT_DB_USER", "dewey")
+DB_PASSWORD = os.getenv("GODOT_DB_PASSWORD", "")
+
+DB_POOL_MIN_CONN = int(os.getenv("GODOT_DB_POOL_MIN_CONN", "2"))
+DB_POOL_MAX_CONN = int(os.getenv("GODOT_DB_POOL_MAX_CONN", "10"))

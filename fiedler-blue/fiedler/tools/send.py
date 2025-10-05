@@ -1,4 +1,4 @@
-"""fiedler_send tool implementation."""
+"""fiedler_send tool implementation with conversation logging."""
 import os
 import yaml
 from pathlib import Path
@@ -7,12 +7,15 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import uuid
 import json
+import asyncio
+import threading
 
 from ..utils import get_models, get_output_dir
 from ..utils.logger import ProgressLogger
 from ..utils.package import compile_package
 from ..utils.tokens import check_token_budget
 from ..providers import GeminiProvider, OpenAIProvider, TogetherProvider, XAIProvider
+from ..godot.conversation_logger import begin_conversation_godot, store_message_godot
 
 
 def create_provider(model_id: str, config: Dict[str, Any]):
@@ -94,6 +97,53 @@ def send_to_model(
         }
 
 
+def log_message_async(conversation_id: str, role: str, content: str, turn_number: Optional[int] = None,
+                      model: Optional[str] = None, input_tokens: Optional[int] = None,
+                      output_tokens: Optional[int] = None, timing_ms: Optional[int] = None,
+                      files: Optional[List[str]] = None, correlation_id: Optional[str] = None,
+                      threads_list: Optional[List[threading.Thread]] = None) -> None:
+    """
+    Log message to Godot conversations table (non-blocking, thread-safe).
+    Silently fails on error - logging should never break LLM calls.
+
+    Args:
+        threads_list: Optional list to track threads for synchronization
+    """
+    def _store_message():
+        try:
+            # Build metadata
+            metadata = {}
+            if model:
+                metadata['model'] = model
+            if input_tokens is not None:
+                metadata['input_tokens'] = input_tokens
+            if output_tokens is not None:
+                metadata['output_tokens'] = output_tokens
+            if timing_ms is not None:
+                metadata['timing_ms'] = timing_ms
+            if files:
+                metadata['files'] = files
+            if correlation_id:
+                metadata['correlation_id'] = correlation_id
+
+            asyncio.run(store_message_godot(
+                conversation_id=conversation_id,
+                role=role,
+                content=content,
+                turn_number=turn_number,
+                metadata=metadata if metadata else None
+            ))
+        except Exception:
+            pass  # Silent fail
+
+    thread = threading.Thread(target=_store_message, daemon=True)
+    thread.start()
+
+    # Track thread if list provided
+    if threads_list is not None:
+        threads_list.append(thread)
+
+
 def fiedler_send(
     prompt: str,
     files: Optional[List[str]] = None,
@@ -148,6 +198,22 @@ def fiedler_send(
     output_dir = Path(output_base) / f"{timestamp}_{correlation_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Begin conversation in Godot (synchronously to get conversation_id)
+    conversation_id = None
+    try:
+        conversation_id = asyncio.run(begin_conversation_godot(
+            session_id=f"fiedler-{timestamp}",
+            metadata={'correlation_id': correlation_id, 'timestamp': timestamp}
+        ))
+    except Exception:
+        pass  # Continue without conversation logging if Godot unavailable
+
+    # Initialize turn counter (1 for request, 2+ for responses)
+    turn_counter = 1
+
+    # Track logging threads for synchronization
+    logging_threads = []
+
     # Setup logger
     log_file = output_dir / "fiedler.log"
     logger = ProgressLogger(correlation_id, log_file)
@@ -163,6 +229,19 @@ def fiedler_send(
         logger.log(f"Compiling package from {len(files)} file(s)")
         package, package_metadata = compile_package(files, logger)
         logger.log(f"Package compiled: {package_metadata['total_size']} bytes, {package_metadata['total_lines']} lines")
+
+    # Log request (turn 1) - BEFORE sending to models
+    if conversation_id:
+        log_message_async(
+            conversation_id=conversation_id,
+            role='user',
+            content=prompt,
+            turn_number=turn_counter,
+            files=files,
+            correlation_id=correlation_id,
+            threads_list=logging_threads
+        )
+    turn_counter += 1
 
     # Send to models in parallel
     results = []
@@ -193,6 +272,36 @@ def fiedler_send(
         for future in as_completed(futures):
             result = future.result()
             results.append(result)
+
+            # Log response (turn 2+) - ONLY for successful results
+            if conversation_id and result["status"] == "success":
+                # Read full response text from file
+                response_text = ""
+                try:
+                    with open(result['output_file'], 'r', encoding='utf-8') as f:
+                        response_text = f.read()
+                except Exception:
+                    # Fallback to file reference if read fails
+                    response_text = f"Response from {result['model']} (see {result['output_file']})"
+
+                log_message_async(
+                    conversation_id=conversation_id,
+                    role='assistant',
+                    content=response_text,  # FULL TEXT, not just reference
+                    turn_number=turn_counter,
+                    model=result['model'],
+                    input_tokens=result.get('tokens', {}).get('prompt', None),
+                    output_tokens=result.get('tokens', {}).get('completion', None),
+                    timing_ms=int(result.get('duration', 0) * 1000),
+                    correlation_id=correlation_id,
+                    threads_list=logging_threads
+                )
+                turn_counter += 1  # INCREMENT for each response
+
+    # Wait for all logging threads to complete (with timeout)
+    logger.log("Waiting for conversation logging to complete...")
+    for thread in logging_threads:
+        thread.join(timeout=5.0)  # 5 second timeout per thread
 
     # Create summary (with optional prompt redaction for security)
     save_prompt = os.getenv("FIEDLER_SAVE_PROMPT", "0") == "1"

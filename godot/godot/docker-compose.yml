@@ -23,6 +23,16 @@ services:
       - LOG_QUEUE_NAME=logs:queue
       - MAX_QUEUE_SIZE=100000  # REQ-GOD-004, REQ-PERF-003
 
+      # Database configuration (for conversation storage)
+      # Using Dewey credentials for now (Godot user needs pg_hba.conf entry)
+      - GODOT_DB_HOST=192.168.1.210
+      - GODOT_DB_PORT=5432
+      - GODOT_DB_NAME=winni
+      - GODOT_DB_USER=dewey
+      - GODOT_DB_PASSWORD=D3w3y!SecurePass2025
+      - GODOT_DB_POOL_MIN_CONN=2
+      - GODOT_DB_POOL_MAX_CONN=10
+
     volumes:
       - godot_redis_data:/data
     networks:

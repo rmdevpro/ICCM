@@ -14,7 +14,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Install Python dependencies
 # Note: No official MCP Python library yet, will implement WebSocket server directly
-RUN pip install --no-cache-dir "redis>=5.0" "websockets>=14.0" "httpx>=0.25.0"
+RUN pip install --no-cache-dir "redis>=5.0" "websockets>=14.0" "httpx>=0.25.0" "asyncpg>=0.29"
 
 # Expose MCP Server port (Redis is internal only)
 EXPOSE 9060

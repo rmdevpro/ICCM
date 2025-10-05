@@ -1,5 +1,5 @@
 """
-Godot MCP Facade Server - WebSocket MCP server for logging tools
+Godot MCP Facade Server - WebSocket MCP server for logging and conversation storage tools
 Based on Dewey MCP server pattern + Gemini-2.5-Pro recommendation (correlation_id: b5afd3b0)
 """
 import asyncio
@@ -7,6 +7,7 @@ import json
 import logging
 import time
 from datetime import datetime, timezone
+from uuid import UUID
 
 import redis.asyncio as redis
 import websockets
@@ -14,6 +15,7 @@ from websockets.server import WebSocketServerProtocol
 
 import config
 from mcp_client import MCPClient
+from database import db_pool
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [MCP_SERVER] %(message)s')
 logger = logging.getLogger(__name__)
@@ -92,6 +94,74 @@ async def logger_set_level(component: str, level: str):
     return {"status": "ok", "component": component, "level": level_upper}
 
 
+async def conversation_begin(session_id: str = None, metadata: dict = None):
+    """Starts a new conversation and returns its ID"""
+    sql = """
+        INSERT INTO conversations (session_id, metadata)
+        VALUES ($1, $2)
+        RETURNING id, session_id, created_at;
+    """
+    try:
+        async with db_pool.transaction() as conn:
+            result = await conn.fetchrow(sql, session_id, json.dumps(metadata) if metadata else None)
+        logger.info(f"Began new conversation {result['id']}")
+        return {
+            "conversation_id": str(result['id']),
+            "session_id": result['session_id'],
+            "created_at": result['created_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error in conversation_begin: {e}")
+        raise ValueError("Failed to begin conversation")
+
+
+async def conversation_store_message(conversation_id: str, role: str, content: str, turn_number: int = None, metadata: dict = None):
+    """Stores a single message in a conversation"""
+    # Validate UUID
+    try:
+        conv_id = UUID(conversation_id)
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid UUID format for conversation_id: {conversation_id}")
+
+    # Validate role
+    if role not in ('user', 'assistant', 'system', 'tool'):
+        raise ValueError("Invalid role. Must be one of 'user', 'assistant', 'system', 'tool'")
+
+    try:
+        async with db_pool.transaction() as conn:
+            # Lock the conversation to safely determine the next turn number
+            check = await conn.fetchval("SELECT 1 FROM conversations WHERE id = $1 FOR UPDATE;", conv_id)
+            if check is None:
+                raise ValueError(f"Conversation with id '{conversation_id}' not found")
+
+            if turn_number is None:
+                turn_number = await conn.fetchval(
+                    "SELECT COALESCE(MAX(turn_number), 0) + 1 FROM messages WHERE conversation_id = $1;",
+                    conv_id
+                )
+
+            sql = """
+                INSERT INTO messages (conversation_id, turn_number, role, content, metadata)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id, turn_number, created_at;
+            """
+            result = await conn.fetchrow(sql, conv_id, turn_number, role, content, json.dumps(metadata) if metadata else None)
+
+            # Update conversation's updated_at timestamp
+            await conn.execute("UPDATE conversations SET updated_at = NOW() WHERE id = $1;", conv_id)
+
+        logger.info(f"Stored message {result['id']} in conversation {conversation_id} (turn {result['turn_number']})")
+        return {
+            "message_id": str(result['id']),
+            "conversation_id": conversation_id,
+            "turn_number": result['turn_number'],
+            "created_at": result['created_at'].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error in conversation_store_message: {e}")
+        raise ValueError(f"Failed to store message: {e}")
+
+
 # MCP Protocol Handlers
 
 TOOLS = [
@@ -147,6 +217,32 @@ TOOLS = [
             },
             "required": ["component", "level"]
         }
+    },
+    {
+        "name": "conversation_begin",
+        "description": "Start a new conversation and return its ID",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": {"type": "string", "description": "Optional session ID to group conversations"},
+                "metadata": {"type": "object", "description": "Optional metadata as key-value pairs"}
+            }
+        }
+    },
+    {
+        "name": "conversation_store_message",
+        "description": "Store a single message in a conversation",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "conversation_id": {"type": "string", "description": "UUID of the conversation"},
+                "role": {"type": "string", "enum": ["user", "assistant", "system", "tool"], "description": "Message role"},
+                "content": {"type": "string", "description": "Message content"},
+                "turn_number": {"type": "integer", "description": "Optional turn number (auto-increments if not provided)"},
+                "metadata": {"type": "object", "description": "Optional metadata (e.g., model, tokens, timing)"}
+            },
+            "required": ["conversation_id", "role", "content"]
+        }
     }
 ]
 
@@ -197,6 +293,10 @@ async def handle_tools_call(request_id, params):
             result = await logger_clear(**arguments)
         elif tool_name == "logger_set_level":
             result = await logger_set_level(**arguments)
+        elif tool_name == "conversation_begin":
+            result = await conversation_begin(**arguments)
+        elif tool_name == "conversation_store_message":
+            result = await conversation_store_message(**arguments)
         else:
             raise ValueError(f"Unknown tool: {tool_name}")
 
@@ -271,6 +371,9 @@ async def handle_client(websocket: WebSocketServerProtocol):
 async def main():
     """Start the Godot MCP facade server"""
     logger.info(f"Starting Godot MCP server on port {config.MCP_PORT}")
+
+    # Initialize database pool for conversation storage
+    await db_pool.initialize()
 
     async with websockets.serve(handle_client, "0.0.0.0", config.MCP_PORT):
         logger.info(f"Godot MCP server listening on port {config.MCP_PORT}")

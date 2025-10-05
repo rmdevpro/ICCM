@@ -31,7 +31,28 @@ async def log_to_godot(
     """
     try:
         async with websockets.connect(godot_url, open_timeout=timeout) as ws:
-            request = {
+            # MCP Initialize handshake
+            init_request = {
+                'jsonrpc': '2.0',
+                'method': 'initialize',
+                'params': {
+                    'protocolVersion': '2024-11-05',
+                    'capabilities': {},
+                    'clientInfo': {'name': 'fiedler-logger', 'version': '1.0'}
+                },
+                'id': 1
+            }
+
+            await ws.send(json.dumps(init_request))
+
+            # Wait for initialize response
+            try:
+                await asyncio.wait_for(ws.recv(), timeout=timeout)
+            except asyncio.TimeoutError:
+                return  # Initialization timeout - exit silently
+
+            # Send logger_log tool call
+            log_request = {
                 'jsonrpc': '2.0',
                 'method': 'tools/call',
                 'params': {
@@ -44,10 +65,10 @@ async def log_to_godot(
                         'trace_id': trace_id
                     }
                 },
-                'id': 1
+                'id': 2
             }
 
-            await ws.send(json.dumps(request))
+            await ws.send(json.dumps(log_request))
 
             # Wait for response with timeout
             try:
