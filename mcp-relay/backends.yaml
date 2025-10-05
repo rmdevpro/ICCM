@@ -12,3 +12,5 @@ backends:
   url: ws://localhost:9051
 - name: playfair
   url: ws://localhost:9041
+- name: marco
+  url: ws://localhost:9031
