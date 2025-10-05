@@ -499,12 +499,15 @@ Configuration mismatch after Blue/Green deployment. Gates Blue deployed on port 
 
 **Testing:**
 ✅ `relay_get_status()` shows Gates healthy on port 9051 with 3 tools
-✅ All Gates tools operational (awaiting restart to verify tools callable in fresh session)
+✅ All Gates tools operational and callable in fresh session
+✅ **FULLY VERIFIED (2025-10-05 14:15 EDT):** Claude Code restarted, all 30 tools available
+✅ Gates tools confirmed working: gates_create_document, gates_validate_markdown, gates_list_capabilities
 
 **Lessons Learned:**
 - Blue/Green deployments must update relay backend configuration
 - Logging infrastructure enabled rapid diagnosis (found issue in <5 minutes)
 - Tool unavailability was environmental, not architectural
+- Always verify tools callable after restart, not just discoverable
 
 ---
 
@@ -537,8 +540,10 @@ Modified `relay_add_server` and `relay_remove_server` to automatically persist c
   - Line 550: Call save after successful server removal
 
 **Testing:**
-✅ Code changes applied (awaiting restart to verify)
+✅ Code changes applied and verified working
 ✅ Follows "tools-first" principle - no manual yaml editing required
+✅ **FULLY VERIFIED (2025-10-05 14:15 EDT):** Relay loaded backends.yaml on startup
+✅ Gates port 9051 persisted correctly, auto-connected on restart
 
 ---
 
