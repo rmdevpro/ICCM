@@ -162,6 +162,124 @@ async def conversation_store_message(conversation_id: str, role: str, content: s
         raise ValueError(f"Failed to store message: {e}")
 
 
+async def conversation_store_messages_bulk(messages: list = None, messages_file: str = None, conversation_id: str = None, session_id: str = None, metadata: dict = None) -> dict:
+    """Stores a list of messages in a single transaction using optimized multi-row INSERT.
+
+    Args:
+        messages: List of message objects (inline)
+        messages_file: Path to JSON file containing message array (industry-standard file reference)
+        conversation_id: Existing conversation ID
+        session_id: Session ID for new conversation
+        metadata: Metadata for new conversation
+    """
+    # Support industry-standard file reference pattern
+    if messages_file:
+        import os
+        if not os.path.exists(messages_file):
+            raise ValueError(f"File not found: {messages_file}")
+        try:
+            with open(messages_file, 'r') as f:
+                # Detect format: JSON array or JSONL (Claude Code session format)
+                first_char = f.read(1)
+                f.seek(0)
+
+                if first_char == '[':
+                    # Standard JSON array
+                    messages = json.load(f)
+                elif first_char == '{':
+                    # JSONL format (newline-delimited JSON objects)
+                    messages = []
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            messages.append(json.loads(line))
+                else:
+                    raise ValueError(f"Unrecognized file format (must start with '[' or '{{')")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in messages_file: {e}")
+
+    if not isinstance(messages, list) or not messages:
+        raise ValueError("Parameter 'messages' (or messages_file content) must be a non-empty list.")
+
+    # Normalize messages to fit Godot schema
+    for i, msg in enumerate(messages):
+        # Handle Claude Code session format
+        if 'message' in msg and isinstance(msg['message'], dict):
+            # Extract role/content from nested message
+            role = msg['message'].get('role', 'NA')
+            content = msg['message'].get('content', 'NA')
+            # Store original full entry in metadata
+            messages[i] = {
+                'role': role,
+                'content': json.dumps(content) if isinstance(content, (list, dict)) else str(content),
+                'metadata': msg  # Full original entry
+            }
+        elif 'role' in msg and 'content' in msg:
+            # Already in correct format
+            content = msg.get('content')
+            if isinstance(content, (list, dict)):
+                messages[i]['content'] = json.dumps(content)
+        else:
+            # Non-message entry (snapshot, etc.) - store as system message with full entry in metadata
+            messages[i] = {
+                'role': 'system',
+                'content': msg.get('type', 'unknown'),  # Use type as content placeholder
+                'metadata': msg  # Full original entry
+            }
+
+    try:
+        async with db_pool.transaction() as conn:
+            if conversation_id:
+                conv_id = UUID(conversation_id)
+                check = await conn.fetchval("SELECT 1 FROM conversations WHERE id = $1 FOR UPDATE;", conv_id)
+                if check is None:
+                    raise ValueError(f"Conversation with id '{conversation_id}' not found.")
+            else:
+                # Create a new conversation
+                conv_id = await conn.fetchval(
+                    "INSERT INTO conversations (session_id, metadata) VALUES ($1, $2) RETURNING id;",
+                    session_id, json.dumps(metadata) if metadata else None
+                )
+
+            # Get the current max turn_number
+            base_turn_number = await conn.fetchval(
+                "SELECT COALESCE(MAX(turn_number), 0) FROM messages WHERE conversation_id = $1;",
+                conv_id
+            ) or 0
+
+            # Prepare bulk insert data
+            insert_values = []
+            for idx, msg in enumerate(messages, start=1):
+                insert_values.append((
+                    conv_id,
+                    base_turn_number + idx,
+                    msg.get('role', 'user'),
+                    msg.get('content', ''),
+                    json.dumps(msg.get('metadata')) if msg.get('metadata') else None
+                ))
+
+            # Multi-row INSERT (PostgreSQL optimized)
+            await conn.executemany(
+                "INSERT INTO messages (conversation_id, turn_number, role, content, metadata) VALUES ($1, $2, $3, $4, $5);",
+                insert_values
+            )
+
+            # Update conversation's updated_at timestamp
+            await conn.execute("UPDATE conversations SET updated_at = NOW() WHERE id = $1;", conv_id)
+
+            stored_count = len(insert_values)
+
+        logger.info(f"Stored {stored_count} messages in conversation {conv_id}")
+        return {
+            "conversation_id": str(conv_id),
+            "messages_stored": stored_count,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error in conversation_store_messages_bulk: {e}")
+        raise ValueError(f"Failed to store messages in bulk: {e}")
+
+
 # MCP Protocol Handlers
 
 TOOLS = [
@@ -243,6 +361,27 @@ TOOLS = [
             },
             "required": ["conversation_id", "role", "content"]
         }
+    },
+    {
+        "name": "conversation_store_messages_bulk",
+        "description": "Store multiple messages at once (up to 1000). Supports file references for large payloads.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "description": "Array of message objects with role and content (inline)",
+                    "items": {"type": "object"}
+                },
+                "messages_file": {
+                    "type": "string",
+                    "description": "Path to JSON file containing message array (file reference - industry standard for large payloads)"
+                },
+                "conversation_id": {"type": "string", "description": "Optional existing conversation ID"},
+                "session_id": {"type": "string", "description": "Optional session ID for new conversation"},
+                "metadata": {"type": "object", "description": "Optional metadata for new conversation"}
+            }
+        }
     }
 ]
 
@@ -297,6 +436,8 @@ async def handle_tools_call(request_id, params):
             result = await conversation_begin(**arguments)
         elif tool_name == "conversation_store_message":
             result = await conversation_store_message(**arguments)
+        elif tool_name == "conversation_store_messages_bulk":
+            result = await conversation_store_messages_bulk(**arguments)
         else:
             raise ValueError(f"Unknown tool: {tool_name}")
 

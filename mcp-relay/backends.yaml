@@ -14,3 +14,5 @@ backends:
   url: ws://localhost:9012
 - name: dewey
   url: ws://localhost:9022
+- name: horace
+  url: ws://172.29.0.11:8070
