@@ -2,11 +2,79 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-05 05:02 EDT
+**Last Updated:** 2025-10-05 12:45 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
+
+### BUG #28: Dewey dewey_query_logs Returns Timedelta Serialization Error
+
+**Status:** 🔴 ACTIVE - Query tool broken
+**Reported:** 2025-10-05 12:44 EDT
+**Priority:** MEDIUM - Blocks log query capability
+**Component:** Dewey (`/mnt/projects/ICCM/dewey/`)
+
+**Problem:**
+The `dewey_query_logs` tool fails with JSON serialization error:
+```
+Internal error: Object of type timedelta is not JSON serializable
+```
+
+**Impact:**
+- Cannot query stored logs via `logger_query` facade tool
+- Logs are being stored successfully (worker batching confirmed)
+- Only retrieval is broken
+
+**Root Cause:**
+Likely returning timedelta objects (e.g., age, retention period) in query results without converting to serializable format (string, seconds, etc.)
+
+**Solution:**
+Convert timedelta objects to ISO duration strings or total seconds before JSON serialization in `dewey_query_logs` tool.
+
+**Evidence:**
+```
+2025-10-05 12:44:25,903 - INFO - [WORKER] Sending batch of 6 logs to Dewey.
+2025-10-05 12:44:25,926 - INFO - [WORKER] Successfully sent batch of 6 logs.
+2025-10-05 12:44:34,916 - ERROR - [MCP_SERVER] Error calling tool dewey_query_logs: Internal error: Object of type timedelta is not JSON serializable
+```
+
+---
+
+### BUG #27: Gates Blue Dockerfile Missing loglib.js
+
+**Status:** ✅ RESOLVED (2025-10-05 12:42 EDT)
+**Reported:** 2025-10-05 12:40 EDT
+**Priority:** HIGH - Blocked Gates Blue deployment
+**Component:** Gates (`/mnt/projects/ICCM/gates-blue/`)
+
+**Problem:**
+Gates Blue container failed to start with:
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/app/loglib.js' imported from /app/server.js
+```
+
+**Root Cause:**
+Dockerfile only copied `server.js`, not `loglib.js`. Build succeeded but runtime failed.
+
+**Resolution:**
+Updated Dockerfile line 20:
+```dockerfile
+# Before
+COPY server.js ./
+
+# After
+COPY server.js loglib.js ./
+```
+
+**Note:**
+This bug was discovered and fixed during deployment, but then the entire approach was changed to use MCP tools instead of Redis client library, making loglib.js unnecessary. Final fix removed the Redis approach entirely.
+
+**Result:**
+✅ Container starts successfully
+✅ Switched to MCP-based logging (calls `logger_log` tool instead of direct Redis)
+
+---
 
 ### BUG #26: Godot Triplet Code Used Non-Existent mcp-tools-py Library
 

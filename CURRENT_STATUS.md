@@ -1,12 +1,51 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-05 05:00 EDT
-**Session:** Godot Logging Infrastructure Deployment
-**Status:** ✅ **Godot DEPLOYED** - Worker awaiting Dewey logging tools (Blue/Green next)
+**Last Updated:** 2025-10-05 12:50 EDT
+**Session:** Logging Integration - Gates & MCP Relay
+**Status:** ✅ **Blue/Green Deployment Complete** - Gates Blue operational, Relay Blue ready
 
 ---
 
 ## 🎯 Current Session Accomplishments
+
+### ✅ Logging Integration: Gates & MCP Relay - DEPLOYED (2025-10-05 12:50 EDT)
+
+**Deployment Type:** Blue/Green
+**Status:** ✅ Gates Blue operational, Relay Blue ready for cutover
+
+**Components Deployed:**
+
+1. **Gates Blue** (port 9051, container: gates-mcp-blue)
+   - MCP-based logging via `logger_log` tool
+   - TRACE-level logging for all MCP requests and tool calls
+   - Verified: 6 logs batched and sent to Dewey successfully
+   - Ready for production cutover
+
+2. **MCP Relay Blue** (/mnt/projects/ICCM/mcp-relay-blue/)
+   - MCP-based logging via `logger_log` tool
+   - TRACE-level logging for tool routing and backend communication
+   - Code verified, ready for production cutover
+
+**Architecture Decision:**
+- ✅ MCP servers use MCP protocol for logging (not Redis client libraries)
+- ✅ Client libraries (Python/JS loglib) reserved for NON-MCP components only
+- ✅ All logging is non-blocking and fails silently
+
+**Bugs Found & Tracked:**
+- **BUG #27**: Gates Dockerfile missing loglib.js - ✅ RESOLVED (then removed, switched to MCP)
+- **BUG #28**: Dewey query timedelta serialization error - 🔴 ACTIVE (separate fix needed)
+
+**Pipeline Verified:**
+```
+Gates → logger_log (MCP) → Godot (9060) → Worker → Batch → Dewey (PostgreSQL) ✅
+```
+
+**Purpose:**
+Enable TRACE-level debugging for **BUG #13: Gates MCP Tools Not Callable**. With full protocol logging, can compare message exchanges between working servers (Dewey, Fiedler) and broken server (Gates) to identify structural differences.
+
+**Deployment Summary:** `/tmp/logging_integration_deployment_summary.md`
+
+---
 
 ### ✅ Dewey Claude Code Session Import - IMPLEMENTED (2025-10-05 03:52 EDT)
 
