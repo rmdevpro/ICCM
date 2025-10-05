@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 import sys
+import uuid
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
@@ -30,6 +31,39 @@ logging.basicConfig(
     stream=sys.stderr
 )
 logger = logging.getLogger(__name__)
+
+# Godot logging configuration
+GODOT_URL = "ws://localhost:9060"
+LOGGING_ENABLED = True  # Set to False to disable Godot logging
+
+async def log_to_godot(level: str, message: str, data: dict = None, trace_id: str = None):
+    """Send log to Godot logging infrastructure via MCP tool."""
+    if not LOGGING_ENABLED:
+        return
+
+    try:
+        async with websockets.connect(GODOT_URL, open_timeout=1) as ws:
+            # Call logger_log tool
+            request = {
+                "jsonrpc": "2.0",
+                "method": "tools/call",
+                "params": {
+                    "name": "logger_log",
+                    "arguments": {
+                        "level": level,
+                        "message": message,
+                        "component": "mcp-relay",
+                        "data": data,
+                        "trace_id": trace_id
+                    }
+                },
+                "id": 1
+            }
+            await ws.send(json.dumps(request))
+            response = await asyncio.wait_for(ws.recv(), timeout=1.0)
+    except Exception as e:
+        # Silently fail - don't disrupt relay operation if logging fails
+        logger.debug(f"Godot logging failed: {e}")
 
 
 class ConfigFileHandler(FileSystemEventHandler):
@@ -618,6 +652,15 @@ class MCPRelay:
 
     async def call_tool(self, tool_name: str, arguments: dict) -> dict:
         """Route tool call to appropriate backend or handle relay management tools."""
+        trace_id = str(uuid.uuid4())
+
+        # Log tool call initiation
+        asyncio.create_task(log_to_godot(
+            "TRACE",
+            f"Tool call received: {tool_name}",
+            {"tool_name": tool_name, "arguments": arguments},
+            trace_id
+        ))
 
         # Handle relay management tools
         if tool_name == "relay_add_server":
@@ -635,10 +678,23 @@ class MCPRelay:
         backend_name = self.tool_routing.get(tool_name)
 
         if not backend_name:
+            asyncio.create_task(log_to_godot(
+                "ERROR",
+                f"Unknown tool: {tool_name}",
+                {"tool_name": tool_name, "available_tools": list(self.tool_routing.keys())},
+                trace_id
+            ))
             raise ValueError(f"Unknown tool: {tool_name}")
 
         backend = self.backends[backend_name]
         ws = backend['ws']
+
+        asyncio.create_task(log_to_godot(
+            "TRACE",
+            f"Routing tool to backend: {backend_name}",
+            {"tool_name": tool_name, "backend": backend_name, "backend_url": backend['url']},
+            trace_id
+        ))
 
         if not ws:
             # Try to reconnect
@@ -657,15 +713,37 @@ class MCPRelay:
             "id": 3
         }
 
+        asyncio.create_task(log_to_godot(
+            "TRACE",
+            f"Sending request to backend: {backend_name}",
+            {"request": request},
+            trace_id
+        ))
+
         try:
             await ws.send(json.dumps(request))
             response = json.loads(await ws.recv())
+
+            asyncio.create_task(log_to_godot(
+                "TRACE",
+                f"Received response from backend: {backend_name}",
+                {"response": response, "has_error": "error" in response},
+                trace_id
+            ))
+
             return response
         except (websockets.exceptions.ConnectionClosed,
                 websockets.exceptions.ConnectionClosedError,
                 websockets.exceptions.ConnectionClosedOK) as e:
             # Connection lost - reconnect and retry
             logger.warning(f"Backend {backend_name} connection lost: {e}, reconnecting...")
+            asyncio.create_task(log_to_godot(
+                "WARN",
+                f"Backend connection lost, reconnecting: {backend_name}",
+                {"backend": backend_name, "error": str(e)},
+                trace_id
+            ))
+
             backend['ws'] = None  # Mark as disconnected
             await self.reconnect_backend(backend_name)
             ws = backend['ws']
@@ -674,9 +752,23 @@ class MCPRelay:
             logger.info(f"Retrying tool call: {tool_name}")
             await ws.send(json.dumps(request))
             response = json.loads(await ws.recv())
+
+            asyncio.create_task(log_to_godot(
+                "TRACE",
+                f"Retry successful for tool: {tool_name}",
+                {"response": response},
+                trace_id
+            ))
+
             return response
         except Exception as e:
             logger.error(f"Tool call failed for {tool_name}: {e}")
+            asyncio.create_task(log_to_godot(
+                "ERROR",
+                f"Tool call failed: {tool_name}",
+                {"tool_name": tool_name, "backend": backend_name, "error": str(e), "error_type": type(e).__name__},
+                trace_id
+            ))
             raise
 
     async def handle_request(self, request: dict) -> Optional[dict]:
