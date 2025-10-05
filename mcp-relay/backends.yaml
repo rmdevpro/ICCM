@@ -4,8 +4,6 @@
 # Manual edits will be overwritten.
 
 backends:
-- name: fiedler
-  url: ws://localhost:9010
 - name: dewey
   url: ws://localhost:9020
 - name: gates
@@ -14,3 +12,5 @@ backends:
   url: ws://localhost:9041
 - name: marco
   url: ws://localhost:9031
+- name: fiedler
+  url: ws://localhost:9012
