@@ -17,6 +17,10 @@ backends:
     url: ws://localhost:9040
     # Direct to Playfair Diagram Generation Gateway (bare metal mode, no logging)
 
+  - name: gates
+    url: ws://localhost:9050
+    # Direct to Gates Document Generation Gateway (bare metal mode, no logging)
+
 # To enable KGB logging, use relay_add_server tool instead:
 # relay_add_server(name="fiedler", url="ws://localhost:9000?upstream=fiedler")
 # relay_add_server(name="dewey", url="ws://localhost:9000?upstream=dewey")

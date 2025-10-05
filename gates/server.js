@@ -613,7 +613,7 @@ async function handleMCPRequest(request) {
               tools: {}
             },
             serverInfo: {
-              name: 'gates-mcp-server',
+              name: 'gates',
               version: '1.0.0'
             }
           }
