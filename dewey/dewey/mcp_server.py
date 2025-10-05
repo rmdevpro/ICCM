@@ -51,20 +51,23 @@ class DeweyMCPServer:
                 }
             },
             "dewey_store_messages_bulk": {
-                "description": "Store multiple messages at once (up to 1000)",
+                "description": "Store multiple messages at once (up to 1000). Supports file references for large payloads.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "messages": {
                             "type": "array",
-                            "description": "Array of message objects with role and content",
+                            "description": "Array of message objects with role and content (inline)",
                             "items": {"type": "object"}
+                        },
+                        "messages_file": {
+                            "type": "string",
+                            "description": "Path to JSON file containing message array (file reference - industry standard for large payloads)"
                         },
                         "conversation_id": {"type": "string", "description": "Optional existing conversation ID"},
                         "session_id": {"type": "string", "description": "Optional session ID for new conversation"},
                         "metadata": {"type": "object", "description": "Optional metadata for new conversation"}
-                    },
-                    "required": ["messages"]
+                    }
                 }
             },
             "dewey_get_conversation": {

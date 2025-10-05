@@ -79,7 +79,7 @@ Add to your Claude Code MCP configuration:
 ### Conversation Management
 - `dewey_begin_conversation` - Start a new conversation
 - `dewey_store_message` - Store a single message
-- `dewey_store_messages_bulk` - Store multiple messages at once
+- `dewey_store_messages_bulk` - Store multiple messages at once (supports file references)
 - `dewey_get_conversation` - Retrieve full conversation
 - `dewey_list_conversations` - List conversations with pagination
 - `dewey_delete_conversation` - Delete conversation and messages
@@ -92,6 +92,43 @@ Add to your Claude Code MCP configuration:
 - `dewey_set_startup_context` - Create/update context
 - `dewey_list_startup_contexts` - List all contexts
 - `dewey_delete_startup_context` - Delete a context
+
+## Storing Large Conversations
+
+Dewey supports industry-standard **file reference pattern** for large conversation storage:
+
+### Method 1: Inline (Small Conversations)
+```python
+dewey_store_messages_bulk(
+    conversation_id="...",
+    messages=[
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there!"}
+    ]
+)
+```
+
+### Method 2: File Reference (Large Conversations)
+```python
+# 1. Extract conversation from Claude Code history
+python3 extract_conversation.py ~/.claude/projects/.../session.jsonl > /tmp/messages.json
+
+# 2. Store using file reference (recommended for >100 messages)
+dewey_store_messages_bulk(
+    conversation_id="...",
+    messages_file="/tmp/messages.json"
+)
+```
+
+**Features:**
+- Supports up to 1,000 messages per call
+- Handles up to 1MB per message (tool calls, large content)
+- Automatic content normalization (arrays/objects → JSON strings)
+- Read-only /tmp volume mount for host filesystem access
+
+**Limits:**
+- MAX_BULK_MESSAGES: 1,000 messages
+- MAX_CONTENT_SIZE: 1,000,000 bytes (1MB) per message
 
 ## Database Schema
 

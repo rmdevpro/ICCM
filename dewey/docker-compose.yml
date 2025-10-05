@@ -19,6 +19,8 @@ services:
       DEWEY_LOG_LEVEL: ${DEWEY_LOG_LEVEL:-INFO}
     ports:
       - "127.0.0.1:9020:9020"
+    volumes:
+      - /tmp:/tmp:ro  # Read-only access to host /tmp for file references
     networks:
       - iccm_network
     healthcheck:

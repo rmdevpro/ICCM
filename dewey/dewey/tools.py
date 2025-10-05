@@ -12,8 +12,8 @@ from dewey.database import db_pool
 logger = logging.getLogger(__name__)
 
 # Configuration limits
-MAX_CONTENT_SIZE = 100000  # 100KB per message
-MAX_BULK_MESSAGES = 1000   # Maximum messages in bulk insert
+MAX_CONTENT_SIZE = 1000000  # 1MB per message (increased for real conversations with tool calls)
+MAX_BULK_MESSAGES = 1000    # Maximum messages in bulk insert
 
 class ToolError(Exception):
     """Custom exception for tool-specific errors."""
@@ -110,10 +110,38 @@ async def dewey_store_message(conversation_id: str, role: str, content: str, tur
             raise
         raise ToolError("Failed to store message.")
 
-async def dewey_store_messages_bulk(messages: list, conversation_id: str = None, session_id: str = None, metadata: dict = None) -> dict:
-    """Stores a list of messages in a single transaction using optimized multi-row INSERT."""
+async def dewey_store_messages_bulk(messages: list = None, messages_file: str = None, conversation_id: str = None, session_id: str = None, metadata: dict = None) -> dict:
+    """Stores a list of messages in a single transaction using optimized multi-row INSERT.
+
+    Args:
+        messages: List of message objects (inline)
+        messages_file: Path to JSON file containing message array (industry-standard file reference)
+        conversation_id: Existing conversation ID
+        session_id: Session ID for new conversation
+        metadata: Metadata for new conversation
+    """
+    # Support industry-standard file reference pattern
+    if messages_file:
+        import json
+        import os
+        if not os.path.exists(messages_file):
+            raise ToolError(f"File not found: {messages_file}")
+        try:
+            with open(messages_file, 'r') as f:
+                messages = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ToolError(f"Invalid JSON in messages_file: {e}")
+
     if not isinstance(messages, list) or not messages:
-        raise ToolError("Parameter 'messages' must be a non-empty list.")
+        raise ToolError("Parameter 'messages' (or messages_file content) must be a non-empty list.")
+
+    # Normalize content field (handle both strings and complex objects from Claude Code)
+    import json
+    for i, msg in enumerate(messages):
+        content = msg.get('content')
+        if isinstance(content, list) or isinstance(content, dict):
+            # Convert complex content (tool calls, etc.) to JSON string
+            messages[i]['content'] = json.dumps(content)
 
     if len(messages) > MAX_BULK_MESSAGES:
         raise ToolError(f"Bulk insert limited to {MAX_BULK_MESSAGES} messages. Received {len(messages)}.")

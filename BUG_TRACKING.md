@@ -8,6 +8,41 @@
 
 ## 🐛 ACTIVE BUGS
 
+### BUG #15: Dewey Missing File Reference Support for Large Conversation Storage
+
+**Status:** ✅ RESOLVED
+**Reported:** 2025-10-04 20:47 EDT
+**Resolved:** 2025-10-04 20:54 EDT
+**Priority:** MEDIUM - Industry-standard feature
+**Component:** Dewey MCP Server (`/mnt/projects/ICCM/dewey/`)
+
+**Problem:**
+Dewey's `store_messages_bulk` tool only accepted inline `messages: list` parameter. For large conversations (599 messages = 814KB JSON), this exceeded reasonable MCP parameter sizes.
+
+**Root Cause:**
+1. No file reference parameter support
+2. MAX_CONTENT_SIZE too low (100KB) for real conversations with tool calls
+3. No content normalization for Claude Code's complex message format (mixed string/array content)
+4. Missing /tmp volume mount for host filesystem access
+
+**Resolution:**
+1. Added `messages_file` parameter to `dewey_store_messages_bulk` (file reference pattern)
+2. Increased MAX_CONTENT_SIZE from 100KB to 1MB
+3. Added automatic content normalization (converts arrays/objects to JSON strings)
+4. Added /tmp volume mount to docker-compose.yml
+
+**Files Modified:**
+- `/mnt/projects/ICCM/dewey/dewey/tools.py` - Added file reference support and content normalization
+- `/mnt/projects/ICCM/dewey/dewey/mcp_server.py` - Updated tool schema
+- `/mnt/projects/ICCM/dewey/docker-compose.yml` - Added /tmp volume mount
+
+**Verification:**
+✅ Successfully stored 599 messages (814KB) using file reference
+✅ All 599 message IDs returned
+✅ Industry-standard pattern implemented per Triplet Consultation df6279bf
+
+---
+
 ### BUG #13: Gates MCP Tools Not Registered in Claude Code Session
 
 **Status:** ✅ RESOLVED

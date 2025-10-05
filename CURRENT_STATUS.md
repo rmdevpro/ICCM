@@ -1,12 +1,73 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-04 19:45 EDT
-**Session:** BUG #12 Resolution - Playfair Mermaid Engine Fixed
+**Last Updated:** 2025-10-04 20:55 EDT
+**Session:** Gates Deployment Cycle - BUG #13, #14, #15 Resolution
 **Status:** ✅ **All systems operational, zero active bugs**
 
 ---
 
 ## 🎯 Current Session Accomplishments
+
+### ✅ BUG #15: Dewey File Reference Support - RESOLVED (2025-10-04 20:54 EDT)
+
+**INDUSTRY-STANDARD FEATURE:** Dewey now supports file reference pattern for large conversation storage
+
+**Deployment Cycle Followed:** Code Deployment Cycle PNG (Test → Bug → Consult Triplets → Fix → Re-deploy → Test → Complete)
+
+**Problem Resolved:**
+Dewey's `store_messages_bulk` only accepted inline `messages: list` parameter. For large conversations (599 messages = 814KB JSON), this exceeded reasonable MCP parameter sizes and required workarounds.
+
+**Resolution Summary:**
+1. **Triplet Consultation (df6279bf):** Industry-standard guidance on large payload handling
+   - GPT-4o-mini, Gemini 2.5 Pro, DeepSeek-R1 all recommended file reference pattern
+   - Compression first, then file references for scalability
+   - Avoid chunking for JSON-RPC protocols
+
+2. **Implementation:**
+   - Added `messages_file` parameter to `dewey_store_messages_bulk`
+   - Increased MAX_CONTENT_SIZE from 100KB to 1MB (real conversations with tool calls)
+   - Added automatic content normalization (arrays/objects → JSON strings)
+   - Added /tmp volume mount to docker-compose.yml (read-only host filesystem access)
+
+3. **Testing & Verification:**
+   - ✅ Stored 599 messages (814KB) using file reference
+   - ✅ All 599 message IDs returned
+   - ✅ Content normalization working (Claude Code complex message format)
+   - ✅ Volume mount persistent across restarts
+
+**Files Modified:**
+- `/mnt/projects/ICCM/dewey/dewey/tools.py` - File reference support + content normalization
+- `/mnt/projects/ICCM/dewey/dewey/mcp_server.py` - Updated tool schema
+- `/mnt/projects/ICCM/dewey/docker-compose.yml` - Added /tmp volume mount
+- `/mnt/projects/ICCM/dewey/README.md` - Documentation updated
+
+**Impact:**
+- Dewey can now handle conversations of any size
+- Industry-standard pattern implemented
+- No more workarounds for large conversations
+
+**Triplet Archive:**
+- Consultation ID: df6279bf (2025-10-05 00:47:05)
+- Models: gpt-4o-mini (12.93s), gemini-2.5-pro (37.26s), deepseek-ai/DeepSeek-R1 (48.63s)
+
+---
+
+### ✅ BUG #13: Gates MCP Tools Not Registered - RESOLVED (2025-10-04 20:35 EDT)
+
+**ROOT CAUSE FOUND:** Gates serverInfo.name was "gates-mcp-server" instead of "gates"
+
+**Resolution:**
+- Changed serverInfo.name from "gates-mcp-server" to "gates" in `/mnt/projects/ICCM/gates/server.js`
+- Relay uses serverInfo.name to form tool prefixes (mcp__iccm__gates_*)
+- All 3 Gates tools now properly registered and available
+
+---
+
+### ✅ BUG #14: Docker Compose Obsolete Version Attribute - RESOLVED (2025-10-04 20:35 EDT)
+
+**CLEANUP:** Removed obsolete `version: '3.8'` from Gates docker-compose.yml
+
+---
 
 ### ✅ BUG #12: Playfair Mermaid Engine - RESOLVED (2025-10-04 19:45 EDT)
 
