@@ -463,7 +463,7 @@ services:
 
 ### 11.1 Constraints
 
-- **CONST-001:** Dewey is sole gatekeeper for Winni - no direct PostgreSQL access from Godot
+- **CONST-001 (Refined for Option 4):** Dewey is the authoritative **READ gatekeeper** for Winni. **WRITE operations** may be delegated to specialized ingestion services (e.g., Godot for logs) with appropriate access controls and clear architectural boundaries. Godot has INSERT-only access to the `logs` table via dedicated `godot_log_writer` database user.
 - **CONST-002:** All containers must run on single Docker host (no Kubernetes/orchestration)
 - **CONST-003:** Claude Code cannot be restarted - MCP relay handles backend connections dynamically
 - **CONST-004:** Maximum 30-day log retention due to disk space constraints

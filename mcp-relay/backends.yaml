@@ -14,3 +14,5 @@ backends:
   url: ws://localhost:9031
 - name: fiedler
   url: ws://localhost:9012
+- name: dewey-blue
+  url: ws://localhost:9022
