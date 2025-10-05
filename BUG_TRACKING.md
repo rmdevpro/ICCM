@@ -8,37 +8,6 @@
 
 ## 🐛 ACTIVE BUGS
 
-### BUG #28: Dewey dewey_query_logs Returns Timedelta Serialization Error
-
-**Status:** 🔴 ACTIVE - Query tool broken
-**Reported:** 2025-10-05 12:44 EDT
-**Priority:** MEDIUM - Blocks log query capability
-**Component:** Dewey (`/mnt/projects/ICCM/dewey/`)
-
-**Problem:**
-The `dewey_query_logs` tool fails with JSON serialization error:
-```
-Internal error: Object of type timedelta is not JSON serializable
-```
-
-**Impact:**
-- Cannot query stored logs via `logger_query` facade tool
-- Logs are being stored successfully (worker batching confirmed)
-- Only retrieval is broken
-
-**Root Cause:**
-Likely returning timedelta objects (e.g., age, retention period) in query results without converting to serializable format (string, seconds, etc.)
-
-**Solution:**
-Convert timedelta objects to ISO duration strings or total seconds before JSON serialization in `dewey_query_logs` tool.
-
-**Evidence:**
-```
-2025-10-05 12:44:25,903 - INFO - [WORKER] Sending batch of 6 logs to Dewey.
-2025-10-05 12:44:25,926 - INFO - [WORKER] Successfully sent batch of 6 logs.
-2025-10-05 12:44:34,916 - ERROR - [MCP_SERVER] Error calling tool dewey_query_logs: Internal error: Object of type timedelta is not JSON serializable
-```
-
 ---
 
 ### BUG #27: Gates Blue Dockerfile Missing loglib.js
@@ -512,6 +481,40 @@ Implementing Godot Unified Logging Infrastructure to capture exact message excha
 ---
 
 ## ✅ RESOLVED BUGS (Recent)
+
+### BUG #28: Dewey dewey_query_logs Returns Timedelta Serialization Error
+
+**Status:** ✅ RESOLVED (2025-10-05 13:07 EDT)
+**Reported:** 2025-10-05 12:44 EDT
+**Resolved:** 2025-10-05 13:07 EDT
+**Priority:** MEDIUM - Blocked log query capability
+**Component:** Dewey (`/mnt/projects/ICCM/dewey/`)
+
+**Problem:**
+The `dewey_query_logs` tool failed with JSON serialization error:
+```
+Internal error: Object of type timedelta is not JSON serializable
+```
+
+**Root Cause:**
+Line 536 in `tools.py` calculates `(NOW() - created_at) as age` which returns a PostgreSQL interval/timedelta object. The `_serialize_item()` function (line 32) handled `datetime` and `UUID` but not `timedelta`, causing JSON serialization failure.
+
+**Resolution:**
+Added timedelta serialization to `_serialize_item()` function:
+```python
+if isinstance(item, timedelta):
+    return item.total_seconds()
+```
+
+**Files Modified:**
+- `/mnt/projects/ICCM/dewey/dewey/tools.py` line 43-44 - Added timedelta handling
+
+**Testing:**
+✅ Query now returns successfully with age field as seconds (e.g., 300.928603)
+✅ Two log entries retrieved with all fields including age
+✅ Container rebuilt and redeployed
+
+---
 
 ### BUG #14: Gates docker-compose.yml Uses Obsolete "version" Attribute
 

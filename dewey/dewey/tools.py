@@ -30,7 +30,7 @@ def _validate_uuid(uuid_str, param_name):
         raise ToolError(f"Invalid UUID format for parameter '{param_name}'.")
 
 def _serialize_item(item):
-    """Recursively serialize datetime, UUID, and asyncpg Record objects."""
+    """Recursively serialize datetime, UUID, timedelta, and asyncpg Record objects."""
     # Handle asyncpg Record objects by converting to dict
     if hasattr(item, '__class__') and item.__class__.__name__ == 'Record':
         return _serialize_item(dict(item))
@@ -40,6 +40,8 @@ def _serialize_item(item):
         return [_serialize_item(i) for i in item]
     if isinstance(item, datetime):
         return item.isoformat()
+    if isinstance(item, timedelta):
+        return item.total_seconds()
     if isinstance(item, UUID):
         return str(item)
     return item
