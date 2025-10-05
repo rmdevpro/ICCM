@@ -40,6 +40,41 @@ Identified root cause of BUG #16 (Playfair token limit). Playfair's base64 respo
 
 ---
 
+### 📊 Godot Logging Integration Status - SUMMARY (2025-10-05 14:45 EDT)
+
+**Architecture Decision Confirmed:**
+- **MCP servers** use MCP-based logging (call `logger_log` tool on Godot MCP)
+- **Non-MCP components** use Redis client libraries (Python/JS loglib)
+
+**✅ Completed Integrations:**
+1. **Gates Blue** - MCP-based logging deployed (port 9051)
+   - TRACE-level logging for all MCP requests and tool calls
+   - Verified: 6 logs batched and sent to Dewey successfully
+
+2. **MCP Relay Blue** - MCP-based logging deployed
+   - TRACE-level logging for tool routing and backend communication
+   - Activated after Claude Code restart
+
+**⏸️ Pending Integrations (6 components):**
+
+**MCP Servers (Priority - Use MCP-based logging):**
+1. **Playfair** (JavaScript) - Diagram generation gateway
+2. **Marco** (JavaScript) - Internet/browser automation gateway
+
+**Non-MCP Components (Use Redis client libraries):**
+3. **Fiedler** (Python) - Non-MCP operational logging
+4. **Dewey** (Python) - Non-MCP operational logging
+5. **KGB** (Python) - HTTP gateway logging
+6. **Claudette** (Python) - Container wrapper logging
+
+**Client Libraries Available:**
+- Python: `/mnt/projects/ICCM/godot/client_libs/python/godot/`
+- JavaScript: `/mnt/projects/ICCM/godot/client_libs/javascript/loglib.js`
+
+**Next Steps:** Integrate Playfair and Marco (MCP-based) first, then remaining components with Redis clients
+
+---
+
 ## 🎯 Current Session Accomplishments
 
 ### ✅ BUG #13: Gates MCP Tools Not Callable - RESOLVED (2025-10-05 13:28 EDT)
