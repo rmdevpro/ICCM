@@ -158,6 +158,53 @@ class DeweyMCPServer:
                     },
                     "required": ["name"]
                 }
+            },
+            "dewey_store_logs_batch": {
+                "description": "Store a batch of log entries (max 1000)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "logs": {
+                            "type": "array",
+                            "description": "Array of log objects with trace_id, component, level, message, data, created_at",
+                            "items": {"type": "object"}
+                        }
+                    },
+                    "required": ["logs"]
+                }
+            },
+            "dewey_query_logs": {
+                "description": "Query logs with various filters",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "trace_id": {"type": "string", "description": "Filter by trace ID"},
+                        "component": {"type": "string", "description": "Filter by component name"},
+                        "level": {"type": "string", "description": "Minimum log level (TRACE, DEBUG, INFO, WARN, ERROR)"},
+                        "start_time": {"type": "string", "description": "Start time filter (ISO format)"},
+                        "end_time": {"type": "string", "description": "End time filter (ISO format)"},
+                        "search": {"type": "string", "description": "Full-text search in message"},
+                        "limit": {"type": "integer", "description": "Maximum results (1-1000, default 100)"}
+                    }
+                }
+            },
+            "dewey_clear_logs": {
+                "description": "Clear logs based on criteria with retention policy",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "before_time": {"type": "string", "description": "Delete logs before this time (ISO format)"},
+                        "component": {"type": "string", "description": "Filter by component name"},
+                        "level": {"type": "string", "description": "Filter by log level"}
+                    }
+                }
+            },
+            "dewey_get_log_stats": {
+                "description": "Get statistics about the logs table",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
             }
         }
 

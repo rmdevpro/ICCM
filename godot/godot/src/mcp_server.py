@@ -223,7 +223,7 @@ async def handle_tools_call(request_id, params):
         }
 
 
-async def handle_client(websocket: WebSocketServerProtocol, path: str):
+async def handle_client(websocket: WebSocketServerProtocol):
     """Handle incoming WebSocket client connection"""
     client_id = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
     logger.info(f"Client connected: {client_id}")

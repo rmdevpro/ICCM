@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 
 import websockets
 from websockets.client import WebSocketClientProtocol
+from websockets.protocol import State
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class MCPClient:
     @property
     def is_connected(self) -> bool:
         """Check if the WebSocket is connected and open."""
-        return self.websocket is not None and self.websocket.open
+        return self.websocket is not None and self.websocket.state == State.OPEN
 
     async def connect(self):
         """Establishes a WebSocket connection and starts the listener task."""

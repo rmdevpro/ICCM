@@ -15,6 +15,7 @@ services:
       DEWEY_MCP_HOST: 0.0.0.0
       DEWEY_MCP_PORT: 9020
       DEWEY_LOG_LEVEL: ${DEWEY_LOG_LEVEL:-INFO}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-7}
     ports:
       - "127.0.0.1:9020:9020"
     volumes:

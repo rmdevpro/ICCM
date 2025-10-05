@@ -1,10 +1,12 @@
 # dewey/tools.py
 """
-Implementation of all 11 Dewey MCP tools with async database operations.
+Implementation of all 15 Dewey MCP tools with async database operations.
+Updated to include 4 Godot logging tools.
 """
 import logging
 import json
-from datetime import datetime
+import os
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from dewey.database import db_pool
@@ -463,3 +465,183 @@ async def dewey_delete_startup_context(name: str, force: bool = False) -> dict:
 
     logger.info(f"Deleted startup context '{name}'.")
     return {"deleted": True}
+
+# --- Godot Logging Tools ---
+
+async def dewey_store_logs_batch(logs: list) -> dict:
+    """
+    Stores a batch of log entries (REQ-DEW-004: single transaction)
+    Max 1,000 entries per batch (REQ-DEW-001)
+    """
+    if not logs:
+        return {"status": "ok", "message": "No logs to store."}
+
+    if len(logs) > 1000:
+        raise ToolError(f"Batch size {len(logs)} exceeds maximum 1000")
+
+    # REQ-DEW-003: Validate log levels
+    valid_levels = {'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'}
+    for log in logs:
+        if log.get('level', '').upper() not in valid_levels:
+            raise ToolError(f"Invalid log level in batch: {log.get('level')}")
+
+    # Prepare data for batch insert
+    insert_data = []
+    for log in logs:
+        # Parse created_at if it's a string
+        created_at = log.get('created_at')
+        if isinstance(created_at, str):
+            try:
+                created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                created_at = datetime.now(timezone.utc)
+        elif created_at is None:
+            created_at = datetime.now(timezone.utc)
+
+        insert_data.append((
+            log.get('trace_id'),
+            log.get('component'),
+            log.get('level', '').upper(),
+            log.get('message'),
+            json.dumps(log.get('data')) if log.get('data') else None,
+            created_at
+        ))
+
+    query = """
+        INSERT INTO logs (trace_id, component, level, message, data, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    """
+
+    async with db_pool.transaction() as conn:
+        for data in insert_data:
+            await conn.execute(query, *data)
+
+    logger.info(f"Batch stored {len(insert_data)} logs")
+    return {"status": "ok", "inserted_count": len(insert_data)}
+
+async def dewey_query_logs(
+    trace_id: str = None,
+    component: str = None,
+    level: str = None,
+    start_time: str = None,
+    end_time: str = None,
+    search: str = None,
+    limit: int = 100
+) -> list:
+    """Queries logs with various filters (REQ-DEW-008: includes age)"""
+    limit = min(max(1, limit), 1000)  # Clamp to 1-1000
+
+    query_parts = [
+        "SELECT id, trace_id, component, level, message, data, created_at, ",
+        "(NOW() - created_at) as age FROM logs"
+    ]
+    where_clauses = []
+    params = []
+
+    if trace_id:
+        where_clauses.append(f"trace_id = ${len(params) + 1}")
+        params.append(trace_id)
+    if component:
+        where_clauses.append(f"component = ${len(params) + 1}")
+        params.append(component)
+    if level:
+        # Minimum log level filter
+        levels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR']
+        try:
+            min_level_index = levels.index(level.upper())
+            allowed_levels = levels[min_level_index:]
+            where_clauses.append(f"level = ANY(${len(params) + 1})")
+            params.append(allowed_levels)
+        except ValueError:
+            raise ToolError(f"Invalid level: {level}")
+    if start_time:
+        where_clauses.append(f"created_at >= ${len(params) + 1}")
+        params.append(start_time)
+    if end_time:
+        where_clauses.append(f"created_at <= ${len(params) + 1}")
+        params.append(end_time)
+    if search:
+        # REQ-DEW-006: Full-text search
+        where_clauses.append(f"to_tsvector('english', message) @@ websearch_to_tsquery('english', ${len(params) + 1})")
+        params.append(search)
+
+    if where_clauses:
+        query_parts.append("WHERE " + " AND ".join(where_clauses))
+
+    query_parts.append("ORDER BY created_at DESC")
+    query_parts.append(f"LIMIT ${len(params) + 1}")
+    params.append(limit)
+
+    final_query = " ".join(query_parts)
+
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch(final_query, *params)
+        results = [_serialize_item(dict(row)) for row in rows]
+
+    logger.info(f"Queried logs: {len(results)} results")
+    return results
+
+async def dewey_clear_logs(before_time: str = None, component: str = None, level: str = None) -> dict:
+    """Clears logs based on criteria with default retention policy"""
+    where_clauses = []
+    params = []
+
+    if before_time:
+        where_clauses.append(f"created_at < ${len(params) + 1}")
+        params.append(before_time)
+    else:
+        # Default retention policy from env var
+        retention_days = int(os.environ.get("LOG_RETENTION_DAYS", 7))
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        where_clauses.append(f"created_at < ${len(params) + 1}")
+        params.append(cutoff_date.isoformat())
+
+    if component:
+        where_clauses.append(f"component = ${len(params) + 1}")
+        params.append(component)
+    if level:
+        where_clauses.append(f"level = ${len(params) + 1}")
+        params.append(level.upper())
+
+    if not where_clauses:
+        raise ToolError("clear_logs requires at least one filter to prevent accidental deletion.")
+
+    query = f"DELETE FROM logs WHERE {' AND '.join(where_clauses)}"
+
+    async with db_pool.transaction() as conn:
+        result = await conn.execute(query, *params)
+
+    # Extract count from result string "DELETE N"
+    deleted_count = int(result.split()[-1]) if result.startswith("DELETE") else 0
+
+    logger.info(f"Cleared {deleted_count} logs")
+    return {"status": "ok", "deleted_count": deleted_count}
+
+async def dewey_get_log_stats() -> dict:
+    """Returns statistics about the logs table"""
+    stats = {}
+
+    async with db_pool.acquire() as conn:
+        # Total count
+        total = await conn.fetchval("SELECT COUNT(*) FROM logs;")
+        stats["total_count"] = total
+
+        # Count by component
+        rows = await conn.fetch("SELECT component, COUNT(*) FROM logs GROUP BY component;")
+        stats["count_by_component"] = {row['component']: row['count'] for row in rows}
+
+        # Count by level
+        rows = await conn.fetch("SELECT level, COUNT(*) FROM logs GROUP BY level;")
+        stats["count_by_level"] = {row['level']: row['count'] for row in rows}
+
+        # Time range
+        row = await conn.fetchrow("SELECT MIN(created_at) as min_ts, MAX(created_at) as max_ts FROM logs;")
+        stats["oldest_log_at"] = row['min_ts'].isoformat() if row['min_ts'] else None
+        stats["newest_log_at"] = row['max_ts'].isoformat() if row['max_ts'] else None
+
+        # DB size
+        size = await conn.fetchval("SELECT pg_size_pretty(pg_total_relation_size('logs'));")
+        stats["estimated_db_size"] = size
+
+    logger.info("Retrieved log statistics")
+    return stats

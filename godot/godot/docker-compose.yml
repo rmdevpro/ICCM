@@ -7,7 +7,7 @@ services:
       - "9060:9060" # MCP server port
     environment:
       # Dewey connection
-      - DEWEY_MCP_URL=ws://dewey-mcp:8080
+      - DEWEY_MCP_URL=ws://dewey-mcp:9020
       - DEWEY_CONNECT_TIMEOUT=30
 
       # Worker configuration
