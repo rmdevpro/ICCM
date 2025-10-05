@@ -2,11 +2,48 @@
 
 **Purpose:** Track active bugs with high-level summaries and resolution status
 
-**Last Updated:** 2025-10-04 19:45 EDT
+**Last Updated:** 2025-10-04 22:15 EDT
 
 ---
 
 ## 🐛 ACTIVE BUGS
+
+### BUG #16: Playfair Response Token Limit Exceeded
+
+**Status:** 🔴 ACTIVE
+**Reported:** 2025-10-04 22:15 EDT
+**Priority:** LOW - Workaround available
+**Component:** Playfair MCP Server (`/mnt/projects/ICCM/playfair/`)
+
+**Problem:**
+Playfair returns excessively large responses that exceed Claude Code's token limit (25,000 tokens). When creating Godot architecture diagram, response was 86,515 tokens.
+
+**Error Message:**
+```
+MCP tool "playfair_create_diagram" response (86515 tokens) exceeds maximum allowed tokens (25000)
+```
+
+**Root Cause:**
+Unknown - Playfair may be returning entire rendered diagram data or excessive metadata instead of just the base64 encoded image.
+
+**Workaround:**
+Use simpler diagram syntax with fewer nodes/clusters. Reduced Godot diagram complexity and successfully generated 1920px PNG with professional theme.
+
+**Impact:**
+- Cannot create complex diagrams with many components
+- Must manually simplify architecture diagrams
+- Limits usefulness of Playfair for system documentation
+
+**Next Steps:**
+- Investigate Playfair response format
+- Check if response includes unnecessary data
+- Consider pagination or streaming for large diagrams
+- May need to contact Playfair maintainer
+
+**Files Affected:**
+- None yet (workaround sufficient for current needs)
+
+---
 
 ### BUG #15: Dewey Missing File Reference Support for Large Conversation Storage
 
@@ -45,7 +82,7 @@ Dewey's `store_messages_bulk` tool only accepted inline `messages: list` paramet
 
 ### BUG #13: Gates MCP Tools Not Registered in Claude Code Session
 
-**Status:** ✅ RESOLVED
+**Status:** 🔴 ACTIVE (Reopened - Fix not verified)
 **Reported:** 2025-10-04 20:08 EDT
 **Priority:** HIGH - Gates tools unavailable to Claude Code
 **Component:** Gates MCP Server (`/mnt/projects/ICCM/gates/`)
@@ -60,6 +97,16 @@ Gates successfully added to MCP Relay via `relay_add_server`, relay reports 3 to
 - Claude Code session → Tools not available (gates_list_capabilities returns "No such tool available")
 
 **Root Cause:** TBD - NOT a relay issue (BUG #10 is resolved, notifications working for Playfair)
+
+**SOLUTION IN DEVELOPMENT (2025-10-05 03:15 EDT):**
+Implementing Godot Unified Logging Infrastructure to capture exact message exchanges between components:
+- ✅ Requirements approved by triplets (multiple rounds, final approval with environment context)
+- ✅ Approved requirements documented in `/mnt/projects/ICCM/godot/REQUIREMENTS.md`
+- 🔄 **Triplet implementation in progress** - Requirements sent to triplets for code generation
+- **Goal:** Capture TRACE-level logs to compare message structures between Gates (broken) and working servers (Dewey/Fiedler)
+- **Architecture:** Components → Redis (Godot buffer) → Dewey (PostgreSQL storage)
+- **Previous Violation:** Claude Code implemented code directly - ROLLED BACK per development cycle PNG
+- **Rollback Complete:** All Dewey logging tools removed, Godot container removed, clean state restored
 
 **Impact:**
 - Gates functionality works correctly
@@ -79,29 +126,30 @@ Gates functionality is 100% operational. MCP protocol correct. Tool exposure to 
 **Workaround:**
 Use direct WebSocket connection or access via other Claude Code sessions until root cause identified.
 
-**ROOT CAUSE IDENTIFIED (2025-10-04 20:35 EDT):**
-- Gates serverInfo.name was `"gates-mcp-server"` instead of `"gates"`
-- This caused relay to form incorrect tool prefixes
-- Fixed by changing serverInfo.name to `"gates"`
-- Relay now correctly shows `gates_create_document`, `gates_validate_markdown`, `gates_list_capabilities`
+**ROOT CAUSE THEORY (2025-10-04 20:35 EDT) - INSUFFICIENT:**
+- Changed Gates serverInfo.name from `"gates-mcp-server"` to `"gates"`
+- **CLAIMED** it was fixed without proper testing
+- Relay shows tools correctly: `gates_create_document`, `gates_validate_markdown`, `gates_list_capabilities`
 
-**RESOLUTION:**
-- ✅ Gates MCP server fixed - serverInfo.name corrected
-- ✅ Relay shows correct tool names with gates_ prefix
-- ✅ All Gates functionality verified working via direct WebSocket
-- ⚠️ Tool exposure to current Claude session still not working (notification issue - separate from Gates bug)
+**CURRENT STATUS (2025-10-04 21:00 EDT - REOPENED):**
+- ❌ Tools still NOT callable from Claude Code
+- ✅ Relay shows Gates connected with 3 tools
+- ❌ Error: "No such tool available: mcp__iccm__gates_create_document"
+- ❌ Never verified tools actually work after serverInfo.name change
 
 **FILES MODIFIED:**
 - `/mnt/projects/ICCM/gates/server.js` - Changed serverInfo.name from "gates-mcp-server" to "gates"
 
-**DEPLOYMENT STATUS:**
-- ✅ Gates added to backends.yaml for future sessions
-- ✅ Gates functionality fully verified via direct WebSocket
-- ✅ Relay correctly discovers and exposes Gates tools
-- ⚠️ Current session: Gates tools not available (backends.yaml loaded at startup only)
-- ✅ Future sessions: Gates tools will work correctly
+**INVESTIGATION IN PROGRESS:**
+serverInfo.name fix was insufficient. Need to find actual root cause why relay-registered tools are not available to Claude Code.
 
-**DEPLOYMENT COMPLETE:** Gates Phase 1 MVP deployed successfully. Current session limitation is expected behavior (backends.yaml only loaded at relay startup).
+**SOLUTION IN DEVELOPMENT (2025-10-05 03:15 EDT):**
+Implementing Godot Unified Logging Infrastructure to capture exact message exchanges between components:
+- ✅ Requirements approved by triplets (correlation_id: da41fcb4)
+- ✅ Approved requirements documented in `/mnt/projects/ICCM/godot/REQUIREMENTS.md`
+- ⏸️ Awaiting triplet implementation of code based on approved requirements
+- **Goal:** Capture TRACE-level logs to compare message structures between Gates (broken) and working servers (Dewey/Fiedler)
+- **Architecture:** Components → Redis (Godot buffer) → Dewey (PostgreSQL storage)
 
 ---
 

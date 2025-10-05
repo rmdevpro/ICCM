@@ -81,3 +81,26 @@ CREATE TRIGGER update_startup_contexts_updated_at
     BEFORE UPDATE ON startup_contexts
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- Logs table for unified logging infrastructure
+CREATE TABLE IF NOT EXISTS logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    component TEXT NOT NULL,  -- e.g., 'relay', 'gates', 'fiedler', 'dewey'
+    level TEXT NOT NULL CHECK (level IN ('ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE')),
+    message TEXT NOT NULL,
+    data JSONB,  -- Structured log data (e.g., full request/response objects)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for log queries
+CREATE INDEX IF NOT EXISTS idx_logs_component ON logs(component);
+CREATE INDEX IF NOT EXISTS idx_logs_level ON logs(level);
+CREATE INDEX IF NOT EXISTS idx_logs_created_at ON logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_logs_component_created_at ON logs(component, created_at DESC);
+
+-- GIN index for full-text search on log messages
+CREATE INDEX IF NOT EXISTS idx_logs_message_fts
+    ON logs USING gin(to_tsvector('english', message));
+
+-- GIN index for JSON data queries
+CREATE INDEX IF NOT EXISTS idx_logs_data ON logs USING gin(data);

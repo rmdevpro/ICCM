@@ -613,13 +613,14 @@ async function handleMCPRequest(request) {
               tools: {}
             },
             serverInfo: {
-              name: 'gates',
+              name: 'gates-mcp-server',
               version: '1.0.0'
             }
           }
         };
 
       case 'tools/list':
+        logger.info({ tools: TOOLS }, 'Returning tools list');
         return {
           jsonrpc: '2.0',
           id,
@@ -629,7 +630,7 @@ async function handleMCPRequest(request) {
         };
 
       case 'tools/call':
-        const result = await handleToolCall(params.name, params.arguments || {});
+        const result = await handleToolCall(params.name, params['arguments'] || {});
         return {
           jsonrpc: '2.0',
           id,
