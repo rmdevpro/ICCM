@@ -1,8 +1,8 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-05 13:02 EDT
-**Session:** Logging Integration - Gates & MCP Relay
-**Status:** ✅ **CUTOVER COMPLETE** - Gates Blue and Relay Blue fully operational
+**Last Updated:** 2025-10-05 13:10 EDT
+**Session:** Logging Integration & Bug Fixes
+**Status:** ✅ **ALL COMPLETE** - Cutover verified, BUG #28 resolved
 
 ---
 
@@ -31,9 +31,9 @@
 - ✅ Client libraries (Python/JS loglib) reserved for NON-MCP components only
 - ✅ All logging is non-blocking and fails silently
 
-**Bugs Found & Tracked:**
+**Bugs Found & Resolved:**
 - **BUG #27**: Gates Dockerfile missing loglib.js - ✅ RESOLVED (then removed, switched to MCP)
-- **BUG #28**: Dewey query timedelta serialization error - 🔴 ACTIVE (separate fix needed)
+- **BUG #28**: Dewey query timedelta serialization error - ✅ RESOLVED (2025-10-05 13:07 EDT)
 
 **Pipeline Verified:**
 ```
@@ -50,6 +50,37 @@ Enable TRACE-level debugging for **BUG #13: Gates MCP Tools Not Callable**. With
 - ✅ Cleanup: Original gates-mcp container removed, mcp-relay-blue archived
 
 **Deployment Summary:** `/tmp/logging_integration_deployment_summary.md`
+
+---
+
+### ✅ BUG #28: Dewey Query Logs Timedelta Serialization - RESOLVED (2025-10-05 13:07 EDT)
+
+**Problem:**
+Dewey's `dewey_query_logs` tool failed with "Object of type timedelta is not JSON serializable" error when returning log age calculations.
+
+**Root Cause:**
+- Line 536 in `tools.py`: `(NOW() - created_at) as age` returns PostgreSQL timedelta
+- `_serialize_item()` function handled datetime/UUID but not timedelta
+- JSON serialization failed on timedelta objects
+
+**Resolution:**
+Added timedelta handling to `_serialize_item()` function:
+```python
+if isinstance(item, timedelta):
+    return item.total_seconds()
+```
+
+**Files Modified:**
+- `/mnt/projects/ICCM/dewey/dewey/tools.py` line 43-44
+
+**Testing:**
+- ✅ Query returns successfully with age as seconds (e.g., 300.928603)
+- ✅ Retrieved 2 log entries with all fields including age
+- ✅ Container rebuilt and redeployed
+- ✅ No errors on subsequent queries
+
+**Impact:**
+Log query functionality fully restored - can now debug BUG #13 using TRACE logs
 
 ---
 
