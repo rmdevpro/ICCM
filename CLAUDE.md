@@ -14,7 +14,7 @@
 
 **ALWAYS read these on session startup:**
 1. `/mnt/projects/ICCM/CURRENT_STATUS.md` - **Current work and next steps**
-2. `/mnt/projects/ICCM/BUG_TRACKING.md` - **Active bugs (high-level summaries)**
+2. **GitHub Issues** (`gh issue list`) - **Active bugs and tasks** (https://github.com/rmdevpro/ICCM/issues)
 3. `/mnt/projects/ICCM/architecture/General Architecture.PNG` - **System architecture diagram**
 4. `/mnt/projects/ICCM/architecture/CURRENT_ARCHITECTURE_OVERVIEW.md` - **Protocol configuration**
 
@@ -28,9 +28,15 @@
 
 **Documentation hierarchy:**
 - **CURRENT_STATUS.md** = Where we are, what's next
-- **BUG_TRACKING.md** = What's broken (high-level)
+- **GitHub Issues** = What's broken, what needs doing (bugs, features, tech debt)
 - **CURRENT_ARCHITECTURE_OVERVIEW.md** = How it's configured
 - **Git commits** = What changed (detailed technical history)
+
+**Bug tracking workflow:**
+- Start session: `gh issue list --assignee @me --state open`
+- Work on issue: Reference in commits with `fixes #N` or `relates to #N`
+- Issue auto-closes when commit pushed with `fixes #N`
+- Query bugs: `gh issue list --label bug --state open`
 
 ---
 

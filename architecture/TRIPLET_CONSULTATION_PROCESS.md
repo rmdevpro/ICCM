@@ -56,7 +56,7 @@ Please read these documents to understand the environment:
    - Recent changes and current state
    - Next steps and test plans
 
-4. **Bug Tracking Log:** /mnt/projects/ICCM/BUG_TRACKING.md
+4. **GitHub Issues:** https://github.com/rmdevpro/ICCM/issues (`gh issue list`)
    - Active bugs and investigations
    - What has been tried before
    - Root cause analysis findings
@@ -124,7 +124,7 @@ Before creating the consultation package:
    - `/mnt/projects/ICCM/architecture/General Architecture.PNG`
    - `/mnt/projects/ICCM/architecture/CURRENT_ARCHITECTURE_OVERVIEW.md`
    - `/mnt/projects/ICCM/CURRENT_STATUS.md`
-   - `/mnt/projects/ICCM/BUG_TRACKING.md`
+   - GitHub Issues (`gh issue list`)
 
 2. **Collect evidence:**
    - Relevant logs
@@ -234,14 +234,14 @@ PYTHON_EOF
    - Which recommendations appear most frequently?
 
 3. **Document findings:**
-   - Update BUG_TRACKING.md with triplet consensus
+   - Create/update GitHub Issue with triplet consensus
    - Update CURRENT_STATUS.md with recommended next steps
    - Note any dissenting opinions and why
 
 ### Step 6: Update Documentation
 
-1. **BUG_TRACKING.md:**
-   - Add section: "Triplet Consultation [Date]"
+1. **GitHub Issue:**
+   - Add comment: "Triplet Consultation [Date]"
    - Record consensus diagnosis
    - List top recommendations
    - Note response times and success rate
@@ -321,7 +321,7 @@ A successful consultation provides:
 **Outcome:**
 - Root cause identified (MCP subsystem not starting)
 - Next steps clear (restart Claude, check for initialization)
-- Documented in BUG_TRACKING.md for future reference
+- Documented in GitHub Issue for future reference
 
 ---
 
@@ -368,7 +368,7 @@ Based on triplet analysis:
 
 - `/mnt/projects/ICCM/architecture/FIEDLER_DOCKER_WORKAROUND.md` - Docker exec method when MCP unavailable
 - `/mnt/projects/ICCM/fiedler/README.md` - Fiedler MCP server documentation
-- `/mnt/projects/ICCM/BUG_TRACKING.md` - Bug investigation process
+- GitHub Issues (https://github.com/rmdevpro/ICCM/issues) - Bug investigation and tracking
 - `/mnt/projects/ICCM/CURRENT_STATUS.md` - Current work and status
 
 ---

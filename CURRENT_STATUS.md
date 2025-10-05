@@ -35,7 +35,7 @@
 **Documentation:**
 - ✅ Created 3 new architecture diagrams (Diagram_1_MCP_Traffic.png, Diagram_2_Data_Writes.png, Diagram_3_Data_Reads.png)
 - ✅ Updated CURRENT_ARCHITECTURE_OVERVIEW.md with new architecture
-- ✅ Documented violations in BUG_TRACKING.md
+- ✅ Documented violations in GitHub Issues (#1, #2, #3)
 
 ---
 
@@ -94,7 +94,7 @@ Playfair returned base64-encoded diagram data inline in MCP responses, causing t
 **Files Modified:**
 - `/mnt/projects/ICCM/playfair-blue/mcp-tools.js` - Added output_path parameter and file write logic
 - `/mnt/projects/ICCM/playfair-blue/docker-compose.yml` - Added volume mount and user directive
-- `/mnt/projects/ICCM/BUG_TRACKING.md` - Marked BUG #16 as resolved
+- GitHub Issues - Closed issue #16 (Playfair token limit)
 
 **Impact:** Playfair now production-ready for Gates document generation integration
 
@@ -1006,7 +1006,7 @@ Fiedler's `max_completion_tokens` settings were significantly lower than what LL
 
 **Files Modified:**
 - `/app/fiedler/config/models.yaml` (permanent fix applied)
-- `/mnt/projects/ICCM/BUG_TRACKING.md` (bug marked resolved)
+- GitHub Issues - Closed issue #9 (Fiedler token limits)
 
 **Conversation Archived:**
 - Dewey conversation ID: `a8976572-0af3-4d66-a813-b80af0339191`

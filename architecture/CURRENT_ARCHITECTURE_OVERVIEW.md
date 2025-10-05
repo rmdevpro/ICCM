@@ -519,7 +519,7 @@ No circular dependency because the internal client bypasses the MCP layer.
 
 - `/mnt/projects/ICCM/architecture/General Architecture.PNG` - Immutable architecture diagram
 - `/mnt/projects/ICCM/CURRENT_STATUS.md` - Current work and session status
-- `/mnt/projects/ICCM/BUG_TRACKING.md` - Active bug investigations
+- GitHub Issues (https://github.com/rmdevpro/ICCM/issues) - Active bugs and tasks
 - `/mnt/projects/ICCM/fiedler/README.md` - Fiedler MCP server details
 - `/mnt/projects/ICCM/kgb/README.md` - KGB proxy details
 - `/mnt/projects/ICCM/architecture/dewey_winni_requirements_v3.md` - Dewey specifications
@@ -537,5 +537,5 @@ No circular dependency because the internal client bypasses the MCP layer.
 2. **Protocol configuration** (transport types, adapters, ports) documented here - can be updated in regular sessions
 3. **Bare metal deployment** uses stdio adapter to WebSocket (Claude Code limitation)
 4. **This document** reflects current configuration state and should be updated when protocols change
-5. **Configuration bugs** should be tracked in BUG_TRACKING.md with attempted solutions
+5. **Configuration bugs** should be tracked in GitHub Issues with attempted solutions
 6. **stdio adapter** is the bridge solution for Claude Code ↔ WebSocket-based services
