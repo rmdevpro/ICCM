@@ -1,4 +1,4 @@
 """Godot logging client for ICCM."""
-from .loglib import ICCMLogger
+from .mcp_logger import log_to_godot
 
-__all__ = ['ICCMLogger']
+__all__ = ['log_to_godot']

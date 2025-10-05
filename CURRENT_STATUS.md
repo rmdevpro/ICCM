@@ -14,10 +14,10 @@
 **Status:** ✅ **CUTOVER COMPLETE** - Fiedler Blue operational on port 9012
 
 **Implementation:**
-- Added Redis-based logging with ICCMLogger client library
-- Integrated godot/loglib.py for non-blocking Redis queue logging
+- Added MCP-based logging following Gates/Playfair/Marco pattern
+- Integrated WebSocket client for Godot MCP logger_log tool
 - Logs: Server startup, client connections, MCP requests, tool calls, errors
-- Graceful fallback to local JSON logging if Redis unavailable
+- Non-blocking, fails silently on errors
 - Component name: 'fiedler'
 
 **Verification:**
@@ -27,20 +27,23 @@
 ✅ Logging functional with local fallback (outputs valid JSON logs)
 ✅ Original fiedler-mcp container stopped
 
-**Logging Pipeline (Design):**
+**Logging Pipeline:**
 ```
-Fiedler Blue → Redis Queue → Godot (6379) → Worker → Batch → Dewey (PostgreSQL)
+Fiedler Blue → logger_log (MCP) → Godot (9060) → Worker → Batch → Dewey (PostgreSQL)
 ```
 
-**Current Status:** Logging falls back to local JSON output due to Godot Redis not exposed on network. This is acceptable - logs are being generated correctly. Redis exposure fix deferred to Godot configuration update.
+**Fix Applied (2025-10-05 16:15 EDT):**
+- ✅ Switched from Redis client library to MCP-based logging (WebSocket)
+- ✅ Matches Gates/Playfair/Marco pattern (all use Godot MCP port 9060)
+- ✅ Verified: 5+ logs flowing to Dewey database successfully
 
 **Godot Integration Progress: 5/8 components complete**
-- ✅ Gates Blue (port 9051) - MCP-based logging
-- ✅ MCP Relay Blue - MCP-based logging
-- ✅ Playfair Blue (port 9041) - MCP-based logging
-- ✅ Marco Blue (port 9031) - MCP-based logging
-- ✅ Fiedler Blue (port 9012) - Redis-based logging (local fallback)
-- ⏸️ Dewey, KGB, Claudette (pending - Redis-based logging)
+- ✅ Gates Blue (port 9051) - MCP-based logging ✅ VERIFIED
+- ✅ MCP Relay Blue - MCP-based logging ✅ VERIFIED
+- ✅ Playfair Blue (port 9041) - MCP-based logging ✅ VERIFIED
+- ✅ Marco Blue (port 9031) - MCP-based logging ✅ VERIFIED
+- ✅ Fiedler Blue (port 9012) - MCP-based logging ✅ VERIFIED
+- ⏸️ Dewey, KGB, Claudette (pending - will use MCP-based logging)
 
 ---
 

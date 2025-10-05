@@ -18,7 +18,7 @@ services:
     # Environment variables for configuration
     environment:
       # Godot Logging Integration
-      - GODOT_REDIS_URL=redis://godot-mcp:6379
+      - GODOT_URL=ws://godot-mcp:9060
       - LOGGING_ENABLED=true
 
       # Required: Subprocess client paths

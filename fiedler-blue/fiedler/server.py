@@ -18,23 +18,11 @@ from .tools import (
     fiedler_list_keys,
 )
 
-# Initialize Godot Redis logger
-from .godot import ICCMLogger
+# Initialize Godot MCP logger
+from .godot import log_to_godot
 
-GODOT_REDIS_URL = os.getenv('GODOT_REDIS_URL', 'redis://godot-mcp:6379')
+GODOT_URL = os.getenv('GODOT_URL', 'ws://godot-mcp:9060')
 LOGGING_ENABLED = os.getenv('LOGGING_ENABLED', 'true').lower() == 'true'
-
-godot_logger = None
-if LOGGING_ENABLED:
-    try:
-        godot_logger = ICCMLogger(
-            component='fiedler',
-            redis_url=GODOT_REDIS_URL,
-            default_level='INFO'
-        )
-    except Exception as e:
-        print(f"Failed to initialize Godot logger: {e}", file=sys.stderr)
-        godot_logger = None
 
 
 # Create server instance
@@ -285,14 +273,14 @@ async def _amain():
     print("=== FIEDLER: Logger configured ===", flush=True, file=sys.stderr)
     logger.info("=== FIEDLER STARTUP: _amain() called ===")
 
-    if godot_logger:
-        godot_logger.info("Fiedler MCP server starting", data={"godot_redis_url": GODOT_REDIS_URL})
+    if LOGGING_ENABLED:
+        await log_to_godot('INFO', 'Fiedler MCP server starting', data={'godot_url': GODOT_URL})
 
     async def handle_client(websocket: WebSocketServerProtocol):
         """Handle WebSocket client connection."""
         logger.info(f"=== FIEDLER: Client connected from {websocket.remote_address} ===")
-        if godot_logger:
-            godot_logger.info("Client connected", data={"client": str(websocket.remote_address)})
+        if LOGGING_ENABLED:
+            await log_to_godot('INFO', 'Client connected', data={'client': str(websocket.remote_address)})
 
         try:
             async for message in websocket:
@@ -304,8 +292,8 @@ async def _amain():
                     request_id = request.get("id")
 
                     logger.info(f"Received request: {method}")
-                    if godot_logger:
-                        godot_logger.trace("MCP request received", data={"method": method, "id": request_id})
+                    if LOGGING_ENABLED:
+                        await log_to_godot('TRACE', 'MCP request received', data={'method': method, 'id': request_id})
 
                     # Handle MCP protocol methods
                     if method == "initialize":
@@ -344,14 +332,14 @@ async def _amain():
                         arguments = params.get("arguments", {})
 
                         logger.info(f"Calling tool: {tool_name}")
-                        if godot_logger:
-                            godot_logger.trace("Tool call started", data={"tool_name": tool_name, "has_args": bool(arguments)})
+                        if LOGGING_ENABLED:
+                            await log_to_godot('TRACE', 'Tool call started', data={'tool_name': tool_name, 'has_args': bool(arguments)})
 
                         # Call the tool via the app's handler
                         result = await call_tool(tool_name, arguments)
 
-                        if godot_logger:
-                            godot_logger.trace("Tool call completed", data={"tool_name": tool_name, "success": True})
+                        if LOGGING_ENABLED:
+                            await log_to_godot('TRACE', 'Tool call completed', data={'tool_name': tool_name, 'success': True})
 
                         response = {
                             "jsonrpc": "2.0",
@@ -393,8 +381,8 @@ async def _amain():
 
                 except Exception as e:
                     logger.exception(f"Error processing request: {e}")
-                    if godot_logger:
-                        godot_logger.error("Request processing error", data={"error": str(e), "type": type(e).__name__})
+                    if LOGGING_ENABLED:
+                        await log_to_godot('ERROR', 'Request processing error', data={'error': str(e), 'type': type(e).__name__})
                     error_response = {
                         "jsonrpc": "2.0",
                         "error": {
