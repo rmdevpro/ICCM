@@ -1,6 +1,6 @@
 # Current Architecture Overview - ICCM System
 
-**Last Updated:** 2025-10-04 16:05 EDT
+**Last Updated:** 2025-10-05 15:00 EDT
 **Purpose:** Explain the immutable architecture (PNG) and document current protocol configuration
 
 ---
@@ -208,12 +208,14 @@ LEGEND:
 - **Dual Role:** MCP tool server + HTTP streaming proxy for KGB routing
 
 ### Dewey MCP Server (Conversation Storage Gateway)
-- **Container:** `dewey-mcp`
-- **Port:** 9020 (host)
+- **Container:** `dewey-mcp-blue` (production), `dewey-mcp` (stopped)
+- **Port:** 9022 (blue deployment, mapped to 9020 internally)
 - **Purpose:** Conversation storage, search, and startup context management
-- **Backend:** PostgreSQL (Winni) on Irina (192.168.1.210)
-- **Tools:** 11 MCP tools for conversation management
+- **Backend:** PostgreSQL (Winni) on Irina (192.168.1.210) - 44TB RAID 5 storage
+- **Architecture:** Option 4 - Write/Read Separation (Dewey = READ specialist, Godot = WRITE specialist for logs)
+- **Tools:** 13 MCP tools (conversation management + log READ tools: dewey_query_logs, dewey_get_log_stats)
 - **Protocol:** WebSocket MCP
+- **Logging Integration:** Uses Godot's logger_log tool via MCP (ws://godot-mcp:9060)
 
 ### Marco MCP Server (Internet Gateway) - 📋 PLANNED
 - **Container:** `marco-mcp` (to be implemented)
@@ -242,22 +244,30 @@ LEGEND:
   - Direct mode: `ws://localhost:9010` (no logging)
   - Logged mode: `ws://localhost:9000?upstream=fiedler` (automatic logging)
 
-### Godot Centralized Logging (Blue Deployments)
+### Godot Centralized Logging (Production)
 - **Container:** `godot-mcp`
 - **Port:** 9060 (WebSocket MCP)
 - **Purpose:** Centralized logging infrastructure for all ICCM components
-- **Architecture:** MCP Server + Redis Queue (internal) + Batch Worker
+- **Architecture:** Option 4 - Write/Read Separation (Godot = WRITE specialist for logs)
+  - MCP Server + Redis Queue (internal) + Worker with direct PostgreSQL INSERT
+  - Godot writes logs directly to PostgreSQL (bypassing Dewey for writes)
+  - Dewey provides READ-only tools for log queries
 - **Redis:** Port 6379 internal only (bind: 127.0.0.1) - NOT exposed on network
 - **Integration:** ALL MCP servers MUST use MCP-based logging via `logger_log` tool
-- **Data Flow:** Component → logger_log (WS MCP) → Redis (internal) → Batch Worker → Dewey
+- **Data Flow:** Component → logger_log (WS MCP) → Redis (internal) → Worker → PostgreSQL (direct INSERT)
+- **Database Access:** Godot has INSERT-only permission on logs table via godot_log_writer user
 - **FORBIDDEN:** Direct Redis connections - violates MCP protocol architecture
-- **Documentation:** `/mnt/projects/ICCM/godot/godot/README.md`
+- **Documentation:** `/mnt/projects/ICCM/godot/REQUIREMENTS.md`
 
 ### Winni Database
-- **Type:** PostgreSQL
+- **Type:** PostgreSQL 16
 - **Host:** Irina (192.168.1.210)
 - **Database:** winni
-- **Purpose:** Data lake for conversations, contexts, LLM results
+- **Storage:** 44TB RAID 5 array (4x 14.6TB drives) at /mnt/storage/postgresql/16/main
+- **Purpose:** Data lake for conversations, contexts, LLM results, centralized logs
+- **Access Patterns:**
+  - Dewey: Full read/write for conversations, READ-only for logs
+  - Godot: INSERT-only for logs table via dedicated godot_log_writer user
 - **Current Protocol:** PostgreSQL wire protocol
 
 ---
@@ -348,12 +358,24 @@ User sees result (conversation logged in Winni)
 ```yaml
 backends:
   - name: fiedler
-    url: ws://localhost:9010
-    # Fiedler MCP server on host port 9010 (container port 8080)
+    url: ws://localhost:9012
+    # Fiedler Blue MCP server on host port 9012 (container port 8080)
 
   - name: dewey
-    url: ws://localhost:9020
-    # Dewey MCP server on port 9020
+    url: ws://localhost:9022
+    # Dewey Blue MCP server on port 9022 (container internal 9020)
+
+  - name: gates
+    url: ws://localhost:9051
+    # Gates Blue MCP server on port 9051
+
+  - name: playfair
+    url: ws://localhost:9041
+    # Playfair Blue MCP server on port 9041
+
+  - name: marco
+    url: ws://localhost:9031
+    # Marco Blue MCP server on port 9031
 ```
 
 **Trust Configuration:**
@@ -361,7 +383,7 @@ backends:
 "hasTrustDialogAccepted": true
 ```
 
-**Status:** ✅ MCP Relay working - All 8 Fiedler tools registered successfully
+**Status:** ✅ MCP Relay working - 30 tools across 5 backends (Fiedler, Dewey, Gates, Playfair, Marco)
 
 **Critical Notes:**
 - **Claude Code MCP limitation:** Only supports stdio, SSE, HTTP (NOT WebSocket directly)

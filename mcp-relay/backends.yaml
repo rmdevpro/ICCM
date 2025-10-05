@@ -4,8 +4,6 @@
 # Manual edits will be overwritten.
 
 backends:
-- name: dewey
-  url: ws://localhost:9020
 - name: gates
   url: ws://localhost:9051
 - name: playfair
@@ -14,5 +12,5 @@ backends:
   url: ws://localhost:9031
 - name: fiedler
   url: ws://localhost:9012
-- name: dewey-blue
+- name: dewey
   url: ws://localhost:9022

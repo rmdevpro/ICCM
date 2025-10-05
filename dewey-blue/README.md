@@ -1,21 +1,26 @@
-# Dewey MCP Server
+# Dewey MCP Server (Blue Deployment)
 
 Dewey is a WebSocket-based MCP (Model Context Protocol) server that manages **Winni**, a PostgreSQL data lake for conversation histories, startup contexts, and LLM orchestration results.
 
 ## Architecture
 
-- **Protocol**: WebSocket MCP on port 9020
-- **Database**: PostgreSQL (Winni) on Irina server
-- **Container**: Docker (dewey-mcp)
-- **Network**: iccm_network (shared with Fiedler)
+- **Protocol**: WebSocket MCP on port 9020 (container internal), 9022 (host)
+- **Database**: PostgreSQL (Winni) on Irina server (192.168.1.210) - 44TB RAID 5 storage
+- **Container**: Docker (dewey-mcp-blue)
+- **Network**: iccm_network (shared with all ICCM components)
+- **Logging**: Option 4 - Write/Read Separation
+  - Dewey logs to Godot via MCP logger_log tool (ws://godot-mcp:9060)
+  - Dewey provides READ-only tools for log queries (dewey_query_logs, dewey_get_log_stats)
+  - Godot writes logs directly to PostgreSQL (Dewey does NOT write logs)
 
 ## Features
 
-- **11 MCP Tools**: Complete conversation management, search, and startup context tools
+- **13 MCP Tools**: Complete conversation management, search, startup context tools, and log READ tools
 - **Transaction-Safe**: Automatic turn numbering with row locking
 - **Full-Text Search**: PostgreSQL ts_rank for relevance ranking
 - **Connection Pooling**: Efficient database connection management
-- **Docker Deployment**: Single-command deployment
+- **Docker Deployment**: Blue/Green deployment pattern
+- **Godot Integration**: MCP-based logging (no circular dependency)
 
 ## Quick Start
 

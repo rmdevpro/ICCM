@@ -466,12 +466,12 @@ services:
 - **CONST-001 (Refined for Option 4):** Dewey is the authoritative **READ gatekeeper** for Winni. **WRITE operations** may be delegated to specialized ingestion services (e.g., Godot for logs) with appropriate access controls and clear architectural boundaries. Godot has INSERT-only access to the `logs` table via dedicated `godot_log_writer` database user.
 - **CONST-002:** All containers must run on single Docker host (no Kubernetes/orchestration)
 - **CONST-003:** Claude Code cannot be restarted - MCP relay handles backend connections dynamically
-- **CONST-004:** Maximum 30-day log retention due to disk space constraints
+- **CONST-004:** Log retention policy determined by operational needs, not disk space (44TB RAID 5 available on Irina)
 - **CONST-005:** Development/staging use only initially - production requires security hardening
 
 ### 11.2 Assumptions
 
-- **ASSUM-001:** PostgreSQL (Winni) on Irina server has sufficient disk space for 30 days of logs
+- **ASSUM-001:** PostgreSQL (Winni) on Irina server has 44TB RAID 5 storage - sufficient for years of log retention
 - **ASSUM-002:** Network latency between containers <10ms (same host)
 - **ASSUM-003:** Redis can buffer 100,000 logs in memory (~10MB)
 - **ASSUM-004:** BUG #13 will be resolved within 7 days (log retention window)
