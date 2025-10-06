@@ -1,137 +1,74 @@
 # Paper 00: Intelligent Execution Engineering (IEE) - Master Document
 
 **Version:** 1.1
-**Date:** 2025-10-07
-**Status:** PLACEHOLDER - Discipline Defined, Awaiting Implementation Experience
+**Date:** 2025-10-06
+**Status:** DRAFT - Strengthened placeholder with contracts and feedback loops
 **Repository:** Joshua (IEE discipline within IAE ecosystem)
-**Purpose:** Define the Doing Engine discipline, completing the quaternary structure of IAE.
-**Synthesized by:** Council of Elders (Gemini 2.5 Pro, GPT-5, Claude Opus 4)
+**Synthesized by:** Council of Elders
 
 ---
 
 ## Changelog
-
-- **v1.1 (2025-10-07):** Incorporated Council of Elders feedback.
-    - Solidified position within the **quaternary structure (ICCM + IDE + IEE + IAE)**.
-    - Strengthened the concept of the **feedback loop** by formally adopting the `Execution Outcome Package` contract, which reports back to the IAE-provided State Manager.
-    - Clarified input contract as the `Decision Package` from IDE.
-- **v1.0 (2025-10-06):** Initial placeholder document.
+- **v1.1 (2025-10-06):** Normalized to quaternary structure (ICCM + IDE + IEE + IAE). Adopted canonical contracts (consumes `Decision Package`; produces `Execution Outcome Package`). Clarified boundary with State Manager and DER re-engagement triggers. Aligned all terminology.
+- **v1.0 (2025-10-06):** Initial placeholder framing IEE’s scope.
 
 ---
 
 ## Executive Summary
 
-**Intelligent Execution Engineering (IEE)** is the discipline responsible for designing and implementing the **Doing Engine** component of MAD agents. While ICCM handles context, IDE handles decisions, and IAE handles assembly, IEE focuses on the critical "last mile": translating decisions into safe, observable, and effective actions in specific domains.
+**Intelligent Execution Engineering (IEE)** is the discipline of execution. It produces **Doing Engines** that translate decisions into safe, effective actions. Doing Engines validate directives, orchestrate tools/APIs, monitor progress, and synthesize outcomes. They consume `Decision Packages` (from IDE/DER) and produce `Execution Outcome Packages` which are persisted by the IAE State Manager, closing the architecture's core feedback loop.
 
-IEE produces domain-specific **Doing Engines** that consume `Decision Packages` from the Thinking Engine and produce `Execution Outcome Packages`, which provide a rich feedback signal to the agent's State Manager, enabling learning and adaptation.
+## 1. Foundations
+### 1.1 Role in the quaternary structure
+-   **ICCM:** context engineering (CET)
+-   **IDE:** decision engineering (Rules Engine + DER)
+-   **IEE:** execution engineering (Doing Engines)
+-   **IAE:** assembly and State Manager
 
----
+### 1.2 Execution engineering principles
+-   Safety-first execution with invariant revalidation.
+-   Domain specialization through patterns (tool execution, API orchestration).
+-   Observability and reproducibility.
+-   Feedback loops as first-class citizens.
 
-## 1. Introduction: The Execution Problem
+## 2. Doing Engine architecture
+### 2.1 Components
+-   **Decision Validator:** Checks preconditions, safety assertions, and entitlements.
+-   **Tool Orchestrator:** Selects tools/APIs and binds parameters.
+-   **Execution Monitor:** Tracks progress and detects drift against expected effects.
+-   **Outcome Synthesizer:** Compares observed vs. expected effects and produces the `Execution Outcome Package`.
 
-### 1.1 Why Execution Engineering Matters
+### 2.2 Interface contracts (canonical)
+-   **Input: `Decision Package` v1** (from DER)
+    -   IEE uses fields: `decision_id`, `selected_action` (name, parameters, preconditions, expected_effects), `safety_assertions`, `risk_tier`.
+-   **Output: `Execution Outcome Package` v1** (to State Manager)
+    -   IEE produces fields: `outcome_id`, `decision_id`, `status`, `observed_effects`, `deviations`, `safety_validation_results`, `telemetry`.
 
-Execution is not a trivial function call. It requires safety checks, tool orchestration, error recovery, and robust feedback. IEE treats execution as a first-class engineering discipline to prevent brittle, unsafe, and unauditable agent behavior.
+### 2.3 Safety invariant revalidation
+-   All `safety_assertions` in the `Decision Package` are rechecked before execution.
+-   On failure, the Doing Engine aborts and emits an `Execution Outcome Package` with a failure status and diagnostics.
 
-### 1.2 The IEE Discipline
+### 2.4 DER re-engagement
+-   **Triggers:** Precondition unsatisfied, safety violations, unresolvable errors, significant deviations.
+-   **Mechanism:** Emit an `Execution Outcome Package` with `reengagement_advice` and notify DER via a State Manager event.
 
-**Input:** A `Decision Package` from the DER (IDE), as specified in the IAE Canonical Contracts.
-**Process:** Validate, select tools, execute with monitoring, and capture outcomes.
-**Output:** An `Execution Outcome Package` sent to the State Manager (IAE), as specified in the IAE Canonical Contracts. This closes the agent's primary operational loop.
+## 3. Execution patterns
+-   **Tool Execution:** Sandboxed shell, git, filesystem actions.
+-   **API Orchestration:** REST/gRPC/DB calls with rate limiting and schema validation.
+-   **Human Interaction:** UI prompts and confirmations.
 
-### 1.3 The Quaternary Structure (ICCM + IDE + IEE + IAE)
+## 4. Integration boundaries
+-   **IDE → IEE:** `Decision Package` v1 is the sole directive interface.
+-   **IEE → State Manager (IAE):** Persist `Execution Outcome Package` and update Execution State.
+-   **IEE → ICCM:** No direct interface; effects observed by the State Manager drive subsequent context updates.
+-   **IEE ↔ Half-MADs:** Rare, policy-gated conversations only (e.g., to **LLM Conductor** for non-decisional consults); the default path is DER re-engagement.
 
-The complete IAE (Intelligent Agentic Engineering) discipline comprises four sub-disciplines:
-
-| Discipline | Repository | Output | Role in MAD |
-|------------|-----------|--------|-------------|
-| **ICCM** | ICCM | CET | Context Engineering (Thinking Engine) |
-| **IDE** | Joshua | Rules Engine + DER | Decision Engineering (Thinking Engine) |
-| **IEE** | Joshua | **Doing Engine** | **Execution Engineering (action execution)** |
-| **IAE** | Joshua | Complete agents | Agent Assembly (provides State Manager, integrates all) |
-
-**Complete MAD Architecture & Feedback Loop:**
-```
-Thinking Engine (ICCM + IDE + IAE)
-    ↓
-  Decision Package
-    ↓
-Doing Engine (IEE)
-    ↓
-  Execution & Observation
-    ↓
-Execution Outcome Package
-    ↓
-State Manager (IAE) → (informs next Thinking cycle)
-```
-
----
-
-## 2. Theoretical Foundation
-
-### 2.1 Execution Engineering Principles
-
-- **Safety First:** Validate all `Decision Package` preconditions and safety assertions before execution.
-- **Observable Execution:** Every action must be observable, producing the telemetry captured in the `Execution Outcome Package`.
-- **Formal Feedback Loops:** The `Execution Outcome Package` is not just a log; it is a structured report designed to update the agent's World Model and Task Context within the State Manager.
-- **Domain Adaptation:** Doing Engines are domain-specific implementations of a common interface.
-
-### 2.2 Relationship to Thinking Engine
-
-The boundary between Thinking and Doing is a formal, bidirectional contract:
-- **IDE → IEE:** The `Decision Package` is the command. It specifies the *what*, not the *how*. It contains the `action_name`, `parameters`, and `expected_effects`.
-- **IEE → State Manager (IAE):** The `Execution Outcome Package` is the report. It details the execution `status`, `observed_effects`, and any deviations from the expected. This feedback is critical for the DER to learn and for the World Model to remain accurate.
-
-This closed-loop design enables the agent to detect "execution drift"—where the world responds differently than expected—a key signal for replanning or learning.
+## 5. Conclusion
+IEE formalizes execution as a first-class discipline in the quaternary IAE structure. By standardizing interfaces with IDE and the State Manager, enforcing safety revalidation, and closing the loop with detailed outcomes, Doing Engines make MAD agents not just smart, but reliably effective and governable.
 
 ---
-
-## 3. Architecture Components (High-Level)
-
-### 3.1 Doing Engine Structure
-
-A generic Doing Engine is composed of four logical stages that process the incoming `Decision Package` and generate the outgoing `Execution Outcome Package`.
-
-```
-┌─────────────────────────────────────────┐
-│         DOING ENGINE (IEE)              │
-├─────────────────────────────────────────┤
-│                                         │
-│  1. Decision Validator                  │
-│     - Ingests: Decision Package         │
-│     - Checks: Preconditions, safety     │
-│                                         │
-│  2. Tool Orchestrator                   │
-│     - Maps action_name to tools         │
-│     - Binds parameters                  │
-│                                         │
-│  3. Execution Monitor                   │
-│     - Observes execution                │
-│     - Compares observed vs. expected    │
-│                                         │
-│  4. Outcome Synthesizer                 │
-│     - Assembles Execution Outcome Pkg   │
-│     - Sends to State Manager            │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
----
-
-## 7. Relationship to ICCM, IDE, and IAE
-
-**IEE's Role in IAE:**
-
-IEE is the **Execution Engineering** discipline, completing the quaternary.
-
-1.  **ICCM** → Understands context.
-2.  **IDE** → Makes decisions.
-3.  **IEE** → Executes decisions and reports outcomes.
-4.  **IAE** → Assembles the agent and manages its state.
-
-**Integration Points:**
-
--   **IDE → IEE Boundary:** The formal interface is the **`Decision Package`** schema.
--   **IEE → IAE Boundary:** The formal interface is the **`Execution Outcome Package`** schema, which is consumed by the IAE-provided State Manager. This feedback loop is the primary mechanism for agent learning and adaptation.
-
-*(Remaining sections on paper structure, roadmap, etc., are omitted for brevity but would be updated to reflect these foundational changes.)*
+## Appendix: Key terms
+-   **Decision Package:** The directive from DER to the Doing Engine.
+-   **Execution Outcome Package:** The Doing Engine’s report to the State Manager.
+-   **Re-engagement:** A policy-driven request for DER assistance when execution cannot proceed.
+-   **LLM Conductor:** A Half-MAD offering the LLM Orchestra capability via conversations (not part of the Thinking Engine).
