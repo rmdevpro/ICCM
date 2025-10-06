@@ -21,6 +21,5 @@ COPY test_iccm_network.py .
 # Expose the MCP port
 EXPOSE 8070
 
-# Run test server (tests iccm-network library without database)
-# Copy iccm-network to writable location and run test
-CMD ["sh", "-c", "cp -r /app/iccm-network/iccm_network /app/ && python test_iccm_network.py"]
+# Copy iccm-network to writable location and run real Horace MCP server
+CMD ["sh", "-c", "cp -r /app/iccm-network/iccm_network /app/ && python -m src.mcp_server"]
