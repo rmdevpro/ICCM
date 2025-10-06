@@ -40,9 +40,10 @@
 
 ### 2.2 Interface contracts (canonical)
 -   **Input: `Decision Package` v1** (from DER)
-    -   IEE uses fields: `decision_id`, `selected_action` (name, parameters, preconditions, expected_effects), `safety_assertions`, `risk_tier`.
+    -   IEE uses fields: `decision_id`, `task_id`, `selected_action` (name, parameters, preconditions, expected_effects), `safety_assertions`, `confidence_score`, `human_review_required`, `reasoning_trace_ref`, `references`, `schema_version`.
 -   **Output: `Execution Outcome Package` v1** (to State Manager)
-    -   IEE produces fields: `outcome_id`, `decision_id`, `status`, `observed_effects`, `deviations`, `safety_validation_results`, `telemetry`.
+    -   IEE produces fields: `outcome_id`, `schema_version`, `decision_id`, `status`, `observed_effects`, `deviations`, `safety_validation_results`, `telemetry`, `artifacts`, `world_version_id_before`, `world_version_id_after`, `reengagement_advice`.
+    -   The Doing Engine must populate `schema_version` per the canonical IAE schema and treat other fields per their intended use (e.g., `artifacts` and `reengagement_advice` may be empty when not applicable).
 
 ### 2.3 Safety invariant revalidation
 -   All `safety_assertions` in the `Decision Package` are rechecked before execution.

@@ -183,16 +183,3 @@ IAE integrates four disciplines (**quaternary structure**): ICCM (context), IDE 
 -   **State Manager:** IAE-owned memory system (World Model, Task Context, Execution State).
 -   **Canonical Contracts:** The five core data schemas: `Structured Context`, `Rule Engine Output`, `Decision Package`, `Execution Outcome Package`, `Reasoning Trace`.
 
-***
-
-### 2. 00_IDE_Intelligent_Decision_Engineering_v1.1.md (Corrected)
-
-**Corrections Made:**
-*   Ensured consistent use of the **quaternary structure** (ICCM + IDE + IEE + IAE).
-*   Verified **Thinking Engine** composition is 4 components (CET + Rules Engine + DER + State Manager) and that the LLM Orchestra is an external, consulted capability.
-*   Confirmed **LLM Conductor** is the correct name for the Half-MAD providing the LLM Orchestra capability.
-*   Aligned all contract names (`Decision Package`, `Rule Engine Output`, etc.) and schema references with the IAE master paper.
-*   Standardized formatting.
-
----
-

@@ -50,13 +50,13 @@
 *(Authoritative definitions in IAE Paper 00 v1.1)*
 
 ### 4.1 `Structured Context` v1 (consumed)
--   As defined by IAE; IDE relies on fields: `context_id`, `risk_tier`, `problem_frame`, `features`, `safety_profile`.
+-   As defined by IAE; IDE relies on fields: `context_id`, `task_id`, `problem_frame`, `features`, `world_refs`, `schema_version`.
 
 ### 4.2 `Rule Engine Output` v1 (produced by Rules, consumed by DER)
--   Fields: `rule_output_id`, `status`, `matches` (with `action_proposal`), `guardrails_triggered`.
+-   Fields: `rule_output_id`, `schema_version`, `status`, `matches` (with `action_proposal`), `guardrails_triggered`.
 
 ### 4.3 `Decision Package` v1 (produced by DER, consumed by IEE)
--   Fields: `decision_id`, `selected_action` (name, parameters, preconditions, expected_effects), `safety_assertions`, `confidence_score`, `human_review_required`, `reasoning_trace_ref`, `references`, `consultations` (provider “LLM Conductor”).
+-   Fields: `decision_id`, `schema_version`, `task_id`, `selected_action` (name, parameters, preconditions, expected_effects), `safety_assertions`, `confidence_score`, `human_review_required`, `reasoning_trace_ref`, `references`, `consultations` (provider “LLM Conductor”).
 
 ### 4.4 `Reasoning Trace` v1 (produced by DER)
 -   A trace graph of inputs, rule firings, consultations, and synthesis steps.
@@ -80,17 +80,4 @@ IDE delivers a principled hybrid decision core for MAD agents within the quatern
 -   **Thinking Engine:** CET + Rules Engine + DER + State Manager.
 -   **Decision Package:** The directive from DER to the Doing Engine.
 -   **Execution Outcome Package:** The Doing Engine’s report to the State Manager.
-
-***
-
-### 3. 00_IEE_Intelligent_Execution_Engineering_v1.1.md (Corrected)
-
-**Corrections Made:**
-*   Aligned with the final **quaternary structure** (ICCM + IDE + IEE + IAE).
-*   Standardized the input contract name to **`Decision Package`** and the output to **`Execution Outcome Package`**, ensuring schema references match the IAE master.
-*   Clarified the feedback loop mechanism via the **IAE State Manager**.
-*   Ensured consistent terminology for components (`Doing Engine`), capabilities (`LLM Orchestra`), and providers (`LLM Conductor`).
-*   Standardized formatting.
-
----
 

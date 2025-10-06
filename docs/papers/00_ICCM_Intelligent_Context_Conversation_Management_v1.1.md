@@ -56,9 +56,8 @@ The CET is a pipeline of specialized transformation components.
 -   Summarizes verbose text into concise facts.
 -   Normalizes data formats (e.g., dates, currencies).
 
-### 3.4 Constraint & Policy Enforcement
--   Validates inputs against predefined schemas and business rules.
--   Flags policy violations or missing required information before passing to IDE.
+### 3.4 Constraint & Policy Precheck
+-   Validates inputs against predefined schemas and static policy checks; flags violations and missing required information for IDE. CET does not enforce policy or make final decisions.
 
 ### 3.5 Context Assembler
 -   Gathers the outputs from all previous stages.
@@ -69,7 +68,7 @@ The CET is a pipeline of specialized transformation components.
 
 ### 4.1 `Structured Context` v1 (produced)
 The CET's sole output is this contract, delivered to the IDE's Rules Engine.
--   **Key Fields Produced:** `context_id`, `task_id`, `problem_frame` (objectives, constraints), `features` (extracted key-value pairs), `world_refs`.
+-   **Key Fields Produced:** `context_id`, `schema_version`, `task_id`, `problem_frame` (objectives, constraints), `features` (name, value), `world_refs` (world_version_id).
 -   This contract acts as a hard boundary, decoupling context engineering from decision engineering.
 
 ## 5. Integration with the MAD Ecosystem
