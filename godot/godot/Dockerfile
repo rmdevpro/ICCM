@@ -19,5 +19,5 @@ RUN pip install --no-cache-dir "redis>=5.0" "websockets>=14.0" "httpx>=0.25.0" "
 # Expose MCP Server port (Redis is internal only)
 EXPOSE 9060
 
-# Start via supervisord
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Copy iccm-network library and start via supervisord
+CMD ["sh", "-c", "cp -r /app/iccm-network/iccm_network /app/ && /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"]

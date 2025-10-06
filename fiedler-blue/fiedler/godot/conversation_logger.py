@@ -3,6 +3,7 @@ import json
 import asyncio
 from typing import Optional, List
 import websockets
+import sys
 
 
 async def begin_conversation_godot(
@@ -34,12 +35,12 @@ async def begin_conversation_godot(
             await ws.send(json.dumps(init_request))
             await asyncio.wait_for(ws.recv(), timeout=timeout)
 
-            # Call conversation_begin
+            # Call godot_conversation_begin
             begin_request = {
                 'jsonrpc': '2.0',
                 'method': 'tools/call',
                 'params': {
-                    'name': 'conversation_begin',
+                    'name': 'godot_conversation_begin',
                     'arguments': {
                         'session_id': session_id,
                         'metadata': metadata
@@ -59,7 +60,10 @@ async def begin_conversation_godot(
 
             return None
 
-    except Exception:
+    except Exception as e:
+        print(f"[CONVERSATION_LOGGER] begin_conversation failed: {e}", file=sys.stderr, flush=True)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         return None
 
 
@@ -95,12 +99,12 @@ async def store_message_godot(
             await ws.send(json.dumps(init_request))
             await asyncio.wait_for(ws.recv(), timeout=timeout)
 
-            # Call conversation_store_message
+            # Call godot_conversation_store_message
             store_request = {
                 'jsonrpc': '2.0',
                 'method': 'tools/call',
                 'params': {
-                    'name': 'conversation_store_message',
+                    'name': 'godot_conversation_store_message',
                     'arguments': {
                         'conversation_id': conversation_id,
                         'role': role,
@@ -118,5 +122,8 @@ async def store_message_godot(
 
             return 'result' in response
 
-    except Exception:
+    except Exception as e:
+        print(f"[CONVERSATION_LOGGER] store_message failed: {e}", file=sys.stderr, flush=True)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         return False

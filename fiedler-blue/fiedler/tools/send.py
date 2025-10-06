@@ -198,14 +198,23 @@ def fiedler_send(
     output_dir = Path(output_base) / f"{timestamp}_{correlation_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Setup logger (MUST be created before conversation logging attempt)
+    log_file = output_dir / "fiedler.log"
+    logger = ProgressLogger(correlation_id, log_file)
+
     # Begin conversation in Godot (synchronously to get conversation_id)
     conversation_id = None
+    print(f"[FIEDLER-DEBUG] About to call begin_conversation_godot", flush=True)
     try:
         conversation_id = asyncio.run(begin_conversation_godot(
             session_id=f"fiedler-{timestamp}",
             metadata={'correlation_id': correlation_id, 'timestamp': timestamp}
         ))
-    except Exception:
+        print(f"[FIEDLER-DEBUG] conversation_id={conversation_id}", flush=True)
+        logger.log(f"Conversation storage: {'enabled' if conversation_id else 'FAILED (conversation_id=None)'}")
+    except Exception as e:
+        print(f"[FIEDLER-DEBUG] EXCEPTION: {e}", flush=True)
+        logger.log(f"Conversation storage EXCEPTION: {e}")
         pass  # Continue without conversation logging if Godot unavailable
 
     # Initialize turn counter (1 for request, 2+ for responses)
@@ -213,10 +222,6 @@ def fiedler_send(
 
     # Track logging threads for synchronization
     logging_threads = []
-
-    # Setup logger
-    log_file = output_dir / "fiedler.log"
-    logger = ProgressLogger(correlation_id, log_file)
 
     logger.log(f"Starting Fiedler run (correlation_id: {correlation_id})")
     logger.log(f"Models: {', '.join(models)}")

@@ -1,8 +1,10 @@
 # Claudette - Containerized Claude Code with Full Logging
 
-**Status:** ✅ Operational
-**Last Updated:** 2025-10-04
-**Purpose:** Containerized Claude Code instance with complete conversation logging through KGB HTTP Gateway
+**Status:** ⚠️ **DEPRECATED - ARCHITECTURE OUTDATED**
+**Last Updated:** 2025-10-06
+**Deprecation Reason:** KGB HTTP Gateway eliminated (2025-10-06). Claudette needs rearchitecture to connect directly to MCP Relay.
+
+**⚠️ WARNING:** This entire README describes an outdated architecture using KGB. Do not deploy until rearchitected to use direct MCP Relay connections like bare metal Claude Code.
 
 ---
 

@@ -75,9 +75,121 @@ The architecture PNGs show the **component relationships and data flows** that d
 
 5. **Conversation logging**: Fiedler logs ALL LLM conversations to Godot
 
-6. **KGB elimination**: No HTTP proxy needed - Claudette uses MCP Relay directly
+6. **No HTTP proxy layer**: Claudette connects directly to MCP Relay (KGB eliminated 2025-10-06)
 
 7. **Architecture changes** require formal architecture planning session
+
+---
+
+## 🔧 Standard Libraries (REQUIRED for All Components)
+
+**Last Updated:** 2025-10-06
+
+### 1. iccm-network - WebSocket MCP Communication
+
+**Status:** MANDATORY for all Python MCP servers
+**Location:** `/mnt/projects/ICCM/iccm-network/`
+**Version:** 1.1.0
+**Documentation:** `iccm-network/README.md`
+
+**Purpose:** Eliminates 10+ hours of WebSocket debugging per component by providing a battle-tested, zero-configuration MCP server implementation.
+
+**What it provides:**
+- Always binds to `0.0.0.0` (never configurable - prevents network unreachability bugs)
+- Standard JSON-RPC 2.0 protocol (initialize, tools/list, tools/call)
+- Consistent error handling via `MCPToolError`
+- No configuration needed (just port, tools, and handlers)
+
+**Usage:**
+```python
+from iccm_network import MCPServer, MCPToolError
+
+server = MCPServer(
+    name="myservice",
+    version="1.0.0",
+    port=8070,
+    tool_definitions=TOOLS,
+    tool_handlers=HANDLERS
+)
+await server.start()
+```
+
+**Components Using iccm-network:**
+
+| Component | Status | Version | Notes |
+|-----------|--------|---------|-------|
+| **Horace Blue** | ✅ DEPLOYED | 1.1.0 | All 7 tools working, network connectivity verified |
+| Dewey Blue | ⏳ Planned | - | Custom implementation (migration pending - Issue #13) |
+| Fiedler Blue | ⏳ Planned | - | Custom implementation (migration pending - Issue #13) |
+| Godot | ⏳ Planned | - | Custom implementation (migration pending - Issue #13) |
+
+**Benefits:**
+- **Reliability:** Horace deployment proved zero connection issues after migration
+- **Consistency:** Same patterns across all components
+- **Maintainability:** Bug fixes in library benefit all components
+- **Speed:** Copy working implementation instead of debugging WebSockets
+
+---
+
+### 2. Godot MCP Logger - Operational Logging
+
+**Status:** MANDATORY for all components
+**Location:** Copy `godot/mcp_logger.py` from any Blue component
+**Documentation:** `/mnt/projects/ICCM/godot/README.md`
+
+**Purpose:** Centralized logging to Godot → Dewey → PostgreSQL for complete audit trail and operational visibility.
+
+**What it provides:**
+- MCP-based logging (WebSocket to Godot on port 9060)
+- Async, non-blocking (logging never breaks operations)
+- Structured logging with trace IDs, components, levels
+- Queryable via `dewey_query_logs` tool
+
+**Usage:**
+```python
+from .godot.mcp_logger import log_to_godot
+
+await log_to_godot('INFO', 'Server started', component='myservice', data={'port': 8070})
+await log_to_godot('ERROR', 'Database connection failed', component='myservice')
+```
+
+**Components Using Godot MCP Logger:**
+
+| Component | Status | Language | Notes |
+|-----------|--------|----------|-------|
+| **Fiedler Blue** | ✅ DEPLOYED | Python | Using mcp_logger.py |
+| **Dewey Blue** | ✅ DEPLOYED | Python | Using mcp_logger.py |
+| **Gates Blue** | ✅ DEPLOYED | Node.js | Using logToGodot equivalent |
+| **Playfair Blue** | ✅ DEPLOYED | Node.js | Using logToGodot equivalent |
+| **Marco Blue** | ✅ DEPLOYED | Node.js | Using logToGodot equivalent |
+| **Horace Blue** | ✅ DEPLOYED | Python | Using mcp_logger.py |
+| Godot | N/A | Python | Logs to stdout (cannot log to itself) |
+
+**Node.js Equivalent:**
+```javascript
+const { logToGodot } = require('./godot/loglib');
+await logToGodot('INFO', 'Server started', 'myservice', { port: 8070 });
+```
+
+---
+
+### 3. Development Standards
+
+**Never reimplement these:**
+- ❌ Custom WebSocket servers (`websockets.serve()`)
+- ❌ Custom MCP protocol handling (JSON-RPC 2.0)
+- ❌ `print()` or `console.log()` for operational logs
+- ❌ Binding to `127.0.0.1` or `localhost`
+
+**Always use:**
+- ✅ `iccm-network` for Python MCP servers
+- ✅ `log_to_godot()` for operational logging
+- ✅ Bind to `0.0.0.0` (handled automatically by iccm-network)
+
+**Related Issues:**
+- Issue #11: iccm-network library creation (✅ CLOSED)
+- Issue #12: Developer onboarding infrastructure (OPEN)
+- Issue #13: Component audit and migration (OPEN)
 
 ---
 
@@ -124,9 +236,12 @@ The architecture PNGs show the **component relationships and data flows** that d
 **Running Infrastructure:**
 - `fiedler-mcp` - Port 8080 (container), 9010 (host WebSocket), 9011 (host HTTP proxy) - 10 LLM models
 - `dewey-mcp` - Port 9020 (host) - Conversation storage/retrieval via WebSocket
-- `marco-mcp` - Port 8030 (container), 9030 (host) - Browser automation via WebSocket (planned)
-- `kgb-proxy` - Port 8089 (HTTP/SSE), 9000 (WebSocket) - Logging proxy and gateway
-- `winni` - PostgreSQL on Irina (192.168.1.210) - Persistent storage
+- `marco-mcp` - Port 8030 (container), 9030 (host) - Browser automation via WebSocket
+- `gates-mcp` - Port 9050 (host) - Document generation via WebSocket
+- `playfair-mcp` - Port 9040 (host) - Diagram generation via WebSocket
+- `godot-mcp` - Port 9060 (host) - Unified logging infrastructure
+- ~~`kgb-proxy`~~ - **ELIMINATED (2025-10-06)** - No longer part of architecture
+- `winni` - PostgreSQL on Irina (192.168.1.210) - Persistent storage (44TB RAID 5)
 
 **Characteristics:**
 - **MCP Relay runs as Claude subprocess** - Lives inside Claude Code process, not a separate service
@@ -135,14 +250,16 @@ The architecture PNGs show the **component relationships and data flows** that d
 - **Dynamic discovery** - Relay queries backends for tools on startup
 - **Zero-restart tool updates** - MCP `notifications/tools/list_changed` protocol
 - **Network extensible** - Can connect to any WebSocket MCP server by updating backends.yaml
-- **No logging in bare metal** - Connections go directly to Fiedler/Dewey, bypassing KGB
+- **No logging in bare metal** - Bare metal Claude connects directly, no proxy layer
 - **Trust must be accepted** - `hasTrustDialogAccepted: true` required for MCP servers to load
 
 ---
 
-### Claudette: Containerized Claude - ✅ OPERATIONAL (2025-10-04)
+### Claudette: Containerized Claude - ⚠️ DEPRECATED (KGB Eliminated 2025-10-06)
 
-**Status:** ✅ Production ready and verified
+**Status:** ⚠️ **ARCHITECTURE OUTDATED** - KGB eliminated, Claudette needs rearchitecture to connect directly to MCP Relay
+
+**Note:** The entire Claudette section below is outdated. KGB was eliminated on 2025-10-06. Claudette must be rearchitected to connect directly to MCP Relay like bare metal Claude Code does.
 
 **Component Connections:**
 

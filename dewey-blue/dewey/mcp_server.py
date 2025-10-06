@@ -32,50 +32,6 @@ class DeweyMCPServer:
 
         # MCP tool definitions
         self.tools = {
-            "dewey_begin_conversation": {
-                "description": "Start a new conversation and return its ID",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "session_id": {"type": "string", "description": "Optional session ID to group conversations"},
-                        "metadata": {"type": "object", "description": "Optional metadata as key-value pairs"}
-                    }
-                }
-            },
-            "dewey_store_message": {
-                "description": "Store a single message in a conversation",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "conversation_id": {"type": "string", "description": "UUID of the conversation"},
-                        "role": {"type": "string", "description": "Role: user, assistant, or system"},
-                        "content": {"type": "string", "description": "Message content"},
-                        "turn_number": {"type": "integer", "description": "Optional turn number"},
-                        "metadata": {"type": "object", "description": "Optional metadata"}
-                    },
-                    "required": ["conversation_id", "role", "content"]
-                }
-            },
-            "dewey_store_messages_bulk": {
-                "description": "Store multiple messages at once (up to 1000). Supports file references for large payloads.",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "messages": {
-                            "type": "array",
-                            "description": "Array of message objects with role and content (inline)",
-                            "items": {"type": "object"}
-                        },
-                        "messages_file": {
-                            "type": "string",
-                            "description": "Path to JSON file containing message array (file reference - industry standard for large payloads)"
-                        },
-                        "conversation_id": {"type": "string", "description": "Optional existing conversation ID"},
-                        "session_id": {"type": "string", "description": "Optional session ID for new conversation"},
-                        "metadata": {"type": "object", "description": "Optional metadata for new conversation"}
-                    }
-                }
-            },
             "dewey_get_conversation": {
                 "description": "Retrieve all messages from a conversation",
                 "inputSchema": {
@@ -96,17 +52,6 @@ class DeweyMCPServer:
                         "offset": {"type": "integer", "description": "Number to skip (default 0)"},
                         "sort_by": {"type": "string", "description": "Sort field: created_at or updated_at"}
                     }
-                }
-            },
-            "dewey_delete_conversation": {
-                "description": "Delete a conversation and all its messages",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "conversation_id": {"type": "string", "description": "UUID of the conversation"},
-                        "force": {"type": "boolean", "description": "Force delete without confirmation"}
-                    },
-                    "required": ["conversation_id"]
                 }
             },
             "dewey_search": {
@@ -133,18 +78,6 @@ class DeweyMCPServer:
                     }
                 }
             },
-            "dewey_set_startup_context": {
-                "description": "Create or update a startup context",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string", "description": "Context name"},
-                        "content": {"type": "string", "description": "Context content"},
-                        "set_active": {"type": "boolean", "description": "Make this the active context"}
-                    },
-                    "required": ["name", "content"]
-                }
-            },
             "dewey_list_startup_contexts": {
                 "description": "List all available startup contexts",
                 "inputSchema": {
@@ -152,17 +85,6 @@ class DeweyMCPServer:
                     "properties": {
                         "include_content": {"type": "boolean", "description": "Include full content (default false)"}
                     }
-                }
-            },
-            "dewey_delete_startup_context": {
-                "description": "Delete a startup context",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string", "description": "Context name"},
-                        "force": {"type": "boolean", "description": "Force delete without confirmation"}
-                    },
-                    "required": ["name"]
                 }
             },
             "dewey_query_logs": {

@@ -484,11 +484,20 @@ python -m iccm_network.examples.simple_server  # TODO: Add examples
 
 | Component | Status | Version | Notes |
 |-----------|--------|---------|-------|
-| Horace | 🧪 Testing | 1.0.0 | Designated testbed for library |
+| **Horace** | ✅ **DEPLOYED** | 1.0.0 | Successfully deployed, all 7 tools working via relay |
 | Dewey | ⏳ Planned | - | Migration after Horace validation |
 | Fiedler | ⏳ Planned | - | HTTP proxy integration maintained |
 | Godot | ⏳ Planned | - | Logging service migration |
 | Playfair | ⏳ Planned | - | Diagram generation service |
+| Gates | ⏳ Planned | - | Document generation service |
+| Marco | ⏳ Planned | - | Browser automation service |
+
+**Status as of 2025-10-06:**
+- ✅ Library created and tested
+- ✅ Horace Blue deployed using iccm-network v1.1.0
+- ✅ All 7 Horace tools accessible via MCP Relay
+- ✅ Network connectivity verified (works from localhost AND network)
+- ⏸️ Other component migrations pending
 
 ## Architecture
 

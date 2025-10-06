@@ -1,8 +1,11 @@
 # Anthropic API Gateway Implementation
 
 **Date:** 2025-10-03
-**Status:** Ready for testing
-**Architecture Decision:** GPT-5's recommended approach (reverse proxy)
+**Status:** ⚠️ **DEPRECATED - ARCHITECTURE ELIMINATED**
+**Deprecation Date:** 2025-10-06
+**Reason:** KGB HTTP Gateway eliminated from architecture. Fiedler now handles conversation logging directly.
+
+**⚠️ WARNING:** This document describes KGB, which is no longer part of the ICCM architecture. Do not implement.
 
 ---
 
