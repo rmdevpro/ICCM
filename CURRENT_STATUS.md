@@ -1,5 +1,5 @@
 # ICCM Development Status
-**Last Updated:** 2025-10-06 18:30 EDT
+**Last Updated:** 2025-10-06 21:45 EDT
 
 ## 🎯 Current State & Next Steps
 
@@ -28,6 +28,25 @@ With the infrastructure stable and IAE Paper 00 complete, focus now shifts to im
 ---
 
 ## 🚀 Most Recent Accomplishments (2025-10-06)
+
+### ✅ Horace NAS Gateway v2.1 Deployed with PostgreSQL
+*   **Milestone:** Successfully deployed Horace NAS Gateway v2.1 with triplet-approved PostgreSQL migration.
+*   **Architecture:** Migrated from SQLite to PostgreSQL (asyncpg with connection pooling) while maintaining full interface compatibility.
+*   **Triplet Review:** Gemini authored Round 2 implementation after interface requirements feedback; GPT-4o + DeepSeek-R1 provided unanimous approval.
+*   **Database:** Created `horace` database on 192.168.1.210 (irina) with proper schema permissions.
+*   **Schema:** `files`, `file_versions`, `schema_version` tables with UUID primary keys and proper indexing.
+*   **Integration:** Fiedler now stores all outputs to Horace shared storage (`/mnt/irina_storage/files/fiedler_output`).
+*   **Benefits:** Centralized file versioning with SHA-256 checksums, system-wide file access via Horace MCP tools, full version history in PostgreSQL.
+*   **Deliverable:** `/mnt/projects/ICCM/horace-nas-v2/` - Container running successfully on port 8000.
+
+### ✅ System Password Documentation Consolidated
+*   **Problem:** Passwords were created across the system but never centrally documented.
+*   **Solution:** Comprehensive audit of all `.env` files and docker-compose configurations across ICCM project.
+*   **Documentation:** All passwords consolidated in `/mnt/projects/keys.txt` including:
+    - PostgreSQL credentials (Dewey, Horace old/new, superuser)
+    - System credentials (SSH, sudo)
+    - API keys (Gemini, OpenAI, Together, xAI, Anthropic, GitHub, HuggingFace)
+*   **Status:** GitHub Issue #17 closed.
 
 ### ✅ IAE Paper 00 v1.0 Completed
 *   **Milestone:** Synthesized the master IAE (Intelligent Agentic Engineering) discipline document from Council of Elders responses.
@@ -91,10 +110,10 @@ A Complete MAD consists of a Thinking Engine, a Doing Engine, and shared infrast
 5.  **State Manager:** Maintains World Model, Task Context, and Execution State (from IAE)
 
 **Infrastructure Half-MADs (Deployed Services):**
-*   **Fiedler:** LLM Gateway providing LLM Orchestra capability
-*   **Dewey:** READ-only Memory (Conversations, Logs)
-*   **Godot:** WRITE-only Logging and Conversation Management
-*   **Horace:** File Storage & Versioning capability
+*   **Fiedler:** LLM Gateway providing LLM Orchestra capability (outputs stored to Horace shared storage)
+*   **Dewey:** READ-only Memory (Conversations, Logs) - PostgreSQL backend on 192.168.1.210
+*   **Godot:** WRITE-only Logging and Conversation Management - PostgreSQL backend on 192.168.1.210
+*   **Horace:** File Storage & Versioning capability - PostgreSQL catalog with SHA-256 versioning (NAS Gateway v2.1)
 *   **Marco:** Browser Automation (Internet Gateway) capability
 *   **Gates:** Document Generation (Markdown → ODT) capability
 *   **Playfair:** Diagram Rendering (DOT, Mermaid → PNG) capability

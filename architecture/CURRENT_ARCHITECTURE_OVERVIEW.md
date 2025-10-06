@@ -1,6 +1,6 @@
 # Current Architecture Overview - ICCM System
 
-**Last Updated:** 2025-10-05 16:30 EDT
+**Last Updated:** 2025-10-06 21:45 EDT
 **Purpose:** Explain the immutable architecture (PNGs) and document current protocol configuration
 
 ---
@@ -55,6 +55,7 @@ The architecture PNGs show the **component relationships and data flows** that d
   - Playfair (9041) - Diagram generation
   - Gates (9050) - Document generation
   - Marco (9031) - Browser automation
+  - Horace (8000) - File storage & versioning with PostgreSQL catalog (NAS Gateway v2.1)
 
 - **Cloud LLMs** - Right side, gray box
   - Claude API (pink oval) - Anthropic
