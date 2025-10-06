@@ -35,6 +35,8 @@ services:
     volumes:
       # Persist temporary files if needed for debugging, though the app should clean up
       - playfair-temp:/tmp/playfair
+      # Mount ICCM project directory for direct file access
+      - /mnt/projects/ICCM:/mnt/projects/ICCM
 
 networks:
   iccm_network:

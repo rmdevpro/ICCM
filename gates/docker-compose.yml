@@ -15,6 +15,8 @@ services:
       - NODE_ENV=production
     volumes:
       - gates-output:/app/output
+      # Mount ICCM project directory for direct file access
+      - /mnt/projects/ICCM:/mnt/projects/ICCM
     networks:
       - iccm_network
     restart: unless-stopped
