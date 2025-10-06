@@ -161,6 +161,20 @@ async def conversation_store_messages_bulk_impl(messages: list = None, messages_
     if not isinstance(messages, list) or not messages:
         raise ValueError("Parameter 'messages' (or messages_file content) must be a non-empty list.")
 
+    # Extract session_id from messages if not provided
+    if not session_id and messages:
+        for msg in messages:
+            if 'sessionId' in msg and msg['sessionId']:
+                session_id = msg['sessionId']
+                logger.info(f"Extracted session_id from message: {session_id}")
+                break
+            elif isinstance(msg.get('metadata'), dict) and 'sessionId' in msg['metadata']:
+                session_id = msg['metadata']['sessionId']
+                logger.info(f"Extracted session_id from metadata: {session_id}")
+                break
+        if not session_id:
+            logger.warning("Could not extract session_id from messages")
+
     # Normalize messages
     for i, msg in enumerate(messages):
         if 'message' in msg and isinstance(msg['message'], dict):
