@@ -14,7 +14,7 @@ from ..utils import get_models, get_output_dir
 from ..utils.logger import ProgressLogger
 from ..utils.package import compile_package
 from ..utils.tokens import check_token_budget
-from ..providers import GeminiProvider, OpenAIProvider, TogetherProvider, XAIProvider
+from ..providers import AnthropicProvider, GeminiProvider, OpenAIProvider, TogetherProvider, XAIProvider
 from ..godot.conversation_logger import begin_conversation_godot, store_message_godot
 
 
@@ -30,6 +30,8 @@ def create_provider(model_id: str, config: Dict[str, Any]):
                 return GeminiProvider(model_id, model_config, api_key_env)
             elif provider_name == "openai":
                 return OpenAIProvider(model_id, model_config, api_key_env)
+            elif provider_name == "anthropic":
+                return AnthropicProvider(model_id, model_config, api_key_env)
             elif provider_name == "together":
                 base_url = provider_config.get("base_url", "https://api.together.xyz/v1")
                 return TogetherProvider(model_id, model_config, api_key_env, base_url)
