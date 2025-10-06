@@ -69,6 +69,7 @@ Changelog:
 """
 
 from .server import MCPServer, MCPToolError
+from .client import MCPClient
 
-__version__ = "1.1.0"
-__all__ = ["MCPServer", "MCPToolError"]
+__version__ = "1.2.0"
+__all__ = ["MCPServer", "MCPClient", "MCPToolError"]

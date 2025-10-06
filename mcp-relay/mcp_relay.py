@@ -42,7 +42,7 @@ async def log_to_godot(level: str, message: str, data: dict = None, trace_id: st
         return
 
     try:
-        async with websockets.connect(GODOT_URL, open_timeout=1) as ws:
+        async with websockets.connect(GODOT_URL, open_timeout=1, max_size=209715200) as ws:
             # Call logger_log tool
             request = {
                 "jsonrpc": "2.0",
@@ -192,7 +192,7 @@ class MCPRelay:
         url = backend['url']
 
         try:
-            ws = await websockets.connect(url)
+            ws = await websockets.connect(url, max_size=209715200)
             backend['ws'] = ws
             logger.info(f"Connected to {backend_name}: {url}")
 

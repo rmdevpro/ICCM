@@ -345,7 +345,8 @@ class MCPServer:
             self.port,
             process_request=self._health_check_handler,  # HTTP health check
             ping_interval=20,  # Send ping every 20 seconds
-            ping_timeout=20    # Close connection if pong not received in 20s
+            ping_timeout=20,   # Close connection if pong not received in 20s
+            max_size=209715200  # 200MB max frame size (private trusted network)
         )
 
         self.logger.info(f"✓ {self.name} MCP server listening on ws://{self.host}:{self.port}")

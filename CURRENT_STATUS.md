@@ -1,12 +1,52 @@
 # ICCM Development Status - Current Session
 
-**Last Updated:** 2025-10-06 16:30 EDT
-**Session:** MAD Paper 00 Complete - Council of Elders Synthesis
-**Status:** ✅ **MAD PAPER 00 PUBLISHED** - Complete hierarchical paper structure defined
+**Last Updated:** 2025-10-06 17:45 EDT
+**Session:** WebSocket Frame Limit Fix - 200MB System-Wide
+**Status:** ✅ **WEBSOCKET LIMITS UPDATED** - All components support 200MB frames for large conversations
 
 ---
 
 ## 🎯 Current Session Accomplishments (2025-10-06)
+
+### 🔧 WEBSOCKET FRAME LIMIT FIX - 200MB SYSTEM-WIDE
+
+**Problem:** Conversation retrieval failing with "message too big" error when retrieving 1.8MB conversation (exceeded 1MB default WebSocket frame limit)
+
+**Root Cause Analysis:**
+- Default `max_size=1048576` (1MB) in websockets library
+- Limit designed for DoS protection on public internet
+- Inappropriate for private trusted network (192.168.1.x gigabit LAN)
+- Error occurred at multiple layers: Dewey → Godot → Relay → Claude Code
+
+**Solution:** Set `max_size=209715200` (200MB) throughout entire stack
+
+**Components Updated:**
+
+1. **iccm-network library v1.2.0** (`/mnt/projects/ICCM/iccm-network/`)
+   - `server.py` line 349: Added `max_size=209715200` to `websockets.serve()`
+   - **NEW:** `client.py`: Created MCPClient class with 200MB limit for library reuse
+   - `__init__.py`: Exported MCPClient, bumped version to 1.2.0
+
+2. **Godot** (`/mnt/projects/ICCM/godot/godot/`)
+   - `src/mcp_client.py` line 43: Set `max_size=209715200` in `websockets.connect()`
+   - Container rebuilt and restarted
+
+3. **Dewey** (`/mnt/projects/ICCM/dewey/dewey/`)
+   - `mcp_server.py` line 406: Added `max_size=209715200` to `websockets.serve()`
+   - Container rebuilt and restarted
+
+4. **MCP Relay** (`/mnt/projects/ICCM/mcp-relay/`)
+   - `mcp_relay.py` lines 45, 195: Added `max_size=209715200` to both `websockets.connect()` calls
+   - Process stopped (awaiting Claude Code restart for reconnection)
+
+**Architectural Improvement:**
+- Created reusable `MCPClient` class in iccm-network library
+- Future components can import `from iccm_network import MCPClient` for consistent WebSocket client behavior
+- Eliminates duplicate WebSocket connection code across components
+
+**Status:** ✅ All code changes complete, awaiting Claude Code restart to test 1.8MB conversation retrieval
+
+---
 
 ### 📚 MAD PAPER 00: MASTER DOCUMENT - COMPLETE
 

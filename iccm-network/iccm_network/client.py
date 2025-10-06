@@ -1,6 +1,8 @@
 """
 MCP Client - WebSocket-based MCP client using JSON-RPC protocol
-Based on Gemini-2.5-Pro recommendation (correlation_id: b5afd3b0)
+
+Provides standardized MCP client with 200MB frame size for private trusted network.
+Based on Godot's mcp_client.py pattern, adapted for library reuse.
 """
 import asyncio
 import json
@@ -19,6 +21,13 @@ class MCPClient:
     """A WebSocket-based MCP client using the JSON-RPC protocol."""
 
     def __init__(self, url: str, timeout: int = 10):
+        """
+        Initialize MCP client.
+
+        Args:
+            url: WebSocket URL to connect to (e.g., ws://localhost:9001)
+            timeout: Request timeout in seconds (default 10)
+        """
         self.url = url
         self.timeout = timeout
         self.websocket: Optional[WebSocketClientProtocol] = None
@@ -131,4 +140,49 @@ class MCPClient:
         except Exception as e:
             self._pending_requests.pop(request_id, None)
             logger.error(f"Error calling tool {tool_name}: {e}")
+            raise
+
+    async def send_request(self, method: str, params: Dict[str, Any] = None) -> Any:
+        """
+        Send a raw JSON-RPC request to the server.
+
+        Args:
+            method: JSON-RPC method name
+            params: Method parameters
+
+        Returns:
+            Response result
+
+        Raises:
+            Exception if request fails or times out
+        """
+        if not self.is_connected:
+            await self.connect()
+
+        request_id = str(uuid.uuid4())
+        request = {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params or {},
+            "id": request_id
+        }
+
+        future = asyncio.Future()
+        self._pending_requests[request_id] = future
+
+        try:
+            await self.websocket.send(json.dumps(request))
+            logger.debug(f"Sent request {request_id} for method {method}")
+
+            result = await asyncio.wait_for(future, timeout=self.timeout)
+            logger.debug(f"Received response for request {request_id}")
+            return result
+
+        except asyncio.TimeoutError:
+            self._pending_requests.pop(request_id, None)
+            logger.error(f"Request {request_id} timed out after {self.timeout}s")
+            raise Exception(f"Request '{method}' timed out")
+        except Exception as e:
+            self._pending_requests.pop(request_id, None)
+            logger.error(f"Error sending request {method}: {e}")
             raise

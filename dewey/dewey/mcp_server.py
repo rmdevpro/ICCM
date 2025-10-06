@@ -402,7 +402,8 @@ class DeweyMCPServer:
         self.server = await websockets.serve(
             self.handle_request,
             self.host,
-            self.port
+            self.port,
+            max_size=209715200  # 200MB max frame size (private trusted network)
         )
 
         logger.info("Dewey MCP Server is running")
