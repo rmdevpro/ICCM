@@ -38,8 +38,8 @@ services:
       # Performance: Parallelism control
       - FIEDLER_MAX_WORKERS=4
 
-      # Output directory
-      - FIEDLER_OUTPUT_DIR=/app/fiedler_output
+      # Output directory (default to Horace temp storage)
+      - FIEDLER_OUTPUT_DIR=/mnt/irina_storage/files/temp/fiedler
 
       # API Keys (mount as secrets in production)
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
@@ -51,6 +51,9 @@ services:
     volumes:
       # Output directory (bind mount to host for easy access)
       - ./fiedler_output:/app/fiedler_output
+
+      # Horace storage mount for default output
+      - irina_storage_files:/mnt/irina_storage/files
 
       # Allowed files directory (read-only)
       - ./allowed_files:/app/allowed_files:ro
@@ -85,6 +88,13 @@ services:
 
 volumes:
   fiedler_state:
+
+  irina_storage_files:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/projects/ICCM/irina_storage_test/files
+      o: bind
 
 networks:
   fiedler_network:

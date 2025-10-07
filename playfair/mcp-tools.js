@@ -24,6 +24,7 @@ class McpTools {
                         theme: { type: 'string', enum: ['professional', 'modern', 'minimal', 'dark'], default: 'modern', description: 'Visual theme.' },
                         width: { type: 'integer', default: 1920, description: 'Output width in pixels for PNG.' },
                         height: { type: 'integer', description: 'Output height in pixels (auto if not specified).' },
+                        output_path: { type: 'string', description: 'Optional: file path for output. If not specified, uses default location in Horace storage with auto-generated filename.' },
                     },
                     required: ['content'],
                 },
@@ -89,7 +90,7 @@ class McpTools {
     }
 
     async createDiagram(input) {
-        const { content, format: specifiedFormat = 'auto', width, height, ...options } = input;
+        const { content, format: specifiedFormat = 'auto', width, height, output_path, ...options } = input;
 
         if (!content) {
             return { error: true, code: 'MISSING_CONTENT', message: 'Input "content" is required.' };
@@ -119,17 +120,43 @@ class McpTools {
 
         const job = { format, content, options: { ...options, width, height } };
         const result = await this.workerPool.submit(job);
-        
+
         // Result contains { data: Buffer, error: null } or { data: null, error: {...} }
         if (result.error) {
             return result.error;
         }
 
+        // Determine output file path
+        const outputFormat = options.output_format || 'svg';
+        let finalPath;
+
+        if (output_path) {
+            // Use provided path (absolute or relative to default dir)
+            finalPath = path.isAbsolute(output_path)
+                ? output_path
+                : path.join(process.env.DEFAULT_OUTPUT_DIR || '/mnt/irina_storage/files/temp/playfair', output_path);
+        } else {
+            // Generate default filename with timestamp
+            const defaultDir = process.env.DEFAULT_OUTPUT_DIR || '/mnt/irina_storage/files/temp/playfair';
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            const extension = outputFormat === 'png' ? 'png' : 'svg';
+            finalPath = path.join(defaultDir, `diagram-${timestamp}.${extension}`);
+        }
+
+        // Ensure output directory exists
+        const outputDir = path.dirname(finalPath);
+        await fs.mkdir(outputDir, { recursive: true });
+
+        // Write file to disk
+        await fs.writeFile(finalPath, result.data);
+
+        logger.info({ path: finalPath, format: outputFormat, size: result.data.length }, 'Diagram written to file');
+
         return {
             result: {
-                format: options.output_format || 'svg',
-                encoding: 'base64',
-                data: result.data.toString('base64'),
+                path: finalPath,
+                format: outputFormat,
+                size: result.data.length,
             },
         };
     }

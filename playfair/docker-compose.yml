@@ -28,6 +28,8 @@ services:
       - MAX_CONTENT_LINES=10000
       - MAX_PNG_WIDTH=8192
       - MAX_PNG_HEIGHT=8192
+      # File Output Configuration
+      - DEFAULT_OUTPUT_DIR=/mnt/irina_storage/files/temp/playfair
     deploy:
       # Enforce resource limits at the container level
       resources:
@@ -40,6 +42,8 @@ services:
       - playfair-temp:/tmp/playfair
       # Mount ICCM project directory for direct file access
       - /mnt/projects/ICCM:/mnt/projects/ICCM
+      # Mount Horace storage for diagram output
+      - irina_storage_files:/mnt/irina_storage/files
 
 networks:
   iccm_network:
@@ -49,3 +53,11 @@ networks:
 volumes:
   playfair-temp:
     # Define the named volume for temporary data
+
+  irina_storage_files:
+    # External volume managed by Horace
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/projects/ICCM/irina_storage_test/files
+      o: bind

@@ -17,7 +17,7 @@ import PQueue from 'p-queue';
 import pino from 'pino';
 import { writeFile, readFile, unlink, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, isAbsolute } from 'path';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { WebSocket as WebSocketClient } from 'ws';
@@ -59,7 +59,11 @@ const TOOLS = [
       properties: {
         markdown: {
           type: 'string',
-          description: 'Markdown content to convert'
+          description: 'Markdown content to convert (use this OR input_file, not both)'
+        },
+        input_file: {
+          type: 'string',
+          description: 'Path to markdown file to convert (use this OR markdown, not both)'
         },
         metadata: {
           type: 'object',
@@ -72,10 +76,10 @@ const TOOLS = [
         },
         output_path: {
           type: 'string',
-          description: 'Optional: file path for output (default: temp file)'
+          description: 'Optional: file path for output (default: temp file in /mnt/irina_storage/files/temp/gates/)'
         }
       },
-      required: ['markdown']
+      required: []
     }
   },
   {
@@ -454,20 +458,46 @@ ${html}
  * Main document creation function
  */
 async function createDocument(args) {
-  const { markdown, metadata = {}, output_path } = args;
+  const { markdown, input_file, metadata = {}, output_path } = args;
+
+  // Load markdown from file or use provided content
+  let markdownContent;
+  if (input_file) {
+    if (markdown) {
+      throw new Error('Cannot specify both "markdown" and "input_file" parameters');
+    }
+    try {
+      markdownContent = await readFile(input_file, 'utf-8');
+      logger.info({ input_file, size: markdownContent.length }, 'Loaded markdown from file');
+    } catch (error) {
+      throw new Error(`Failed to read input file: ${error.message}`);
+    }
+  } else if (markdown) {
+    markdownContent = markdown;
+  } else {
+    throw new Error('Must specify either "markdown" or "input_file" parameter');
+  }
 
   // Validate markdown size
-  if (markdown.length > MAX_MARKDOWN_SIZE) {
+  if (markdownContent.length > MAX_MARKDOWN_SIZE) {
     throw new Error(`Markdown exceeds maximum size of ${MAX_MARKDOWN_SIZE / 1024 / 1024}MB`);
   }
 
   const startTime = Date.now();
 
-  // Generate output path
-  const outputPath = output_path || join('/tmp', `document-${randomUUID()}.odt`);
+  // Generate output path with default to Horace temp storage
+  const defaultOutputDir = process.env.DEFAULT_OUTPUT_DIR || '/tmp';
+  let outputPath;
+  if (output_path) {
+    // If absolute path, use as-is; if relative, join with default dir
+    outputPath = isAbsolute(output_path) ? output_path : join(defaultOutputDir, output_path);
+  } else {
+    // No path specified, generate default filename
+    outputPath = join(defaultOutputDir, `document-${randomUUID()}.odt`);
+  }
 
   // Convert Markdown to HTML
-  const { html, warnings } = await markdownToHTML(markdown);
+  const { html, warnings } = await markdownToHTML(markdownContent);
 
   // Convert HTML to ODT
   const { size } = await htmlToODT(html, outputPath, metadata);
@@ -481,14 +511,14 @@ async function createDocument(args) {
 
   return {
     success: true,
-    odt_file: outputPath,
+    odt_file: outputPath,  // Already resolved to absolute path
     size_bytes: size,
     metadata: {
       title: metadata.title || 'Document',
       author: metadata.author || '',
       conversion_time_ms: conversionTime
     },
-    warnings
+    warnings: warnings || []
   };
 }
 

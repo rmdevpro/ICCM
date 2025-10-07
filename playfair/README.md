@@ -1,11 +1,16 @@
 # Playfair - Diagram Generation Gateway
 
-**Version:** 1.1
-**Status:** 🚧 **NEW VERSION BUILT - PENDING BLUE/GREEN DEPLOYMENT**
+**Version:** 1.2
+**Status:** ✅ **DEPLOYED**
 **Component Type:** WebSocket MCP Server
-**Port:** 9040 (host, new) / 9041 (host, blue/production) / 8040 (container)
+**Port:** 9040 (host) / 8040 (container)
 
 **Recent Updates (2025-10-07)**:
+- **File Output Capability** (v1.2):
+  - All diagrams now written to disk in Horace storage
+  - Default location: `/mnt/irina_storage/files/temp/playfair/`
+  - Optional `output_path` parameter for custom locations
+  - Returns file path, format, and size (no more base64 data)
 - **Mermaid Engine Fixes** (per triplet consultation):
   - Enhanced environment variable passing for full inheritance
   - Comprehensive Chrome/Puppeteer flags for Docker containers
@@ -15,8 +20,7 @@
   - Replaced local logging with MCP-based logging to Godot
   - Non-blocking WebSocket connections to ws://godot-mcp:9060
   - Silent fallback on Godot unavailability
-- **Manual Testing**: mmdc command verified working with all flags in container
-- **Deployment Status**: New container built and running on port 9040, awaiting blue/green swap
+- **Deployment Status**: ✅ Deployed on port 9040
 
 ---
 
@@ -192,8 +196,9 @@ await playfair_create_diagram({
   format: "dot",
   output_format: "svg",
   theme: "modern",
-  title: "User Authentication Flow"
+  output_path: "my-flowchart.svg"  // Optional - defaults to auto-generated filename
 })
+// Returns: { path: "/mnt/irina_storage/files/temp/playfair/my-flowchart.svg", format: "svg", size: 8456 }
 ```
 
 ### Create a Sequence Diagram (Mermaid)
@@ -215,6 +220,7 @@ await playfair_create_diagram({
   output_format: "png",
   theme: "dark"
 })
+// Returns: { path: "/mnt/irina_storage/files/temp/playfair/diagram-2025-10-07T01-30-45.png", format: "png", size: 15234 }
 ```
 
 ### Auto-Detect Format

@@ -4,10 +4,6 @@
 # Manual edits will be overwritten.
 
 backends:
-- name: gates
-  url: ws://localhost:9051
-- name: playfair
-  url: ws://localhost:9041
 - name: marco
   url: ws://localhost:9031
 - name: fiedler
@@ -18,3 +14,7 @@ backends:
   url: ws://localhost:9070
 - name: godot
   url: ws://localhost:9060
+- name: playfair
+  url: ws://localhost:9040
+- name: gates
+  url: ws://localhost:9050

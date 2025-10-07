@@ -13,10 +13,14 @@ services:
       - PLAYFAIR_URL=ws://playfair-mcp:8040
       - LOG_LEVEL=info
       - NODE_ENV=production
+      # File Output Configuration
+      - DEFAULT_OUTPUT_DIR=/mnt/irina_storage/files/temp/gates
     volumes:
       - gates-output:/app/output
       # Mount ICCM project directory for direct file access
       - /mnt/projects/ICCM:/mnt/projects/ICCM
+      # Mount Horace storage for document output
+      - irina_storage_files:/mnt/irina_storage/files
     networks:
       - iccm_network
     restart: unless-stopped
@@ -38,6 +42,13 @@ services:
 volumes:
   gates-output:
     driver: local
+
+  irina_storage_files:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/projects/ICCM/irina_storage_test/files
+      o: bind
 
 networks:
   iccm_network:

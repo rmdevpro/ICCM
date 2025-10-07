@@ -1,0 +1,23 @@
+{
+  "correlation_id": "571afee8",
+  "timestamp": "20251007_013424",
+  "prompt": "<redacted - 85 chars>",
+  "prompt_length": 85,
+  "files": [],
+  "package_metadata": {},
+  "models": [
+    "gpt-4o-mini"
+  ],
+  "results": [
+    {
+      "model": "gpt-4o-mini",
+      "status": "success",
+      "output_file": "/mnt/irina_storage/files/temp/fiedler/20251007_013424_571afee8/gpt-4o-mini.md",
+      "duration": 2.41,
+      "tokens": {
+        "prompt": 25,
+        "completion": 12
+      }
+    }
+  ]
+}
