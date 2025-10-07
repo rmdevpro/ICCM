@@ -55,9 +55,6 @@ volumes:
     # Define the named volume for temporary data
 
   irina_storage_files:
-    # External volume managed by Horace
-    driver: local
-    driver_opts:
-      type: none
-      device: /mnt/projects/ICCM/irina_storage_test/files
-      o: bind
+    # External volume - SSHFS mount to remote ZFS storage
+    external: true
+    name: fiedler-local_irina_storage_files
