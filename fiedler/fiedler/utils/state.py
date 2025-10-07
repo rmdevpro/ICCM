@@ -35,7 +35,8 @@ def load_state(config_path: Path) -> Dict:
         config = yaml.safe_load(f)
 
     defaults = config.get("defaults", {})
-    default_output = defaults.get("output_dir", "./fiedler_output")
+    # Check environment variable first, then fall back to config
+    default_output = os.getenv("FIEDLER_OUTPUT_DIR") or defaults.get("output_dir", "./fiedler_output")
     # Normalize default output path
     normalized_output = str(Path(default_output).expanduser().resolve())
 
