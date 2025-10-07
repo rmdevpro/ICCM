@@ -138,3 +138,159 @@ A Complete MAD consists of a Thinking Engine, a Doing Engine, and shared infrast
 *   **Marco Deployed:** Internet gateway for browser automation is operational.
 *   **Gates Deployed:** Document generation gateway is operational.
 *   **PostgreSQL Storage Migrated:** Database now resides on a 44TB RAID 5 array, enabling long-term data retention.
+# CURRENT_STATUS.md Update - 2025-10-07
+
+## Session Summary
+
+### MAD Ecosystem Paper Work
+- **Completed**: Created MAD_Ecosystem_Outline_v1.4.md
+  - Merged v1.0 (full substance, 34KB) with v1.1 improvements
+  - Added learning feedback loops, decision maker, state manager
+  - Fixed terminology: Removed all "half-MAD" and "full MAD" references
+  - Uses only "MAD" throughout - half-MADs are temporary implementation scaffolding
+  - Located at: /mnt/projects/Joshua/docs/papers/MAD_Ecosystem_Outline_v1.4.md
+
+### Fiedler Infrastructure Fix
+- **Problem**: Sonnet violated Blue/Green deployment, broke Fiedler configuration
+  - Both fiedler-mcp and fiedler-mcp-blue had incorrect mounts
+  - Mount pointed to non-existent /mnt/projects/ICCM/irina_storage_test/files
+  
+- **Resolution**: 
+  - Restored green container (fiedler-mcp) from git repo (4 hours old, matches current code)
+  - Retired obsolete blue container (8 hours old, predates git commit)
+  - Container now running healthy on ports 9010/9011
+  - Configuration matches /mnt/projects/ICCM/fiedler/docker-compose.yml
+
+### Pending Tasks
+1. **MAD v1.5 Synthesis**: Need to send v1.4 to Gemini for synthesis
+   - Remove all code blocks and textual flowcharts
+   - Use prose and diagram specifications for Playfair
+   - Awaiting MCP relay reconnection to use Fiedler
+
+2. **MCP Relay**: Tools not available in current Claude Code session
+   - Relay and backends running but not connected to this session
+   - Requires Claude Code restart to reconnect
+
+## Next Steps
+1. Restart Claude Code to reconnect MCP relay
+2. Use Fiedler to send MAD v1.4 to Gemini for v1.5 synthesis
+3. Continue with MAD ecosystem development
+
+## Infrastructure Status
+- Fiedler: ✅ Running (green container restored)
+- MCP Relay: ⚠️ Running but not connected to current session
+- IRINA: ✅ Accessible
+
+# CURRENT_STATUS.md Update - 2025-10-07 02:10 EDT
+
+## 🔧 MCP Relay Restoration Completed
+
+### Problem Identified
+- **Issue**: MCP Relay was launched directly from git directory 
+- **Root Cause**: When project files were migrated to remote machine (192.168.1.210), the local relay path broke
+- **Impact**: Claude Code could not connect to any backend services
+
+### Solution Implemented
+- **Local Installation**: Properly installed relay locally at 
+  - Created Python virtual environment with dependencies (websockets, pyyaml)
+  - Updated Claude MCP configuration to use local relay path
+  - Modified  to point to remote services at 192.168.1.210
+- **Architecture Fix**: Relay now runs locally, connects to remote backend services
+- **Status**: ✅ Relay properly configured and ready for testing after Claude Code restart
+
+## 📋 Immediate Next Steps
+
+### 1. Test Fiedler Write Path (PRIORITY)
+- **Objective**: Verify Fiedler can write to its configured output path
+- **Expected Path**: 
+- **Test Method**: Send a simple request through Fiedler and confirm file creation
+- **Success Criteria**: Output file created with proper permissions and content
+
+### 2. Complete MAD v1.5 Synthesis
+- Use restored Fiedler to send MAD v1.4 to Gemini
+- Remove code blocks and textual flowcharts
+- Generate prose and Playfair diagram specifications
+
+## Infrastructure Status Update
+- Fiedler: ✅ Running (green container restored)
+- MCP Relay: ✅ Restored (local installation, remote backends)
+- IRINA Storage: ✅ Accessible
+- Backend Services: ✅ All running on 192.168.1.210
+
+## Session Notes
+- Claude Code restart required to activate new relay configuration
+- All backend services confirmed running on remote machine
+- Relay architecture now follows proper local/remote separation
+
+# CURRENT_STATUS.md Update - 2025-10-07 02:10 EDT
+
+## 🔧 MCP Relay Restoration Completed
+
+### Problem Identified
+- **Issue**: MCP Relay was launched directly from git directory `/mnt/projects/ICCM/mcp-relay/`
+- **Root Cause**: When project files were migrated to remote machine (192.168.1.210), the local relay path broke
+- **Impact**: Claude Code could not connect to any backend services
+
+### Solution Implemented
+- **Local Installation**: Properly installed relay locally at `/home/aristotle9/mcp-relay/`
+  - Created Python virtual environment with dependencies (websockets, pyyaml)
+  - Updated Claude MCP configuration to use local relay path
+  - Modified `backends.yaml` to point to remote services at 192.168.1.210
+- **Architecture Fix**: Relay now runs locally, connects to remote backend services
+- **Status**: ✅ Relay properly configured and ready for testing after Claude Code restart
+
+## 📋 Immediate Next Steps
+
+### 1. Test Fiedler Write Path (PRIORITY)
+- **Objective**: Verify Fiedler can write to its configured output path
+- **Expected Path**: `/mnt/irina_storage/files/fiedler_output`
+- **Test Method**: Send a simple request through Fiedler and confirm file creation
+- **Success Criteria**: Output file created with proper permissions and content
+
+### 2. Complete MAD v1.5 Synthesis
+- Use restored Fiedler to send MAD v1.4 to Gemini
+- Remove code blocks and textual flowcharts
+- Generate prose and Playfair diagram specifications
+
+## Infrastructure Status Update
+- Fiedler: ✅ Running (green container restored)
+- MCP Relay: ✅ Restored (local installation, remote backends)
+- IRINA Storage: ✅ Accessible
+- Backend Services: ✅ All running on 192.168.1.210
+
+## Session Notes
+- Claude Code restart required to activate new relay configuration
+- All backend services confirmed running on remote machine
+- Relay architecture now follows proper local/remote separation
+# CURRENT_STATUS.md Update - 2025-10-07 02:22 EDT
+
+## 🔧 MCP Relay Path Issue Fixed
+
+### Problem Found & Resolved
+- **Issue**: MCP Relay had hardcoded paths pointing to `/mnt/projects/ICCM/mcp-relay/` 
+- **Root Cause**: When relay was moved to local installation at `/home/aristotle9/mcp-relay/`, the hardcoded paths prevented it from finding `backends.yaml`
+- **Impact**: Claude Code couldn't start relay due to immediate "Config load failed" error
+
+### Code Changes Made
+1. **Fixed hardcoded paths** in `mcp_relay.py`:
+   - Line 88: Changed `__init__` default config path to use dynamic resolution
+   - Line 968: Changed argparse default to use `os.path.join(os.path.dirname(os.path.abspath(__file__)), "backends.yaml")`
+2. **Added missing import**: Added `import os` to imports (line 17)
+
+### Verification
+- Relay now starts successfully when run manually
+- Loads all 7 backends correctly: marco, fiedler, dewey, horace, godot, playfair, gates
+- Config file properly found at `/home/aristotle9/mcp-relay/backends.yaml`
+
+## Infrastructure Status Update (02:22 EDT)
+- MCP Relay: ✅ **FIXED** - Path issues resolved, ready for Claude Code restart
+- Fiedler: ✅ Running on 192.168.1.210:9012
+- Dewey: ✅ Running on 192.168.1.210:9022
+- Godot: ✅ Running on 192.168.1.210:9060
+- Horace: ✅ Running on 192.168.1.210:9070
+- Marco: ✅ Running on 192.168.1.210:9031
+- Playfair: ✅ Running on 192.168.1.210:9040
+- Gates: ✅ Running on 192.168.1.210:9050
+
+## Next Immediate Action
+**RESTART CLAUDE CODE** to reconnect with the fixed MCP relay and test Fiedler integration
