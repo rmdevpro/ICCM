@@ -195,6 +195,7 @@ await playfair_create_diagram({
   `,
   format: "dot",
   output_format: "svg",
+  output_mode: "path",  // Optional: "path" (default), "base64", or "both"
   theme: "modern",
   output_path: "my-flowchart.svg"  // Optional - defaults to auto-generated filename
 })
@@ -233,6 +234,48 @@ await playfair_create_diagram({
   theme: "professional"
 })
 ```
+
+### Output Modes
+
+Playfair supports flexible output modes to accommodate different use cases:
+
+#### Path Mode (default)
+Returns only the file path where the diagram was saved.
+
+```javascript
+await playfair_create_diagram({
+  content: "digraph { A -> B; }",
+  output_mode: "path"  // or omit - this is the default
+})
+// Returns: { path: "/mnt/irina_storage/.../diagram.svg", format: "svg", size: 1234 }
+```
+
+#### Base64 Mode
+Returns only the base64-encoded diagram data (no file saved to disk, data still written internally).
+
+```javascript
+await playfair_create_diagram({
+  content: "digraph { A -> B; }",
+  output_mode: "base64"
+})
+// Returns: { data: "PHN2ZyB4bWxucz0iaHR0cDov...", format: "svg", size: 1234 }
+```
+
+#### Both Mode
+Returns both the file path and base64 data.
+
+```javascript
+await playfair_create_diagram({
+  content: "digraph { A -> B; }",
+  output_mode: "both"
+})
+// Returns: { path: "/mnt/irina_storage/.../diagram.svg", data: "PHN2ZyB4...", format: "svg", size: 1234 }
+```
+
+**Use Cases:**
+- `path`: Default - for file-based workflows, persistent storage
+- `base64`: For direct embedding in documents (e.g., Gates ODT generation), API responses
+- `both`: Maximum flexibility - caller can use either representation
 
 ---
 

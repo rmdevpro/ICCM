@@ -98,7 +98,46 @@ gates_create_document({
 - **Task lists:** `- [ ] Task` and `- [x] Done`
 - **Bold/Italic:** Standard markdown emphasis
 - **Links:** Hyperlinks preserved
-- **Images:** Local images embedded, URLs linked
+- **Images:** Multiple formats supported (see Image Handling below)
+
+### Image Handling
+
+Gates supports flexible image handling for multiple source types:
+
+#### 1. Playfair Diagrams (Embedded)
+```markdown
+\`\`\`playfair-dot
+digraph { A -> B; }
+\`\`\`
+```
+- Rendered by Playfair in real-time
+- Embedded as base64 PNG in ODT
+- Fallback to source code if rendering fails
+
+#### 2. Inline Base64 Images (Embedded)
+```markdown
+![Logo](data:image/png;base64,iVBORw0KGgo...)
+```
+- Already in base64 format
+- Embedded directly in ODT
+- No external file access needed
+
+#### 3. File Path Images (Embedded)
+```markdown
+![Diagram](./path/to/image.png)
+![Diagram](/absolute/path/to/image.png)
+```
+- Reads image from filesystem
+- Converts to base64 and embeds in ODT
+- Supports: PNG, JPG, JPEG, GIF, SVG, WEBP
+- Relative paths resolved against Horace temp storage
+
+#### 4. URL Images (Linked)
+```markdown
+![External](https://example.com/image.png)
+```
+- Currently preserved as URL links
+- Future: Option to fetch and embed
 
 ### Diagram Embedding
 

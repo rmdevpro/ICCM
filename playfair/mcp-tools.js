@@ -21,6 +21,7 @@ class McpTools {
                         content: { type: 'string', description: 'Diagram specification (DOT or Mermaid syntax).' },
                         format: { type: 'string', enum: ['dot', 'mermaid', 'auto'], default: 'auto', description: 'Input format.' },
                         output_format: { type: 'string', enum: ['svg', 'png'], default: 'svg', description: 'Output image format.' },
+                        output_mode: { type: 'string', enum: ['path', 'base64', 'both'], default: 'path', description: 'Return file path, base64 data, or both.' },
                         theme: { type: 'string', enum: ['professional', 'modern', 'minimal', 'dark'], default: 'modern', description: 'Visual theme.' },
                         width: { type: 'integer', default: 1920, description: 'Output width in pixels for PNG.' },
                         height: { type: 'integer', description: 'Output height in pixels (auto if not specified).' },
@@ -152,13 +153,19 @@ class McpTools {
 
         logger.info({ path: finalPath, format: outputFormat, size: result.data.length }, 'Diagram written to file');
 
-        return {
-            result: {
-                path: finalPath,
-                format: outputFormat,
-                size: result.data.length,
-            },
-        };
+        // Build response based on output_mode
+        const outputMode = options.output_mode || 'path';
+        const responseData = { format: outputFormat, size: result.data.length };
+
+        if (outputMode === 'path' || outputMode === 'both') {
+            responseData.path = finalPath;
+        }
+
+        if (outputMode === 'base64' || outputMode === 'both') {
+            responseData.data = result.data.toString('base64');
+        }
+
+        return { result: responseData };
     }
 
     listCapabilities() {

@@ -235,6 +235,39 @@ function createPlayfairPlugin() {
 }
 
 /**
+ * Create image processing plugin for markdown-it
+ * Handles file paths, URLs, and base64 data in markdown images
+ */
+function createImagePlugin() {
+  return (md) => {
+    const defaultImageRenderer = md.renderer.rules.image || function(tokens, idx, options, env, slf) {
+      return slf.renderToken(tokens, idx, options);
+    };
+
+    md.renderer.rules.image = function(tokens, idx, options, env, slf) {
+      const token = tokens[idx];
+      const src = token.attrGet('src');
+
+      if (src) {
+        // Store image for async processing
+        const placeholderId = `IMAGE_${randomUUID()}`;
+        env.markdownImages = env.markdownImages || [];
+        env.markdownImages.push({
+          id: placeholderId,
+          src,
+          alt: token.content || 'Image'
+        });
+
+        // Return placeholder
+        return `<img id="${placeholderId}" alt="${token.content || 'Image'}" />`;
+      }
+
+      return defaultImageRenderer(tokens, idx, options, env, slf);
+    };
+  };
+}
+
+/**
  * Process Playfair diagrams in HTML
  */
 async function processPlayfairDiagrams(html, diagrams) {
@@ -251,22 +284,37 @@ async function processPlayfairDiagrams(html, diagrams) {
         content: diagram.content,
         format: diagram.format,
         output_format: 'png',
+        output_mode: 'base64',
         theme: 'professional'
       });
 
-      // Extract base64 image from result - Option B (Triplet Consensus)
+      // Extract image from Playfair result
       const imageData = result?.content?.[0]?.text;
       let base64Data = null;
 
       if (imageData) {
         try {
           const jsonData = JSON.parse(imageData);
-          // Primary correct path based on actual Playfair response
-          base64Data = jsonData?.result?.data;
 
-          if (!base64Data) {
-            // Log when parsing succeeds but the key is missing
-            logger.warn({ playfairResponse: jsonData, diagramId: diagram.id }, 'Playfair response parsed successfully but is missing "result.data" key');
+          // Playfair can return base64 data, file path, or both depending on output_mode
+          if (jsonData?.result?.data) {
+            // Direct base64 data from Playfair
+            base64Data = jsonData.result.data;
+            logger.info({ diagramId: diagram.id }, 'Using base64 data from Playfair');
+          } else if (jsonData?.result?.path) {
+            // Fallback: Read from file path
+            const imagePath = jsonData.result.path;
+            const containerPath = imagePath.replace('/mnt/projects/ICCM/irina_storage_test/files', '/mnt/irina_storage/files');
+
+            try {
+              const imageBuffer = await readFile(containerPath);
+              base64Data = imageBuffer.toString('base64');
+              logger.info({ imagePath: containerPath, diagramId: diagram.id }, 'Loaded diagram image from file path');
+            } catch (readError) {
+              logger.error({ error: readError.message, imagePath: containerPath, diagramId: diagram.id }, 'Failed to read Playfair image file');
+            }
+          } else {
+            logger.warn({ playfairResponse: jsonData, diagramId: diagram.id }, 'Playfair response missing both "result.data" and "result.path"');
           }
         } catch (e) {
           logger.error({ error: e.message, rawResponse: imageData, diagramId: diagram.id }, 'Failed to parse JSON from Playfair response');
@@ -321,6 +369,94 @@ ${diagram.content}</code></pre>`;
 }
 
 /**
+ * Process markdown images (file paths, URLs, base64)
+ */
+async function processMarkdownImages(html, images) {
+  if (!images || images.length === 0) {
+    return { html, warnings: [] };
+  }
+
+  const warnings = [];
+  let processedHtml = html;
+
+  for (const image of images) {
+    try {
+      let base64Data = null;
+      let mimeType = 'image/png';
+
+      // Check if src is already base64
+      if (image.src.startsWith('data:')) {
+        // Already base64, use as-is
+        const imgTag = `<img src="${image.src}" alt="${image.alt}" />`;
+        processedHtml = processedHtml.replace(
+          `<img id="${image.id}" alt="${image.alt}" />`,
+          imgTag
+        );
+        continue;
+      }
+
+      // Check if src is a URL
+      if (image.src.startsWith('http://') || image.src.startsWith('https://')) {
+        // For now, leave URLs as-is (could fetch and embed in future)
+        const imgTag = `<img src="${image.src}" alt="${image.alt}" />`;
+        processedHtml = processedHtml.replace(
+          `<img id="${image.id}" alt="${image.alt}" />`,
+          imgTag
+        );
+        continue;
+      }
+
+      // Treat as file path
+      let filePath = image.src;
+
+      // Convert host path to container path if needed
+      if (filePath.includes('/mnt/projects/ICCM/irina_storage_test/files')) {
+        filePath = filePath.replace('/mnt/projects/ICCM/irina_storage_test/files', '/mnt/irina_storage/files');
+      } else if (!isAbsolute(filePath)) {
+        // Relative path - resolve against Horace temp storage
+        filePath = join('/mnt/irina_storage/files/temp', filePath);
+      }
+
+      // Detect MIME type from extension
+      const ext = filePath.split('.').pop().toLowerCase();
+      const mimeTypes = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'svg': 'image/svg+xml',
+        'webp': 'image/webp'
+      };
+      mimeType = mimeTypes[ext] || 'image/png';
+
+      // Read and convert to base64
+      try {
+        const imageBuffer = await readFile(filePath);
+        base64Data = imageBuffer.toString('base64');
+        logger.info({ filePath, imageId: image.id }, 'Loaded markdown image from file');
+      } catch (readError) {
+        logger.error({ error: readError.message, filePath, imageId: image.id }, 'Failed to read markdown image file');
+        warnings.push(`Failed to load image: ${image.src}`);
+        continue;
+      }
+
+      if (base64Data) {
+        const imgTag = `<img src="data:${mimeType};base64,${base64Data}" alt="${image.alt}" />`;
+        processedHtml = processedHtml.replace(
+          `<img id="${image.id}" alt="${image.alt}" />`,
+          imgTag
+        );
+      }
+    } catch (error) {
+      logger.error({ error: error.message, imageId: image.id }, 'Markdown image processing failed');
+      warnings.push(`Image processing failed: ${image.src}`);
+    }
+  }
+
+  return { html: processedHtml, warnings };
+}
+
+/**
  * Convert Markdown to HTML
  */
 async function markdownToHTML(markdown) {
@@ -336,15 +472,19 @@ async function markdownToHTML(markdown) {
     })
     .use(markdownItAttrs)
     .use(markdownItTaskLists)
-    .use(createPlayfairPlugin());
+    .use(createPlayfairPlugin())
+    .use(createImagePlugin());
 
   const env = {};
   const html = md.render(markdown, env);
 
   // Process Playfair diagrams
-  const { html: processedHtml, warnings } = await processPlayfairDiagrams(html, env.playfairDiagrams);
+  const { html: processedHtml1, warnings: warnings1 } = await processPlayfairDiagrams(html, env.playfairDiagrams);
 
-  return { html: processedHtml, warnings };
+  // Process markdown images
+  const { html: processedHtml2, warnings: warnings2 } = await processMarkdownImages(processedHtml1, env.markdownImages);
+
+  return { html: processedHtml2, warnings: [...(warnings1 || []), ...(warnings2 || [])] };
 }
 
 /**
@@ -364,39 +504,116 @@ async function htmlToODT(html, outputPath, metadata = {}) {
   <meta name="author" content="${metadata.author || ''}" />
   <meta name="date" content="${metadata.date || new Date().toISOString()}" />
   <style>
+    @page {
+      size: A4;
+      margin: 2.54cm;
+      @bottom-center {
+        content: counter(page);
+        font-size: 10pt;
+      }
+    }
     body {
-      font-family: 'Liberation Serif', serif;
+      font-family: 'Liberation Serif', 'Times New Roman', serif;
       font-size: 12pt;
       line-height: 1.5;
-      margin: 2.54cm;
+      margin: 0;
+      padding: 0;
+      counter-reset: figure;
     }
-    h1 { font-size: 18pt; font-weight: bold; }
-    h2 { font-size: 16pt; font-weight: bold; }
-    h3 { font-size: 14pt; font-weight: bold; }
-    h4, h5, h6 { font-size: 12pt; font-weight: bold; }
-    code, pre {
-      font-family: 'Liberation Mono', monospace;
+    /* Improved heading hierarchy with spacing */
+    h1 {
+      font-family: 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 20pt;
+      font-weight: bold;
+      margin-top: 24pt;
+      margin-bottom: 12pt;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-family: 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 16pt;
+      font-weight: bold;
+      margin-top: 18pt;
+      margin-bottom: 6pt;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-family: 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 14pt;
+      font-weight: bold;
+      margin-top: 14pt;
+      margin-bottom: 4pt;
+      page-break-after: avoid;
+    }
+    h4, h5, h6 {
+      font-family: 'Liberation Sans', 'Arial', sans-serif;
+      font-size: 12pt;
+      font-weight: bold;
+      margin-top: 12pt;
+      margin-bottom: 3pt;
+      page-break-after: avoid;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 6pt;
+      text-align: justify;
+    }
+    /* Image/Figure styling with captions */
+    img {
+      display: block;
+      margin: 12pt auto;
+      max-width: 90%;
+      height: auto;
+      border: 0.5pt solid #000;
+      page-break-inside: avoid;
+    }
+    /* Lists with proper indentation */
+    ul, ol {
+      margin: 6pt 0;
+      padding-left: 24pt;
+    }
+    li {
+      margin-bottom: 3pt;
+    }
+    /* Code blocks */
+    code {
+      font-family: 'Liberation Mono', 'Courier New', monospace;
       font-size: 10pt;
       background-color: #f5f5f5;
-      padding: 0.2em;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
     }
     pre {
-      padding: 1em;
-      line-height: 1.0;
+      font-family: 'Liberation Mono', 'Courier New', monospace;
+      font-size: 10pt;
+      background-color: #f5f5f5;
+      padding: 12pt;
+      line-height: 1.2;
+      margin: 12pt 0;
+      border: 1pt solid #ddd;
+      page-break-inside: avoid;
+      overflow-x: auto;
     }
+    /* Table styling */
     table {
       border-collapse: collapse;
       width: 100%;
-      margin: 1em 0;
+      margin: 12pt 0;
+      page-break-inside: avoid;
     }
     th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      border: 1pt solid #333;
+      padding: 6pt 8pt;
       text-align: left;
+      vertical-align: top;
     }
     th {
-      background-color: #f2f2f2;
+      background-color: #e8e8e8;
       font-weight: bold;
+      font-size: 11pt;
+    }
+    td {
+      font-size: 11pt;
     }
   </style>
 </head>
