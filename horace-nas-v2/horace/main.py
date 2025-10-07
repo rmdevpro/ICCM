@@ -10,6 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 import horace.mcp_server as mcp_server
+import horace.mcp_websocket_server as mcp_websocket_server
 from horace.catalog import CatalogManager
 from horace.watcher import WatcherService
 from horace.zfs_ops import create_snapshot, prune_snapshots
@@ -71,8 +72,9 @@ async def main():
     catalog = CatalogManager(db_path=DB_PATH, base_path=FILES_PATH)
     await catalog.connect()
 
-    # Make catalog instance available to the web server
+    # Make catalog instance available to the web servers
     mcp_server.catalog = catalog
+    mcp_websocket_server.catalog = catalog
 
     # 2. Perform Initial Filesystem Scan (Reconciliation)
     await catalog.reconcile()
@@ -80,11 +82,21 @@ async def main():
     # 3. Initialize Watcher Service
     watcher = WatcherService(catalog_manager=catalog, watch_path=FILES_PATH)
 
-    # 4. Initialize API Server
+    # 4. Initialize HTTP REST API Server
     config = uvicorn.Config(mcp_server.app, host=API_HOST, port=API_PORT, log_level=LOG_LEVEL.lower())
-    server = uvicorn.Server(config)
+    http_server = uvicorn.Server(config)
 
-    # 5. Initialize ZFS Snapshot Scheduler
+    # 5. Initialize WebSocket MCP Server
+    from iccm_network import MCPServer
+    websocket_server = MCPServer(
+        name="horace",
+        version="2.1.0",
+        port=9070,
+        tool_definitions=mcp_websocket_server.TOOLS,
+        tool_handlers=mcp_websocket_server.HANDLERS
+    )
+
+    # 6. Initialize ZFS Snapshot Scheduler
     scheduler = AsyncIOScheduler()
     if ENABLE_ZFS_SNAPSHOTS:
         logger.info(f"ZFS snapshotting enabled for dataset '{ZFS_DATASET}'")
@@ -97,11 +109,12 @@ async def main():
     else:
         logger.warning("ZFS snapshotting is disabled.")
 
-    # Run watcher and server concurrently
+    # Run watcher, HTTP server, and WebSocket MCP server concurrently
     try:
         await asyncio.gather(
             watcher.run(),
-            server.serve()
+            http_server.serve(),
+            websocket_server.start()
         )
     except asyncio.CancelledError:
         logger.info("Main task cancelled. Shutting down.")

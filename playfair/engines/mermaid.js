@@ -1,4 +1,4 @@
-const { execFile } = require('child_process');
+const { exec } = require('child_process');
 const { promisify } = require('util');
 const crypto = require('crypto');
 const fs = require('fs/promises');
@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 const svgProcessor = require('../themes/svg-processor');
 const themes = require('../themes/mermaid-themes.json');
 
-const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 const RENDER_TIMEOUT = parseInt(process.env.RENDER_TIMEOUT_MS, 10) || 60000;
 
 class MermaidEngine extends BaseEngine {
@@ -20,7 +20,7 @@ class MermaidEngine extends BaseEngine {
     async render(content, options) {
         const theme = options.theme || 'modern';
         const mermaidTheme = themes[theme]?.mermaidTheme || 'default';
-        
+
         let tempInputDir, tempOutputDir, tempConfigPath;
         try {
             // Create temporary files for mmdc CLI with crypto-random names to prevent symlink attacks
@@ -36,23 +36,79 @@ class MermaidEngine extends BaseEngine {
             const mermaidConfig = { "theme": mermaidTheme };
             await fs.writeFile(tempConfigPath, JSON.stringify(mermaidConfig));
 
-            // Create Puppeteer config file with --no-sandbox for Docker environment
+            // Create Puppeteer config file with comprehensive Chrome flags for Docker
             const puppeteerConfigPath = path.join(tempDir, `${randomName}-puppeteer.json`);
             const puppeteerConfig = {
-                "args": ["--no-sandbox", "--disable-setuid-sandbox"]
+                "executablePath": "/home/appuser/chrome-headless-shell",
+                "args": [
+                    // Sandbox flags
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    // Memory and resource flags (important for containers)
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-web-security",
+                    "--disable-features=VizDisplayCompositor",
+                    // Process flags
+                    "--no-first-run",
+                    "--no-zygote",
+                    "--single-process",
+                    "--disable-extensions",
+                    // Additional stability flags
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-renderer-backgrounding"
+                ],
+                "headless": "new",
+                "timeout": 30000,
+                "protocolTimeout": 30000
             };
-            await fs.writeFile(puppeteerConfigPath, JSON.stringify(puppeteerConfig));
+            await fs.writeFile(puppeteerConfigPath, JSON.stringify(puppeteerConfig, null, 2), {
+                mode: 0o644
+            });
 
-            // Use execFile (no shell) for better security
-            const args = [
-                '-i', tempInputDir,
-                '-o', tempOutputDir,
-                '-c', tempConfigPath,
-                '-p', puppeteerConfigPath,  // Puppeteer config for Docker sandbox workaround
-                '-w', '1920'
-            ];
+            // Verify file exists and is readable
+            await fs.access(puppeteerConfigPath, fs.constants.R_OK);
 
-            await execFileAsync('mmdc', args, { timeout: RENDER_TIMEOUT });
+            // Use shell execution for full environment inheritance (per triplet recommendation)
+            const command = `mmdc -i "${tempInputDir}" -o "${tempOutputDir}" -c "${tempConfigPath}" -p "${puppeteerConfigPath}" -w 1920`;
+
+            // Enhanced environment variable passing
+            const currentEnv = process.env;
+            const env = {
+                ...currentEnv,  // Inherit all current environment variables
+                PUPPETEER_EXECUTABLE_PATH: '/home/appuser/chrome-headless-shell',
+                PUPPETEER_ARGS: '--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage',
+                HOME: process.env.HOME || '/home/appuser',
+                PATH: process.env.PATH,
+                NODE_PATH: process.env.NODE_PATH,
+                PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: '1'
+            };
+
+            try {
+                const { stdout, stderr } = await execAsync(command, {
+                    timeout: RENDER_TIMEOUT,
+                    env,
+                    shell: '/bin/bash',
+                    cwd: process.cwd()
+                });
+
+                if (stderr) {
+                    logger.warn({ engine: this.name, stderr }, 'mmdc stderr output');
+                }
+            } catch (error) {
+                logger.error({
+                    engine: this.name,
+                    error: {
+                        message: error.message,
+                        code: error.code,
+                        signal: error.signal,
+                        stdout: error.stdout,
+                        stderr: error.stderr
+                    }
+                }, 'mmdc execution failed');
+                throw error;
+            }
             
             const rawSvg = await fs.readFile(tempOutputDir, 'utf-8');
             

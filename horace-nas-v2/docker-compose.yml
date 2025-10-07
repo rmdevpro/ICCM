@@ -22,14 +22,15 @@ volumes:
 services:
   horace-mcp:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: horace-nas-v2/Dockerfile
     restart: unless-stopped
     # Run as a non-root user. This UID/GID must match the ownership
     # of the ZFS datasets on the host.
     user: "1000:1000"
     ports:
-      - "8000:8000"
+      - "8000:8000"   # HTTP REST API
+      - "9070:9070"   # MCP WebSocket server
     volumes:
       # Mounts the shared files directory (read-write)
       - irina_storage_files:/mnt/irina_storage/files
@@ -37,6 +38,8 @@ services:
       - irina_storage_metadata:/mnt/irina_storage/.horace
       # Mount /etc/localtime to ensure container time matches host time for snapshots
       - /etc/localtime:/etc/localtime:ro
+      # Mount iccm-network library for MCP WebSocket server
+      - ../iccm-network:/app/iccm-network:ro
     environment:
       # These paths match the mount points inside the container
       - HORACE_FILES_PATH=/mnt/irina_storage/files

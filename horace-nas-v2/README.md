@@ -1,6 +1,12 @@
 # Horace NAS Gateway v2.1
 
-**Status**: Approved by triplet review (DeepSeek-R1 + GPT-4o) - Ready for deployment
+**Status**: ✅ **DEPLOYED** - WebSocket MCP server active on port 9070
+
+**Recent Updates (2025-10-07)**:
+- Added WebSocket MCP server using iccm-network library
+- Provides MCP tools on port 9070 alongside HTTP REST API on port 8000
+- Fixed PostgreSQL authentication (database: horace, correct credentials)
+- Relay successfully connected and tools verified working
 
 ## Overview
 

@@ -13,12 +13,15 @@ WORKDIR /app
 # Create a non-root user and group
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
+# Copy iccm-network library for installation
+COPY iccm-network /app/iccm-network
+
 # Install dependencies
-COPY requirements.txt .
+COPY horace-nas-v2/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
-COPY horace/ /app/horace/
+COPY horace-nas-v2/horace/ /app/horace/
 
 # Change ownership of the app directory to the non-root user
 # Note: Volumes mounted later will have their own ownership
@@ -27,8 +30,8 @@ RUN chown -R appuser:appgroup /app
 # Switch to the non-root user
 USER appuser
 
-# Expose the port the app runs on
-EXPOSE 8000
+# Expose the ports the app runs on
+EXPOSE 8000 9070
 
 # Run the application
 CMD ["python", "-m", "horace.main"]

@@ -12,3 +12,6 @@ apscheduler
 
 # For PostgreSQL async database connectivity
 asyncpg
+
+# For MCP WebSocket server
+/app/iccm-network

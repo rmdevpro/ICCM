@@ -1,9 +1,22 @@
 # Playfair - Diagram Generation Gateway
 
-**Version:** 1.0
-**Status:** Requirements Complete - Ready for Implementation
+**Version:** 1.1
+**Status:** 🚧 **NEW VERSION BUILT - PENDING BLUE/GREEN DEPLOYMENT**
 **Component Type:** WebSocket MCP Server
-**Port:** 9040 (host) / 8040 (container)
+**Port:** 9040 (host, new) / 9041 (host, blue/production) / 8040 (container)
+
+**Recent Updates (2025-10-07)**:
+- **Mermaid Engine Fixes** (per triplet consultation):
+  - Enhanced environment variable passing for full inheritance
+  - Comprehensive Chrome/Puppeteer flags for Docker containers
+  - Switched to shell execution (`exec`) for better compatibility
+  - All Chrome sandbox flags: --no-sandbox, --disable-setuid-sandbox, --disable-dev-shm-usage, --disable-gpu, --no-first-run, --no-zygote, --single-process
+- **Godot MCP Logging Integration**:
+  - Replaced local logging with MCP-based logging to Godot
+  - Non-blocking WebSocket connections to ws://godot-mcp:9060
+  - Silent fallback on Godot unavailability
+- **Manual Testing**: mmdc command verified working with all flags in container
+- **Deployment Status**: New container built and running on port 9040, awaiting blue/green swap
 
 ---
 
