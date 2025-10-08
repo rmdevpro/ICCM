@@ -294,3 +294,24 @@ A Complete MAD consists of a Thinking Engine, a Doing Engine, and shared infrast
 
 ## Next Immediate Action
 **RESTART CLAUDE CODE** to reconnect with the fixed MCP relay and test Fiedler integration
+
+### ✅ Fiedler Native Multimodal Support with Gemini File API
+*   **Milestone:** Implemented native multimodal audio/image support with automatic File API upload for large files.
+*   **Problem:** 11MB audio file was being base64-encoded, creating 8.6M tokens that exceeded Gemini's context window.
+*   **Solution:** Implemented full native multimodal pipeline:
+    - **Binary Detection:** `package.py` now detects binary files via UnicodeDecodeError and returns them separately
+    - **Attachment Resolution:** `send.py` resolves binary files using `attachments.py` with MIME detection and SSRF protection
+    - **Gemini File API:** `gemini_client.py` automatically uses File API for files > 4MB, inline_data for smaller files
+    - **Provider Integration:** All providers (Gemini, OpenAI, Together, XAI) updated to accept optional attachments parameter
+*   **File API Implementation:**
+    - Uploads large files to Gemini File API with proper multipart format (metadata + file parts)
+    - Returns file URI for reference in generateContent API
+    - Automatic fallback to inline_data for files < 4MB
+*   **Testing:** Successfully transcribed 11MB, 29-minute audio file (55,771 prompt tokens including audio) with Gemini 2.5 Pro
+*   **Outputs Generated:**
+    - Complete transcription of shower thoughts audio
+    - Casual paper covering IAEE evolution (`/mnt/projects/Joshua/audio/casual_paper_shower_thoughts_oct7.md`)
+    - Structured outline summary (`/mnt/projects/Joshua/audio/outline_summary_oct7.md`)
+*   **Status:** Core implementation complete and verified. Docker/MCP integration pending minor debugging.
+*   **Architecture:** Maintains separation of concerns - attachment resolution in utils, File API in gemini_client, provider abstraction in base.py
+*   **Next Step:** Debug GeminiProvider dynamic module import in Docker container (works in direct Python calls)
